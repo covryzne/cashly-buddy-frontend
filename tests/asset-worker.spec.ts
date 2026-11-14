@@ -40,6 +40,33 @@ function worker(
   };
 }
 
+test("Ikon Apple berfilename baru masuk allowlist dan memakai cache aset yang ada", async () => {
+  const stored = new Map<string, Response>();
+  let downloads = 0;
+  const dispatch = worker(
+    {
+      open: async () => ({
+        match: async (request: Request) => stored.get(request.url)?.clone(),
+        put: async (request: Request, response: Response) => {
+          stored.set(request.url, response.clone());
+        },
+      }),
+    },
+    async () => {
+      downloads++;
+      return new Response("mochi-icon", {
+        headers: { "Content-Type": "image/png" },
+      });
+    },
+  );
+  const request = new Request(
+    "https://cashly.test/icons/apple-touch-icon-mochi-3.png",
+  );
+  expect(await (await dispatch(request))?.text()).toBe("mochi-icon");
+  expect(await (await dispatch(request))?.text()).toBe("mochi-icon");
+  expect(downloads).toBe(1);
+});
+
 test("Worker tidak mengintersep HTML, API, auth, foto privat, atau request Authorization", () => {
   const dispatch = worker({}, async () => {
     throw new Error("Unexpected fetch");

@@ -15,7 +15,14 @@ export function GoogleSignInButton() {
         className="google-sign-in"
         onClick={() => setOpen(true)}
       >
-        <Image src="/branding/google-g.png" width={20} height={20} alt="" />
+        <Image
+          src="/branding/google-g.png"
+          width={200}
+          height={204}
+          sizes="20px"
+          style={{ width: 20, height: "auto" }}
+          alt=""
+        />
         Lanjutkan dengan Google
       </Button>
       {open && (

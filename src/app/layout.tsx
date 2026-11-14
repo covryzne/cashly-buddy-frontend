@@ -9,6 +9,7 @@ import "../styles/scan.css";
 import "../styles/expense-chat.css";
 import "../styles/voice.css";
 import "../styles/date-time-picker.css";
+import "../styles/install-app.css";
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
@@ -43,7 +44,7 @@ export const metadata: Metadata = {
       },
     ],
     apple: {
-      url: "/apple-touch-icon.png?v=mochi-2",
+      url: "/icons/apple-touch-icon-mochi-3.png",
       sizes: "180x180",
       type: "image/png",
     },

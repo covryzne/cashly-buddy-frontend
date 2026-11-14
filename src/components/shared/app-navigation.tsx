@@ -46,7 +46,7 @@ export function AppNavigation({
               >
                 <Icon size={21} />
                 {label}
-                <span className="nav-soon">Nanti</span>
+                {label !== "Profil" && <span className="nav-soon">Nanti</span>}
               </button>
             ),
           )}

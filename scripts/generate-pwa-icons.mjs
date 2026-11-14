@@ -26,6 +26,10 @@ for (const [name, size] of [
 // Safari can discover this conventional path even without a page-specific link.
 await copyFile(
   new URL("apple-touch-icon.png", directory),
+  new URL("apple-touch-icon-mochi-3.png", directory),
+);
+await copyFile(
+  new URL("apple-touch-icon.png", directory),
   new URL("../public/apple-touch-icon.png", import.meta.url),
 );
 
@@ -61,4 +65,6 @@ await writeFile(
   new URL("../public/favicon.ico", import.meta.url),
   Buffer.concat([header, ...frames]),
 );
-console.log("Generated Cashly Mochi icons: PWA, maskable, Apple touch and favicon.");
+console.log(
+  "Generated Cashly Mochi icons: PWA, maskable, Apple touch and favicon.",
+);

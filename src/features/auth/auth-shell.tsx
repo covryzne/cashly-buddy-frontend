@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Check, Sparkles, Heart, Leaf } from "lucide-react";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { InstallAppEntry } from "@/components/shared/install-app";
 import { LoginAssetPreloader } from "@/components/shared/asset-cache-bootstrap";
 import "@/styles/auth.css";
 
@@ -122,6 +123,7 @@ export function AuthShell({
             <p className="auth-form-description">{copy.description}</p>
             {children}
           </div>
+          {mode === "login" && <InstallAppEntry />}
           <p className="auth-footnote">
             Sedikit lebih kenal pengeluaranmu, setiap hari.
           </p>

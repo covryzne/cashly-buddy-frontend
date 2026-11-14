@@ -14,6 +14,8 @@ const ASSETS = [
   "/icons/favicon-16.png?v=mochi-1",
   "/icons/favicon-32.png?v=mochi-1",
   "/apple-touch-icon.png?v=mochi-2",
+  // New URL, same approved artwork: retain existing valid scene/image caches.
+  "/icons/apple-touch-icon-mochi-3.png",
   "/favicon.ico?v=mochi-1",
 ];
 const paths = new Set(

@@ -11,7 +11,13 @@ try {
       viewport: { width: 390, height: 844 },
     });
     const hydrationErrors = [];
+    const imageWarnings = [];
     page.on("console", (message) => {
+      if (
+        /google-g\.png/.test(message.text()) &&
+        /width|height/.test(message.text())
+      )
+        imageWarnings.push(message.text());
       if (
         message.type() === "error" &&
         /hydrat|server rendered|server-rendered/i.test(message.text())
@@ -29,6 +35,28 @@ try {
     await page
       .getByRole("heading", { name: "Selamat datang kembali!" })
       .waitFor();
+    async function checkGoogleImage() {
+      const image = page.locator(".google-sign-in img");
+      await expect(image).toBeVisible();
+      const size = await image.evaluate(async (node) => {
+        await node.decode();
+        const rect = node.getBoundingClientRect();
+        return {
+          width: rect.width,
+          height: rect.height,
+          autoHeight: node.style.height,
+        };
+      });
+      assert.equal(size.width, 20);
+      assert.equal(size.autoHeight, "auto");
+      assert.ok(
+        // Small optimized rasters round their dimensions; naturalWidth is also
+        // density-corrected and rounded. Allow subpixel rounding from 200×204.
+        Math.abs(size.height - (size.width * 204) / 200) < 0.5,
+        "Google icon must keep its actual aspect ratio",
+      );
+    }
+    await checkGoogleImage();
     assert.equal(await page.locator("[bis_skin_checked]").count(), 0);
     await page
       .getByRole("button", { name: "Isi data contoh", exact: true })
@@ -45,13 +73,20 @@ try {
     await expect(
       page.getByRole("heading", { name: "Hi, Nara!" }),
     ).toBeVisible();
+    await page.goto(new URL("/register", baseURL).href);
+    await checkGoogleImage();
+    assert.deepEqual(
+      imageWarnings,
+      [],
+      "Google image must load without dimension warnings on login/register",
+    );
     assert.deepEqual(
       hydrationErrors,
       [],
       "Clean Chrome must hydrate auth and navigation without warnings",
     );
     console.log(
-      `${colorScheme}: clean Chrome dev auth hydration OK — server HTML, form and navigation`,
+      `${colorScheme}: dev auth OK — hydration, login flow and proportional Google icon on login/register`,
     );
     await page.close();
   }

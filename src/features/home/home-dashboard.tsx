@@ -30,8 +30,11 @@ import {
 import { WeeklyStory } from "@/components/finance/weekly-story";
 import { FeaturePreview } from "@/components/shared/feature-preview";
 import { Dialog } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { InstallAppEntry, InstallGuide } from "@/components/shared/install-app";
 import { ScanReceiptFlow } from "@/features/scan/scan-receipt-flow";
-import { ChatReceiptFlow } from "@/features/expenses/chat-receipt-flow";
+import { ChatBatchFlow } from "@/features/expenses/chat-batch-flow";
+import type { ChatBatchSnapshot } from "@/features/expenses/chat-batch";
 import { VoiceReceiptFlow } from "@/features/expenses/voice-receipt-flow";
 
 const subscribeClock = (notify: () => void) => {
@@ -40,6 +43,8 @@ const subscribeClock = (notify: () => void) => {
 };
 
 type Panel =
+  | { kind: "profile" }
+  | { kind: "install" }
   | { kind: "add" }
   | { kind: "scan" }
   | { kind: "chat" }
@@ -60,6 +65,9 @@ const subscribeOnline = (notify: () => void) => {
   };
 };
 export function HomeDashboard() {
+  const [chatSession, setChatSession] = useState<ChatBatchSnapshot | null>(
+    null,
+  );
   const currentMonth = useSyncExternalStore(
     subscribeClock,
     () => monthKey(),
@@ -88,7 +96,10 @@ export function HomeDashboard() {
     () => navigator.onLine,
     () => true,
   );
-  const upcoming = (label: string) => setPanel({ kind: "upcoming", label });
+  const upcoming = (label: string) =>
+    setPanel(
+      label === "Profil" ? { kind: "profile" } : { kind: "upcoming", label },
+    );
   const selectedExpenses =
     panel?.kind === "category"
       ? snapshot.expenses.filter(
@@ -100,17 +111,21 @@ export function HomeDashboard() {
       ? "Catat pengeluaran baru"
       : panel?.kind === "weekly"
         ? "Cerita mingguan"
-        : panel?.kind === "period"
-          ? "Pilih periode pengeluaran"
-          : panel?.kind === "upcoming"
-            ? panel.label
-            : panel?.kind === "category"
-              ? panel.category.label
-              : panel?.kind === "expense"
-                ? "Detail pengeluaran"
-                : panel?.kind === "missions"
-                  ? "Misi kamu"
-                  : "Transaksi periode ini";
+        : panel?.kind === "profile"
+          ? "Profil"
+          : panel?.kind === "install"
+            ? "Pasang Cashly"
+            : panel?.kind === "period"
+              ? "Pilih periode pengeluaran"
+              : panel?.kind === "upcoming"
+                ? panel.label
+                : panel?.kind === "category"
+                  ? panel.category.label
+                  : panel?.kind === "expense"
+                    ? "Detail pengeluaran"
+                    : panel?.kind === "missions"
+                      ? "Misi kamu"
+                      : "Transaksi periode ini";
   return (
     <>
       <a href="#main-content" className="skip-link">
@@ -283,7 +298,12 @@ export function HomeDashboard() {
         <ScanReceiptFlow onBack={back} onClose={close} />
       )}
       {panel?.kind === "chat" && (
-        <ChatReceiptFlow onBack={back} onClose={close} />
+        <ChatBatchFlow
+          onBack={back}
+          onClose={close}
+          initialSession={chatSession}
+          onSuspend={setChatSession}
+        />
       )}
       {panel?.kind === "voice" && (
         <VoiceReceiptFlow
@@ -301,19 +321,25 @@ export function HomeDashboard() {
             onClose={close}
             onBack={canGoBack ? back : undefined}
             variant={
-              panel.kind === "add" || panel.kind === "expense"
+              panel.kind === "add" ||
+              panel.kind === "expense" ||
+              panel.kind === "install"
                 ? "sheet"
                 : "default"
             }
             className={
               panel.kind === "expense"
                 ? "expense-detail-dialog"
-                : panel.kind === "add"
-                  ? "quick-add-dialog"
-                  : undefined
+                : panel.kind === "install"
+                  ? "install-dialog"
+                  : panel.kind === "add"
+                    ? "quick-add-dialog"
+                    : undefined
             }
             footer={
-              panel.kind === "expense" ? (
+              panel.kind === "install" ? (
+                <Button onClick={back}>Kembali ke Profil</Button>
+              ) : panel.kind === "expense" ? (
                 <ExpenseDetailActions onDone={close} />
               ) : undefined
             }
@@ -323,15 +349,18 @@ export function HomeDashboard() {
                 : undefined
             }
           >
-            {panel.kind !== "add" && panel.kind !== "expense" && (
-              <span className="pill dialog-demo">
-                {panel.kind === "missions"
-                  ? data.period
-                  : panel.kind === "weekly"
-                    ? weekly.period
-                    : snapshot.period}
-              </span>
-            )}
+            {panel.kind !== "add" &&
+              panel.kind !== "expense" &&
+              panel.kind !== "profile" &&
+              panel.kind !== "install" && (
+                <span className="pill dialog-demo">
+                  {panel.kind === "missions"
+                    ? data.period
+                    : panel.kind === "weekly"
+                      ? weekly.period
+                      : snapshot.period}
+                </span>
+              )}
             {panel.kind === "add" && (
               <QuickAddMethods
                 onClose={close}
@@ -360,6 +389,24 @@ export function HomeDashboard() {
             {panel.kind === "upcoming" && (
               <FeaturePreview label={panel.label} />
             )}
+            {panel.kind === "profile" && (
+              <>
+                <div className="install-profile-summary">
+                  <span className="avatar" aria-hidden="true">
+                    {data.name.slice(0, 1)}
+                  </span>
+                  <div>
+                    <h3>{data.name}</h3>
+                    <p>Langkah kecilmu bersama Cashly.</p>
+                  </div>
+                </div>
+                <InstallAppEntry
+                  showStatus
+                  onOpen={() => push({ kind: "install" })}
+                />
+              </>
+            )}
+            {panel.kind === "install" && <InstallGuide />}
             {(panel.kind === "category" || panel.kind === "transactions") && (
               <>
                 {panel.kind === "category" && (

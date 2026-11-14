@@ -2,16 +2,18 @@
 
 import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
-import { MessageCircle, Mic, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  Clock3,
+  MessageCircle,
+  Mic,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+import { formatDate } from "@/lib/format/datetime";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Bubble, BubbleContent } from "@/components/ui/bubble";
-import {
-  Message,
-  MessageAvatar,
-  MessageContent,
-} from "@/components/ui/message";
+import { ExpenseChatMessages } from "@/components/finance/expense-chat-messages";
 import {
   ExpenseChatComposer,
   expenseExamples,
@@ -30,9 +32,14 @@ import {
   type ReceiptDraft,
 } from "@/features/scan/receipt-schema";
 import { parseExpenseText, type ExpenseTextResult } from "./parse-expense-text";
-
-type Step = "chat" | "processing" | "review" | "success" | "transcript";
-type ChatMessage = { id: number; role: "user" | "assistant"; text: string };
+import {
+  appendChatMessage,
+  welcomeMessage,
+  type ChatStep,
+  type ChatMessage,
+  type ChatSessionSnapshot,
+  type ConfirmedChatNote,
+} from "./chat-session";
 
 export function ChatReceiptFlow({
   onBack,
@@ -43,6 +50,8 @@ export function ChatReceiptFlow({
   onStartOver,
   initialDraft,
   onSourceChange,
+  initialSession,
+  onSuspend,
 }: {
   onBack: () => void;
   onClose: () => void;
@@ -52,32 +61,37 @@ export function ChatReceiptFlow({
   onStartOver?: () => void;
   initialDraft?: ReceiptDraft;
   onSourceChange?: (text: string) => void;
+  initialSession?: ChatSessionSnapshot | null;
+  onSuspend?: (snapshot: ChatSessionSnapshot) => void;
 }) {
-  const [step, setStep] = useState<Step>(
-    initialDraft ? "review" : initialText ? "processing" : "chat",
+  const [step, setStep] = useState<ChatStep>(
+    initialSession?.step ??
+      (initialDraft ? "review" : initialText ? "processing" : "chat"),
   );
-  const [input, setInput] = useState("");
-  const [sourceText, setSourceText] = useState(initialText);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 0,
-      role: "assistant",
-      text: "Hai! Ceritakan pengeluaranmu. Cukup nama pembelian dan nominalnya, ya.",
-    },
-  ]);
-  const sequence = useRef(0);
+  const [input, setInput] = useState(initialSession?.input ?? "");
+  const [sourceText, setSourceText] = useState(
+    initialSession?.sourceText ?? initialText,
+  );
+  const [messages, setMessages] = useState<ChatMessage[]>(
+    initialSession?.messages ?? [welcomeMessage()],
+  );
+  const sequence = useRef(
+    Math.max(0, ...messages.map((message) => message.id)),
+  );
   const [draft, setDraft] = useState<ReceiptDraft>(
-    () => initialDraft ?? blankReceipt(),
+    () => initialSession?.draft ?? initialDraft ?? blankReceipt(),
   );
   const [transcriptError, setTranscriptError] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [confirmed, setConfirmed] = useState<ReceiptDraft | null>(null);
+  const [confirmed, setConfirmed] = useState<ConfirmedChatNote | null>(
+    initialSession?.confirmed ?? null,
+  );
   const [missing, setMissing] = useState<{
     text: string;
     reason: "name" | "amount";
-  } | null>(null);
+  } | null>(initialSession?.missing ?? null);
   const pending = useRef<{ text: string; result: ExpenseTextResult } | null>(
-    initialText
+    !initialSession && initialText
       ? { text: initialText, result: parseExpenseText(initialText) }
       : null,
   );
@@ -86,8 +100,27 @@ export function ChatReceiptFlow({
   const total = receiptAmounts(draft).total;
 
   function addMessage(role: ChatMessage["role"], text: string) {
-    const message = { id: ++sequence.current, role, text };
-    setMessages((previous) => [...previous, message]);
+    const message = {
+      id: ++sequence.current,
+      role,
+      text,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((previous) => appendChatMessage(previous, message));
+  }
+
+  function suspend(leave: () => void) {
+    onSuspend?.({
+      step: step === "processing" ? "chat" : step,
+      input: step === "processing" ? sourceText : input,
+      sourceText,
+      messages,
+      draft,
+      confirmed,
+      missing,
+    });
+    pending.current = null;
+    leave();
   }
 
   useEffect(() => {
@@ -100,14 +133,13 @@ export function ChatReceiptFlow({
         setDraft(work.result.draft);
         setErrors({});
         setMissing(null);
-        setMessages((previous) => [
-          ...previous,
-          {
-            id: ++sequence.current,
-            role: "assistant",
-            text: "Rinciannya sudah siap. Cek kembali sebelum disimpan, ya.",
-          },
-        ]);
+        const message: ChatMessage = {
+          id: ++sequence.current,
+          role: "assistant",
+          text: "Rinciannya sudah siap. Cek kembali sebelum disimpan, ya.",
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((previous) => appendChatMessage(previous, message));
         setStep("review");
       } else {
         const result = work.result;
@@ -116,10 +148,13 @@ export function ChatReceiptFlow({
             ? null
             : { text: work.text, reason: result.reason },
         );
-        setMessages((previous) => [
-          ...previous,
-          { id: ++sequence.current, role: "assistant", text: result.message },
-        ]);
+        const message: ChatMessage = {
+          id: ++sequence.current,
+          role: "assistant",
+          text: result.message,
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((previous) => appendChatMessage(previous, message));
         setStep("chat");
       }
     }, RECEIPT_ANALYSIS_DURATION_MS);
@@ -192,7 +227,7 @@ export function ChatReceiptFlow({
     setStep("chat");
   }
   function back() {
-    if (step === "chat") onBack();
+    if (step === "chat") suspend(onBack);
     else if (step === "success" || step === "transcript") setStep("review");
     else returnToChat();
   }
@@ -221,7 +256,13 @@ export function ChatReceiptFlow({
       );
       return;
     }
-    setConfirmed(result.data);
+    setConfirmed({
+      draft: result.data,
+      source,
+      text: sourceText,
+      confirmedAt: new Date().toISOString(),
+      messages: messages.map((message) => ({ ...message })),
+    });
     setErrors({});
     setStep("success");
   }
@@ -241,7 +282,7 @@ export function ChatReceiptFlow({
       variant="screen"
       className={`scan-flow ${step === "chat" || step === "transcript" ? "expense-chat-flow" : `scan-flow-${step}`}`}
       onBack={back}
-      onClose={onClose}
+      onClose={() => suspend(onClose)}
       footer={
         step === "chat" ? (
           <ExpenseChatComposer
@@ -277,7 +318,7 @@ export function ChatReceiptFlow({
           </div>
         ) : (
           <div className="scan-success-actions">
-            <Button onClick={onClose}>Kembali ke Beranda</Button>
+            <Button onClick={() => suspend(onClose)}>Kembali ke Beranda</Button>
             <Button
               variant="secondary"
               onClick={() => {
@@ -288,12 +329,10 @@ export function ChatReceiptFlow({
                 setInput("");
                 setSourceText("");
                 setMessages([
-                  {
-                    id: ++sequence.current,
-                    role: "assistant",
-                    text: "Yuk, ceritakan pengeluaran berikutnya.",
-                  },
+                  welcomeMessage("Yuk, ceritakan pengeluaran berikutnya."),
                 ]);
+                sequence.current = 0;
+                setDraft(blankReceipt());
                 setMissing(null);
                 setConfirmed(null);
                 setStep("chat");
@@ -389,43 +428,7 @@ export function ChatReceiptFlow({
                 </div>
               </section>
             )}
-            <div
-              className="expense-chat-messages"
-              role="log"
-              aria-label="Percakapan pengeluaran"
-              aria-live="polite"
-              aria-relevant="additions text"
-            >
-              {messages.map((message) => (
-                <Message
-                  key={message.id}
-                  align={message.role === "user" ? "end" : "start"}
-                  className={`expense-message expense-message-${message.role}`}
-                >
-                  {message.role === "assistant" && (
-                    <MessageAvatar>
-                      <Image
-                        src="/mascot/mochi-crown-transparent.webp"
-                        alt=""
-                        width={30}
-                        height={30}
-                      />
-                    </MessageAvatar>
-                  )}
-                  <MessageContent>
-                    <span className="chat-speaker">
-                      {message.role === "user" ? "Kamu" : "Mochi"}
-                    </span>
-                    <Bubble
-                      align={message.role === "user" ? "end" : "start"}
-                      variant={message.role === "user" ? "default" : "muted"}
-                    >
-                      <BubbleContent>{message.text}</BubbleContent>
-                    </Bubble>
-                  </MessageContent>
-                </Message>
-              ))}
-            </div>
+            <ExpenseChatMessages messages={messages} />
           </>
         )}
         {step === "processing" && (
@@ -455,7 +458,40 @@ export function ChatReceiptFlow({
           />
         )}
         {step === "success" && confirmed && (
-          <ReceiptScanSuccess draft={confirmed} />
+          <>
+            <ReceiptScanSuccess draft={confirmed.draft} />
+            <section
+              className="scan-card chat-source-summary"
+              aria-label="Sumber catatan"
+            >
+              <div className="scan-section-title">
+                {confirmed.source === "voice" ? (
+                  <Mic size={18} />
+                ) : (
+                  <MessageCircle size={18} />
+                )}
+                <h3>
+                  {confirmed.source === "voice"
+                    ? "Catatan dari voice note"
+                    : "Catatan dari chat"}
+                </h3>
+              </div>
+              <blockquote>{confirmed.text}</blockquote>
+              <p>
+                <Clock3 size={14} aria-hidden="true" />
+                <span>
+                  Dikonfirmasi{" "}
+                  <time dateTime={confirmed.confirmedAt}>
+                    {formatDate(confirmed.confirmedAt, {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}{" "}
+                    WIB
+                  </time>
+                </span>
+              </p>
+            </section>
+          </>
         )}
       </div>
     </Dialog>

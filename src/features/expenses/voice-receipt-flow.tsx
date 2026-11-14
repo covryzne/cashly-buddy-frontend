@@ -25,10 +25,12 @@ export function VoiceReceiptFlow({
   onBack,
   onClose,
   onChat,
+  returnLabel,
 }: {
   onBack: () => void;
   onClose: () => void;
   onChat: () => void;
+  returnLabel?: string;
 }) {
   const voice = useVoiceRecorder();
   const [text, setText] = useState('');
@@ -87,6 +89,7 @@ export function VoiceReceiptFlow({
         }}
         onBack={() => setApproved(null)}
         onClose={onClose}
+        returnLabel={returnLabel}
       />
     );
   return (

@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-for (const width of [360, 390, 430, 768, 1280, 1440]) {
+for (const width of [320, 360, 390, 430, 768, 1280, 1440]) {
   for (const theme of ["light", "dark"] as const) {
     test(`Login ${width}px ${theme}`, async ({ page }) => {
       await page.setViewportSize({ width, height: 844 });

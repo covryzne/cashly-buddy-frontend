@@ -1,6 +1,7 @@
 ﻿import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { AssetCacheBootstrap } from "@/components/shared/asset-cache-bootstrap";
+import { ExpenseSessionProvider } from "@/features/expenses/expense-session";
 import "react-day-picker/style.css";
 import "../styles/tokens.css";
 import "./globals.css";
@@ -10,6 +11,7 @@ import "../styles/expense-chat.css";
 import "../styles/voice.css";
 import "../styles/date-time-picker.css";
 import "../styles/install-app.css";
+import "../styles/activity.css";
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
@@ -76,7 +78,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Keep this exception local; descendant hydration warnings stay active. */}
       <body suppressHydrationWarning>
         <AssetCacheBootstrap />
-        {children}
+        <ExpenseSessionProvider>{children}</ExpenseSessionProvider>
       </body>
     </html>
   );

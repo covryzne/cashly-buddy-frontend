@@ -9,47 +9,65 @@ import {
 import { Button } from "@/components/ui/button";
 
 const items = [
-  { label: "Beranda", icon: Home },
-  { label: "Aktivitas", icon: ReceiptText },
-  { label: "Laporan", icon: ChartNoAxesColumn },
-  { label: "Profil", icon: CircleUserRound },
+  { label: "Beranda", icon: Home, href: "/beranda", page: "home" },
+  {
+    label: "Aktivitas",
+    icon: ReceiptText,
+    href: "/aktivitas",
+    page: "activity",
+  },
+  { label: "Laporan", icon: ChartNoAxesColumn, href: null, page: null },
+  { label: "Profil", icon: CircleUserRound, href: null, page: null },
 ];
 export function AppNavigation({
   onAdd,
   onUpcoming,
+  activePage = "home",
 }: {
   onAdd: () => void;
   onUpcoming: (label: string) => void;
+  activePage?: "home" | "activity";
 }) {
+  function item(entry: (typeof items)[number], mobile: boolean) {
+    const Icon = entry.icon;
+    const selected = entry.page === activePage;
+    const className =
+      (mobile ? "bottom-item" : "nav-item") + (selected ? " selected" : "");
+    const content = (
+      <>
+        <Icon size={mobile ? 22 : 21} />
+        <span>{entry.label}</span>
+        {!mobile && entry.label === "Laporan" && (
+          <span className="nav-soon">Nanti</span>
+        )}
+      </>
+    );
+    return entry.href ? (
+      <Link
+        key={entry.label}
+        href={entry.href}
+        className={className}
+        aria-current={selected ? "page" : undefined}
+      >
+        {content}
+      </Link>
+    ) : (
+      <button
+        key={entry.label}
+        className={className}
+        onClick={() => onUpcoming(entry.label)}
+      >
+        {content}
+      </button>
+    );
+  }
   return (
     <>
       <aside className="sidebar">
         <p className="sidebar-menu-label">Menu utama</p>
         <p className="sidebar-tagline">Your little money adventure.</p>
         <nav aria-label="Navigasi desktop">
-          {items.map(({ label, icon: Icon }, i) =>
-            i === 0 ? (
-              <Link
-                key={label}
-                className="nav-item selected"
-                href="/beranda"
-                aria-current="page"
-              >
-                <Icon size={21} />
-                {label}
-              </Link>
-            ) : (
-              <button
-                key={label}
-                className="nav-item"
-                onClick={() => onUpcoming(label)}
-              >
-                <Icon size={21} />
-                {label}
-                {label !== "Profil" && <span className="nav-soon">Nanti</span>}
-              </button>
-            ),
-          )}
+          {items.map((entry) => item(entry, false))}
         </nav>
         <Button onClick={onAdd}>
           <Plus size={20} />
@@ -64,28 +82,7 @@ export function AppNavigation({
         </div>
       </aside>
       <nav className="bottom-nav" aria-label="Navigasi utama">
-        {items.slice(0, 2).map(({ label, icon: Icon }, i) =>
-          i === 0 ? (
-            <Link
-              href="/beranda"
-              key={label}
-              aria-current="page"
-              className="bottom-item selected"
-            >
-              <Icon size={22} />
-              <span>{label}</span>
-            </Link>
-          ) : (
-            <button
-              key={label}
-              className="bottom-item"
-              onClick={() => onUpcoming(label)}
-            >
-              <Icon size={22} />
-              <span>{label}</span>
-            </button>
-          ),
-        )}
+        {items.slice(0, 2).map((entry) => item(entry, true))}
         <button
           className="quick-add"
           aria-label="Catat pengeluaran"
@@ -93,16 +90,7 @@ export function AppNavigation({
         >
           <Plus size={29} />
         </button>
-        {items.slice(2).map(({ label, icon: Icon }) => (
-          <button
-            key={label}
-            className="bottom-item"
-            onClick={() => onUpcoming(label)}
-          >
-            <Icon size={22} />
-            <span>{label}</span>
-          </button>
-        ))}
+        {items.slice(2).map((entry) => item(entry, true))}
       </nav>
     </>
   );

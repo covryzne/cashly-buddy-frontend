@@ -55,7 +55,7 @@ export function AuthShell({
           </span>
         </Link>
         <div className="auth-header-actions">
-          <span className="pill">Pratinjau</span>
+          <InstallAppEntry compact />
           <ThemeToggle />
         </div>
       </header>
@@ -123,7 +123,6 @@ export function AuthShell({
             <p className="auth-form-description">{copy.description}</p>
             {children}
           </div>
-          {mode === "login" && <InstallAppEntry />}
           <p className="auth-footnote">
             Sedikit lebih kenal pengeluaranmu, setiap hari.
           </p>

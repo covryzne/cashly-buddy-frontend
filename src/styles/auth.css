@@ -36,6 +36,42 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
+}
+@media (max-width: 419px) {
+  .auth-header-actions {
+    gap: 8px;
+  }
+  .auth-header-actions .install-entry-compact > .button {
+    padding-inline: 10px;
+    font-size: 11px;
+  }
+}
+@media (max-width: 359px) {
+  .auth-page .auth-header {
+    padding-inline: 16px;
+    gap: 8px;
+  }
+  .auth-header .auth-brand {
+    font-size: 19px;
+    gap: 6px;
+  }
+  .auth-header .auth-brand-image {
+    width: 32px;
+    height: 32px;
+  }
+  .auth-header-actions {
+    gap: 6px;
+  }
+  .auth-header-actions .install-entry-compact > .button {
+    padding-inline: 8px;
+    gap: 5px;
+    font-size: 10px;
+  }
+  .auth-header-actions .install-entry-compact > .button > svg {
+    width: 14px;
+    height: 14px;
+  }
 }
 .auth-main {
   width: 100%;

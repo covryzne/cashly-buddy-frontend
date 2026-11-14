@@ -4,6 +4,18 @@
 .install-entry > .button {
   width: 100%;
 }
+.install-entry-compact {
+  margin: 0;
+}
+.install-entry-compact > .button {
+  width: auto;
+  min-height: 44px;
+  padding: 0 12px;
+  gap: 6px;
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+}
 .install-entry > p,
 .install-guide-note {
   color: var(--muted);

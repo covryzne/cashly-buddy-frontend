@@ -1,9 +1,9 @@
-"use client";
-import { autofillHydrationProps } from "./browser-autofill";
+'use client';
+import { autofillHydrationProps } from './browser-autofill';
 
-import { useRef, useState, useTransition, type FormEvent } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRef, useState, useTransition, type FormEvent } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
   Check,
@@ -11,19 +11,19 @@ import {
   Mail,
   UserRound,
   WandSparkles,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { demoCredentials } from "@/mocks/fixtures/auth";
-import { AuthPasswordField } from "./auth-password-field";
-import { GoogleSignInButton } from "./google-sign-in-button";
-import { registerSchema, type RegisterValues } from "./register-schema";
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { demoCredentials } from '@/mocks/fixtures/auth';
+import { AuthPasswordField } from './auth-password-field';
+import { GoogleSignInButton } from './google-sign-in-button';
+import { registerSchema, type RegisterValues } from './register-schema';
 
 const emptyValues: RegisterValues = {
-  name: "",
-  email: "",
-  password: "",
-  confirmPassword: "",
+  name: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
 };
 
 export function RegisterForm() {
@@ -42,7 +42,7 @@ export function RegisterForm() {
     setErrors((current) => ({
       ...current,
       [field]: undefined,
-      ...(field === "password" ? { confirmPassword: undefined } : {}),
+      ...(field === 'password' ? { confirmPassword: undefined } : {}),
     }));
   }
 
@@ -57,11 +57,11 @@ export function RegisterForm() {
       }
       setErrors(nextErrors);
       const first = (
-        ["name", "email", "password", "confirmPassword"] as const
+        ['name', 'email', 'password', 'confirmPassword'] as const
       ).find((field) => nextErrors[field]);
       const id =
-        first === "confirmPassword"
-          ? "register-confirm-password"
+        first === 'confirmPassword'
+          ? 'register-confirm-password'
           : `register-${first}`;
       formRef.current?.querySelector<HTMLInputElement>(`#${id}`)?.focus();
       return;
@@ -92,9 +92,9 @@ export function RegisterForm() {
         <Button
           className="auth-full-button"
           disabled={isPending}
-          onClick={() => startTransition(() => router.push("/beranda"))}
+          onClick={() => startTransition(() => router.push('/beranda'))}
         >
-          {isPending ? "Membuka Beranda…" : "Jelajahi demo"}
+          {isPending ? 'Membuka Beranda…' : 'Jelajahi demo'}
           <ArrowRight size={18} />
         </Button>
         <button className="text-button" onClick={() => setComplete(false)}>
@@ -139,9 +139,9 @@ export function RegisterForm() {
               autoComplete="off"
               placeholder="Mochi boleh panggil kamu siapa?"
               value={values.name}
-              onChange={(event) => change("name", event.target.value)}
+              onChange={(event) => change('name', event.target.value)}
               aria-invalid={Boolean(errors.name)}
-              aria-describedby={errors.name ? "register-name-error" : undefined}
+              aria-describedby={errors.name ? 'register-name-error' : undefined}
               required
             />
           </div>
@@ -163,10 +163,10 @@ export function RegisterForm() {
               autoComplete="off"
               placeholder="nama@email.com"
               value={values.email}
-              onChange={(event) => change("email", event.target.value)}
+              onChange={(event) => change('email', event.target.value)}
               aria-invalid={Boolean(errors.email)}
               aria-describedby={
-                errors.email ? "register-email-error" : undefined
+                errors.email ? 'register-email-error' : undefined
               }
               required
             />
@@ -181,14 +181,14 @@ export function RegisterForm() {
           id="register-password"
           label="Kata sandi"
           value={values.password}
-          onChange={(value) => change("password", value)}
+          onChange={(value) => change('password', value)}
           error={errors.password}
         />
         <AuthPasswordField
           id="register-confirm-password"
           label="Konfirmasi kata sandi"
           value={values.confirmPassword}
-          onChange={(value) => change("confirmPassword", value)}
+          onChange={(value) => change('confirmPassword', value)}
           error={errors.confirmPassword}
         />
         <Button type="submit" className="login-submit">
@@ -200,7 +200,7 @@ export function RegisterForm() {
           className="fill-demo"
           onClick={() => {
             setValues({
-              name: "Nara",
+              name: 'Nara',
               ...demoCredentials,
               confirmPassword: demoCredentials.password,
             });
@@ -212,7 +212,7 @@ export function RegisterForm() {
         </Button>
       </form>
       <p className="login-register">
-        Sudah kenal Cashly?{" "}
+        Sudah kenal Cashly?{' '}
         <Link className="text-button" href="/login">
           Masuk
         </Link>

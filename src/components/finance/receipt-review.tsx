@@ -55,6 +55,7 @@ export function ReceiptReview({
   onChange,
   onSubmit,
   onRetake,
+  showSourcePreview = true,
 }: {
   draft: ReceiptDraft;
   photo?: ReceiptPhoto;
@@ -66,6 +67,7 @@ export function ReceiptReview({
   onChange: (draft: ReceiptDraft) => void;
   onSubmit: () => void;
   onRetake: () => void;
+  showSourcePreview?: boolean;
 }) {
   const nextId = useRef(0);
   const amounts = receiptAmounts(draft);
@@ -98,63 +100,65 @@ export function ReceiptReview({
         onSubmit();
       }}
     >
-      <div className="scan-photo-summary">
-        {photo?.url ? (
-          <Image
-            src={photo.url}
-            unoptimized
-            alt="Foto struk untuk ditinjau"
-            width={56}
-            height={72}
-          />
-        ) : (
-          <span className="scan-sample-thumb">
-            {text !== undefined ? (
-              textSource === "voice" ? (
-                <Mic size={30} />
+      {showSourcePreview && (
+        <div className="scan-photo-summary">
+          {photo?.url ? (
+            <Image
+              src={photo.url}
+              unoptimized
+              alt="Foto struk untuk ditinjau"
+              width={56}
+              height={72}
+            />
+          ) : (
+            <span className="scan-sample-thumb">
+              {text !== undefined ? (
+                textSource === "voice" ? (
+                  <Mic size={30} />
+                ) : (
+                  <MessageCircle size={30} />
+                )
               ) : (
-                <MessageCircle size={30} />
-              )
-            ) : (
-              <ReceiptText size={30} />
-            )}
-          </span>
-        )}
-        <div>
-          <span className="pill">
+                <ReceiptText size={30} />
+              )}
+            </span>
+          )}
+          <div>
+            <span className="pill">
+              {text !== undefined
+                ? textSource === "voice"
+                  ? "Catatan dari voice note"
+                  : "Catatan dari chat"
+                : manual
+                  ? "Input manual"
+                  : photo?.source === "example"
+                    ? "Struk contoh"
+                    : photo?.source === "camera"
+                      ? "Foto struk siap"
+                      : "Foto siap ditinjau"}
+            </span>
+            <p>
+              {text !== undefined
+                ? text ||
+                  "Transkrip belum tersedia. Tambahkan transkrip atau lengkapi rincian di bawah."
+                : manual
+                  ? "Isi nama toko, item, dan nominal sendiri. Rincian tidak diisi otomatis."
+                  : photo?.source === "example"
+                    ? "Periksa nama toko, nominal, dan rincian item sebelum melanjutkan."
+                    : photo?.source === "camera"
+                      ? "Foto berhasil diambil. Periksa dan sesuaikan rincian dengan strukmu."
+                      : "Lengkapi rincian sesuai foto strukmu."}
+            </p>
+          </div>
+          <button type="button" className="text-button" onClick={onRetake}>
             {text !== undefined
               ? textSource === "voice"
-                ? "Catatan dari voice note"
-                : "Catatan dari chat"
-              : manual
-                ? "Input manual"
-                : photo?.source === "example"
-                  ? "Struk contoh"
-                  : photo?.source === "camera"
-                    ? "Foto struk siap"
-                    : "Foto siap ditinjau"}
-          </span>
-          <p>
-            {text !== undefined
-              ? text ||
-                "Transkrip belum tersedia. Tambahkan transkrip atau lengkapi rincian di bawah."
-              : manual
-                ? "Isi nama toko, item, dan nominal sendiri. Rincian tidak diisi otomatis."
-                : photo?.source === "example"
-                  ? "Periksa nama toko, nominal, dan rincian item sebelum melanjutkan."
-                  : photo?.source === "camera"
-                    ? "Foto berhasil diambil. Periksa dan sesuaikan rincian dengan strukmu."
-                    : "Lengkapi rincian sesuai foto strukmu."}
-          </p>
+                ? "Ubah transkrip"
+                : "Ubah pesan"
+              : "Ulang"}
+          </button>
         </div>
-        <button type="button" className="text-button" onClick={onRetake}>
-          {text !== undefined
-            ? textSource === "voice"
-              ? "Ubah transkrip"
-              : "Ubah pesan"
-            : "Ulang"}
-        </button>
-      </div>
+      )}
       {Object.keys(errors).length > 0 && (
         <p className="scan-form-alert" role="alert">
           Periksa isian yang ditandai sebelum melanjutkan.

@@ -1,4 +1,4 @@
-import { homeFixture } from "@/mocks/fixtures/home";
+import { homeFixture, type Expense } from "@/mocks/fixtures/home";
 import { formatDate } from "@/lib/format/datetime";
 import { dateKey, rangeLabel, type PeriodSelection } from "@/lib/format/period";
 
@@ -12,23 +12,31 @@ export function monthKey(value = new Date().toISOString()) {
 }
 
 // Fixture selectors only. Canonical financial totals will come from the API.
-export function selectWeeklyStory() {
+export function selectWeeklyStory(
+  expenses: readonly Expense[] = homeFixture.expenses,
+) {
   const end = dateKey(homeFixture.asOf);
   const start = new Date(`${end}T12:00:00Z`);
   start.setUTCDate(start.getUTCDate() - 6);
-  return selectPeriod({
-    kind: "range",
-    start: start.toISOString().slice(0, 10),
-    end,
-  });
+  return selectPeriod(
+    {
+      kind: "range",
+      start: start.toISOString().slice(0, 10),
+      end,
+    },
+    expenses,
+  );
 }
 
 export function selectMonth(month: string) {
   return selectPeriod({ kind: "month", month });
 }
 
-export function selectPeriod(selection: PeriodSelection) {
-  const expenses = homeFixture.expenses.filter((expense) =>
+export function selectPeriod(
+  selection: PeriodSelection,
+  allExpenses: readonly Expense[] = homeFixture.expenses,
+) {
+  const expenses = allExpenses.filter((expense) =>
     selection.kind === "month"
       ? monthKey(expense.occurredAt) === selection.month
       : dateKey(expense.occurredAt) >= selection.start &&

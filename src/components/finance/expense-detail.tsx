@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   Sparkles,
   Tag,
+  Trash2,
 } from "lucide-react";
 import type { Category, Expense } from "@/mocks/fixtures/home";
 import { formatDate } from "@/lib/format/datetime";
@@ -118,13 +119,39 @@ export function ExpenseDetail({
   );
 }
 
-export function ExpenseDetailActions({ onDone }: { onDone: () => void }) {
+export function ExpenseDetailActions({
+  onDone,
+  onEdit,
+  onDelete,
+}: {
+  onDone: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}) {
   return (
-    <div className="receipt-actions">
-      <Button disabled title="Pengeditan belum tersedia">
+    <div
+      className={`receipt-actions ${onDelete ? "receipt-actions-editable" : ""}`}
+    >
+      <Button
+        disabled={!onEdit}
+        onClick={onEdit}
+        title={onEdit ? undefined : "Pengeditan belum tersedia"}
+        data-modal-focus-key="edit-expense"
+      >
         <PencilLine size={18} />
         Ubah detail
       </Button>
+      {onDelete && (
+        <Button
+          variant="outline"
+          onClick={onDelete}
+          className="activity-delete-button"
+          data-modal-focus-key="delete-expense"
+        >
+          <Trash2 size={17} />
+          Hapus
+        </Button>
+      )}
       <button
         className="icon-button receipt-done"
         aria-label="Selesai melihat detail"

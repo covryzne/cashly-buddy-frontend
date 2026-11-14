@@ -82,14 +82,21 @@ for (const platform of ["iphone", "ipad", "android", "desktop"] as const) {
           warnings.push(message.text());
       });
       await page.goto("/login");
+      await expect(page.locator(".auth-header .install-entry")).toBeVisible();
+      await expect(
+        page.locator(".auth-form-section .install-entry"),
+      ).toHaveCount(0);
+      await expect(page.locator(".auth-header-actions")).not.toContainText(
+        "Pratinjau",
+      );
       await expect(page.getByRole("dialog")).toHaveCount(0);
       const trigger = page.getByRole("button", {
-        name: "Pasang Cashly",
+        name: "Download Cashly",
         exact: true,
       });
       await trigger.click();
       const dialog = page.getByRole("dialog", {
-        name: "Pasang Cashly",
+        name: "Download Cashly",
         exact: true,
       });
       await expect(dialog).toBeVisible();
@@ -143,13 +150,13 @@ test("Profil → panduan adalah satu submodal dengan Back dan fokus yang benar",
     page.getByRole("dialog", { name: "Profil", exact: true }),
   ).toBeVisible();
   const install = page.getByRole("button", {
-    name: "Pasang Cashly",
+    name: "Download Cashly",
     exact: true,
   });
   await install.click();
   await expect(page.locator("dialog[open]")).toHaveCount(1);
   await expect(
-    page.getByRole("dialog", { name: "Pasang Cashly", exact: true }),
+    page.getByRole("dialog", { name: "Download Cashly", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Kembali", exact: true }).click();
   await expect(
@@ -193,7 +200,7 @@ for (const mode of ["media", "legacy"] as const) {
       page.getByRole("heading", { name: "Selamat datang kembali!" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Pasang Cashly", exact: true }),
+      page.getByRole("button", { name: "Download Cashly", exact: true }),
     ).toHaveCount(0);
     await page.goto("/beranda");
     await page.getByRole("button", { name: "Profil", exact: true }).click();
@@ -201,7 +208,7 @@ for (const mode of ["media", "legacy"] as const) {
       "Cashly dibuka dari Home Screen",
     );
     await expect(
-      page.getByRole("button", { name: "Pasang Cashly", exact: true }),
+      page.getByRole("button", { name: "Download Cashly", exact: true }),
     ).toHaveCount(0);
   });
 }
@@ -211,11 +218,11 @@ test("appinstalled menghapus ajakan dan menutup guide tanpa popup berikutnya", a
 }) => {
   await page.goto("/login");
   await page
-    .getByRole("button", { name: "Pasang Cashly", exact: true })
+    .getByRole("button", { name: "Download Cashly", exact: true })
     .click();
   await page.evaluate(() => window.dispatchEvent(new Event("appinstalled")));
   await expect(
-    page.getByRole("button", { name: "Pasang Cashly", exact: true }),
+    page.getByRole("button", { name: "Download Cashly", exact: true }),
   ).toHaveCount(0);
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });

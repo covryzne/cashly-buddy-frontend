@@ -27,12 +27,12 @@ try {
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(new URL("/login", origin).href);
     const trigger = page.getByRole("button", {
-      name: "Pasang Cashly",
+      name: "Download Cashly",
       exact: true,
     });
     await trigger.click();
     await expect(
-      page.getByRole("dialog", { name: "Pasang Cashly", exact: true }),
+      page.getByRole("dialog", { name: "Download Cashly", exact: true }),
     ).toContainText("Ketuk Bagikan");
     assert.equal(
       await page
@@ -48,12 +48,12 @@ try {
     await page.goto(new URL("/beranda", origin).href);
     await page.getByRole("button", { name: "Profil", exact: true }).click();
     await page
-      .getByRole("button", { name: "Pasang Cashly", exact: true })
+      .getByRole("button", { name: "Download Cashly", exact: true })
       .click();
     await expect(page.locator("dialog[open]")).toHaveCount(1);
     await page.getByRole("button", { name: "Kembali", exact: true }).click();
     await expect(
-      page.getByRole("button", { name: "Pasang Cashly", exact: true }),
+      page.getByRole("button", { name: "Download Cashly", exact: true }),
     ).toBeFocused();
     assert.deepEqual(errors, []);
     console.log(

@@ -1,73 +1,72 @@
-"use client";
+'use client';
 
-import { useState, useSyncExternalStore } from "react";
-import { Sparkles, Zap, Hand, ArrowUpRight, WifiOff } from "lucide-react";
+import { useState, useSyncExternalStore } from 'react';
+import { Sparkles, Zap, Hand, ArrowUpRight, WifiOff } from 'lucide-react';
 import {
   homeFixture as data,
   type Category,
   type Expense,
-} from "@/mocks/fixtures/home";
-import { formatDate } from "@/lib/format/datetime";
-import { MoneyDisplay } from "@/components/finance/money-display";
-import { CategoryIcon } from "@/components/finance/category-icon";
-import { TransactionRow } from "@/components/finance/transaction-row";
-import { ExpenseSummaryCard } from "@/components/finance/expense-summary-card";
-import { StreakCard } from "@/components/gamification/streak-card";
-import { MissionBoard } from "@/components/gamification/mission-board";
-import { MissionCard } from "@/components/gamification/mission-card";
-import { MascotStageRenderer } from "@/components/gamification/mascot-stage-renderer";
-import { AppNavigation } from "@/components/shared/app-navigation";
-import { ThemeToggle } from "@/components/shared/theme-toggle";
-import { PeriodPicker } from "@/components/finance/period-picker";
-import { QuickAddMethods } from "@/components/finance/quick-add-methods";
-import { monthKey, selectPeriod, selectWeeklyStory } from "./select-month";
-import type { PeriodSelection } from "@/lib/format/period";
-import { useModalStack } from "@/components/shared/use-modal-stack";
+} from '@/mocks/fixtures/home';
+import { formatDate } from '@/lib/format/datetime';
+import { MoneyDisplay } from '@/components/finance/money-display';
+import { CategoryIcon } from '@/components/finance/category-icon';
+import { TransactionRow } from '@/components/finance/transaction-row';
+import { ExpenseSummaryCard } from '@/components/finance/expense-summary-card';
+import { StreakCard } from '@/components/gamification/streak-card';
+import { MissionBoard } from '@/components/gamification/mission-board';
+import { MissionCard } from '@/components/gamification/mission-card';
+import { MascotStageRenderer } from '@/components/gamification/mascot-stage-renderer';
+import { AppNavigation } from '@/components/shared/app-navigation';
+import { ThemeToggle } from '@/components/shared/theme-toggle';
+import { PeriodPicker } from '@/components/finance/period-picker';
+import { QuickAddMethods } from '@/components/finance/quick-add-methods';
+import { monthKey, selectPeriod, selectWeeklyStory } from './select-month';
+import type { PeriodSelection } from '@/lib/format/period';
+import { useModalStack } from '@/components/shared/use-modal-stack';
 import {
   ExpenseDetail,
   ExpenseDetailActions,
-} from "@/components/finance/expense-detail";
-import { WeeklyStory } from "@/components/finance/weekly-story";
-import { FeaturePreview } from "@/components/shared/feature-preview";
-import { Dialog } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { InstallAppEntry, InstallGuide } from "@/components/shared/install-app";
-import { ScanReceiptFlow } from "@/features/scan/scan-receipt-flow";
-import { ChatBatchFlow } from "@/features/expenses/chat-batch-flow";
-import type { ChatBatchSnapshot } from "@/features/expenses/chat-batch";
-import { VoiceReceiptFlow } from "@/features/expenses/voice-receipt-flow";
+} from '@/components/finance/expense-detail';
+import { WeeklyStory } from '@/components/finance/weekly-story';
+import { FeaturePreview } from '@/components/shared/feature-preview';
+import { Dialog } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { InstallGuide } from '@/components/shared/install-app';
+import { ProfileOverview } from '@/components/shared/profile-overview';
+import { ScanReceiptFlow } from '@/features/scan/scan-receipt-flow';
+import { ChatBatchFlow } from '@/features/expenses/chat-batch-flow';
+import { VoiceReceiptFlow } from '@/features/expenses/voice-receipt-flow';
+import { useExpenseSession } from '@/features/expenses/expense-session';
 
 const subscribeClock = (notify: () => void) => {
-  window.addEventListener("focus", notify);
-  return () => window.removeEventListener("focus", notify);
+  window.addEventListener('focus', notify);
+  return () => window.removeEventListener('focus', notify);
 };
 
 type Panel =
-  | { kind: "profile" }
-  | { kind: "install" }
-  | { kind: "add" }
-  | { kind: "scan" }
-  | { kind: "chat" }
-  | { kind: "voice" }
-  | { kind: "period" }
-  | { kind: "upcoming"; label: string }
-  | { kind: "category"; category: Category }
-  | { kind: "expense"; expense: Expense }
-  | { kind: "transactions" }
-  | { kind: "missions" }
-  | { kind: "weekly" };
+  | { kind: 'profile' }
+  | { kind: 'install' }
+  | { kind: 'add' }
+  | { kind: 'scan' }
+  | { kind: 'chat' }
+  | { kind: 'voice' }
+  | { kind: 'period' }
+  | { kind: 'upcoming'; label: string }
+  | { kind: 'category'; category: Category }
+  | { kind: 'expense'; expense: Expense }
+  | { kind: 'transactions' }
+  | { kind: 'missions' }
+  | { kind: 'weekly' };
 const subscribeOnline = (notify: () => void) => {
-  window.addEventListener("online", notify);
-  window.addEventListener("offline", notify);
+  window.addEventListener('online', notify);
+  window.addEventListener('offline', notify);
   return () => {
-    window.removeEventListener("online", notify);
-    window.removeEventListener("offline", notify);
+    window.removeEventListener('online', notify);
+    window.removeEventListener('offline', notify);
   };
 };
 export function HomeDashboard() {
-  const [chatSession, setChatSession] = useState<ChatBatchSnapshot | null>(
-    null,
-  );
+  const { expenses, chatSession, setChatSession } = useExpenseSession();
   const currentMonth = useSyncExternalStore(
     subscribeClock,
     () => monthKey(),
@@ -77,11 +76,11 @@ export function HomeDashboard() {
     null,
   );
   const selection: PeriodSelection = periodOverride ?? {
-    kind: "month",
+    kind: 'month',
     month: currentMonth,
   };
-  const snapshot = selectPeriod(selection);
-  const weekly = selectWeeklyStory();
+  const snapshot = selectPeriod(selection, expenses);
+  const weekly = selectWeeklyStory(expenses);
   const {
     panel,
     open: setPanel,
@@ -98,41 +97,41 @@ export function HomeDashboard() {
   );
   const upcoming = (label: string) =>
     setPanel(
-      label === "Profil" ? { kind: "profile" } : { kind: "upcoming", label },
+      label === 'Profil' ? { kind: 'profile' } : { kind: 'upcoming', label },
     );
   const selectedExpenses =
-    panel?.kind === "category"
+    panel?.kind === 'category'
       ? snapshot.expenses.filter(
           (expense) => expense.categoryCode === panel.category.code,
         )
       : snapshot.expenses;
   const panelTitle =
-    panel?.kind === "add"
-      ? "Catat pengeluaran baru"
-      : panel?.kind === "weekly"
-        ? "Cerita mingguan"
-        : panel?.kind === "profile"
-          ? "Profil"
-          : panel?.kind === "install"
-            ? "Pasang Cashly"
-            : panel?.kind === "period"
-              ? "Pilih periode pengeluaran"
-              : panel?.kind === "upcoming"
+    panel?.kind === 'add'
+      ? 'Catat pengeluaran baru'
+      : panel?.kind === 'weekly'
+        ? 'Cerita mingguan'
+        : panel?.kind === 'profile'
+          ? 'Profil'
+          : panel?.kind === 'install'
+            ? 'Download Cashly'
+            : panel?.kind === 'period'
+              ? 'Pilih periode pengeluaran'
+              : panel?.kind === 'upcoming'
                 ? panel.label
-                : panel?.kind === "category"
+                : panel?.kind === 'category'
                   ? panel.category.label
-                  : panel?.kind === "expense"
-                    ? "Detail pengeluaran"
-                    : panel?.kind === "missions"
-                      ? "Misi kamu"
-                      : "Transaksi periode ini";
+                  : panel?.kind === 'expense'
+                    ? 'Detail pengeluaran'
+                    : panel?.kind === 'missions'
+                      ? 'Misi kamu'
+                      : 'Transaksi periode ini';
   return (
     <>
       <a href="#main-content" className="skip-link">
         Langsung ke konten
       </a>
       <AppNavigation
-        onAdd={() => setPanel({ kind: "add" })}
+        onAdd={() => setPanel({ kind: 'add' })}
         onUpcoming={upcoming}
       />
       <div className="app-shell">
@@ -156,10 +155,10 @@ export function HomeDashboard() {
               </h1>
               <p className="muted greeting-date">
                 {formatDate(data.asOf, {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
                 })}
               </p>
             </div>
@@ -171,14 +170,14 @@ export function HomeDashboard() {
           <div className="home-grid">
             <div className="summary-area">
               <ExpenseSummaryCard
-                onPeriod={() => setPanel({ kind: "period" })}
+                onPeriod={() => setPanel({ kind: 'period' })}
                 isCurrentMonth={
-                  selection.kind === "month" && selection.month === currentMonth
+                  selection.kind === 'month' && selection.month === currentMonth
                 }
                 totalIdr={snapshot.totalIdr}
                 period={snapshot.period}
                 count={snapshot.count}
-                onAdd={() => setPanel({ kind: "add" })}
+                onAdd={() => setPanel({ kind: 'add' })}
               />
             </div>
             <section
@@ -203,7 +202,7 @@ export function HomeDashboard() {
                   <button
                     key={category.code}
                     className={`floating-category float-${index}`}
-                    onClick={() => setPanel({ kind: "category", category })}
+                    onClick={() => setPanel({ kind: 'category', category })}
                   >
                     <CategoryIcon category={category} />
                     <span>
@@ -218,7 +217,7 @@ export function HomeDashboard() {
               </p>
               <p className="companion-hint" aria-live="polite">
                 {greeting ? (
-                  "Hai, Nara! Senang menemanimu hari ini."
+                  'Hai, Nara! Senang menemanimu hari ini.'
                 ) : (
                   <>
                     <Hand size={14} />
@@ -244,7 +243,7 @@ export function HomeDashboard() {
                 </h2>
                 <button
                   className="text-button"
-                  onClick={() => setPanel({ kind: "missions" })}
+                  onClick={() => setPanel({ kind: 'missions' })}
                 >
                   Lihat semua <ArrowUpRight size={14} />
                 </button>
@@ -253,12 +252,12 @@ export function HomeDashboard() {
                 <MissionCard
                   title="Catat pengeluaran hari ini"
                   completed
-                  onSelect={() => setPanel({ kind: "missions" })}
+                  onSelect={() => setPanel({ kind: 'missions' })}
                 />
                 <MissionCard
                   title="Review cerita mingguan"
                   completed={false}
-                  onSelect={() => setPanel({ kind: "missions" })}
+                  onSelect={() => setPanel({ kind: 'missions' })}
                 />
               </div>
             </section>
@@ -267,7 +266,7 @@ export function HomeDashboard() {
                 <h2>Transaksi terbaru</h2>
                 <button
                   className="text-button"
-                  onClick={() => setPanel({ kind: "transactions" })}
+                  onClick={() => setPanel({ kind: 'transactions' })}
                 >
                   Lihat semua <ArrowUpRight size={14} />
                 </button>
@@ -283,10 +282,12 @@ export function HomeDashboard() {
                   <TransactionRow
                     key={expense.id}
                     expense={expense}
-                    category={data.categories.find(
-                      (category) => category.code === expense.categoryCode,
-                    )!}
-                    onSelect={() => setPanel({ kind: "expense", expense })}
+                    category={
+                      data.categories.find(
+                        (category) => category.code === expense.categoryCode,
+                      )!
+                    }
+                    onSelect={() => setPanel({ kind: 'expense', expense })}
                   />
                 ))}
               </div>
@@ -294,10 +295,10 @@ export function HomeDashboard() {
           </div>
         </main>
       </div>
-      {panel?.kind === "scan" && (
+      {panel?.kind === 'scan' && (
         <ScanReceiptFlow onBack={back} onClose={close} />
       )}
-      {panel?.kind === "chat" && (
+      {panel?.kind === 'chat' && (
         <ChatBatchFlow
           onBack={back}
           onClose={close}
@@ -305,79 +306,79 @@ export function HomeDashboard() {
           onSuspend={setChatSession}
         />
       )}
-      {panel?.kind === "voice" && (
+      {panel?.kind === 'voice' && (
         <VoiceReceiptFlow
           onBack={back}
           onClose={close}
-          onChat={() => push({ kind: "chat" })}
+          onChat={() => push({ kind: 'chat' })}
         />
       )}
       {panel &&
-        panel.kind !== "scan" &&
-        panel.kind !== "chat" &&
-        panel.kind !== "voice" && (
+        panel.kind !== 'scan' &&
+        panel.kind !== 'chat' &&
+        panel.kind !== 'voice' && (
           <Dialog
             title={panelTitle}
             onClose={close}
             onBack={canGoBack ? back : undefined}
             variant={
-              panel.kind === "add" ||
-              panel.kind === "expense" ||
-              panel.kind === "install"
-                ? "sheet"
-                : "default"
+              panel.kind === 'add' ||
+              panel.kind === 'expense' ||
+              panel.kind === 'install'
+                ? 'sheet'
+                : 'default'
             }
             className={
-              panel.kind === "expense"
-                ? "expense-detail-dialog"
-                : panel.kind === "install"
-                  ? "install-dialog"
-                  : panel.kind === "add"
-                    ? "quick-add-dialog"
+              panel.kind === 'expense'
+                ? 'expense-detail-dialog'
+                : panel.kind === 'install'
+                  ? 'install-dialog'
+                  : panel.kind === 'add'
+                    ? 'quick-add-dialog'
                     : undefined
             }
             footer={
-              panel.kind === "install" ? (
+              panel.kind === 'install' ? (
                 <Button onClick={back}>Kembali ke Profil</Button>
-              ) : panel.kind === "expense" ? (
+              ) : panel.kind === 'expense' ? (
                 <ExpenseDetailActions onDone={close} />
               ) : undefined
             }
             description={
-              panel.kind === "add"
-                ? "Pilih cara input yang paling praktis untukmu"
+              panel.kind === 'add'
+                ? 'Pilih cara input yang paling praktis untukmu'
                 : undefined
             }
           >
-            {panel.kind !== "add" &&
-              panel.kind !== "expense" &&
-              panel.kind !== "profile" &&
-              panel.kind !== "install" && (
+            {panel.kind !== 'add' &&
+              panel.kind !== 'expense' &&
+              panel.kind !== 'profile' &&
+              panel.kind !== 'install' && (
                 <span className="pill dialog-demo">
-                  {panel.kind === "missions"
+                  {panel.kind === 'missions'
                     ? data.period
-                    : panel.kind === "weekly"
+                    : panel.kind === 'weekly'
                       ? weekly.period
                       : snapshot.period}
                 </span>
               )}
-            {panel.kind === "add" && (
+            {panel.kind === 'add' && (
               <QuickAddMethods
                 onClose={close}
                 onChoose={(label) =>
                   push(
-                    label === "Scan struk otomatis"
-                      ? { kind: "scan" }
-                      : label === "Chat manual"
-                        ? { kind: "chat" }
-                        : label === "Voice note kilat"
-                          ? { kind: "voice" }
-                          : { kind: "upcoming", label },
+                    label === 'Scan struk otomatis'
+                      ? { kind: 'scan' }
+                      : label === 'Chat manual'
+                        ? { kind: 'chat' }
+                        : label === 'Voice note kilat'
+                          ? { kind: 'voice' }
+                          : { kind: 'upcoming', label },
                   )
                 }
               />
             )}
-            {panel.kind === "period" && (
+            {panel.kind === 'period' && (
               <PeriodPicker
                 selection={selection}
                 onApply={(value) => {
@@ -386,30 +387,14 @@ export function HomeDashboard() {
                 }}
               />
             )}
-            {panel.kind === "upcoming" && (
+            {panel.kind === 'upcoming' && (
               <FeaturePreview label={panel.label} />
             )}
-            {panel.kind === "profile" && (
+            {panel.kind === 'profile' && <ProfileOverview name={data.name} onInstall={() => push({ kind: 'install' })} />}
+            {panel.kind === 'install' && <InstallGuide />}
+            {(panel.kind === 'category' || panel.kind === 'transactions') && (
               <>
-                <div className="install-profile-summary">
-                  <span className="avatar" aria-hidden="true">
-                    {data.name.slice(0, 1)}
-                  </span>
-                  <div>
-                    <h3>{data.name}</h3>
-                    <p>Langkah kecilmu bersama Cashly.</p>
-                  </div>
-                </div>
-                <InstallAppEntry
-                  showStatus
-                  onOpen={() => push({ kind: "install" })}
-                />
-              </>
-            )}
-            {panel.kind === "install" && <InstallGuide />}
-            {(panel.kind === "category" || panel.kind === "transactions") && (
-              <>
-                {panel.kind === "category" && (
+                {panel.kind === 'category' && (
                   <div className="category-total">
                     <span>Total {panel.category.label.toLowerCase()}</span>
                     <MoneyDisplay amountIdr={panel.category.amountIdr} />
@@ -425,29 +410,33 @@ export function HomeDashboard() {
                     <TransactionRow
                       key={expense.id}
                       expense={expense}
-                      category={data.categories.find(
-                        (category) => category.code === expense.categoryCode,
-                      )!}
-                      onSelect={() => push({ kind: "expense", expense })}
+                      category={
+                        data.categories.find(
+                          (category) => category.code === expense.categoryCode,
+                        )!
+                      }
+                      onSelect={() => push({ kind: 'expense', expense })}
                     />
                   ))}
                 </div>
               </>
             )}
 
-            {panel.kind === "expense" && (
+            {panel.kind === 'expense' && (
               <ExpenseDetail
                 expense={panel.expense}
                 period={snapshot.period}
-                category={data.categories.find(
-                  (category) => category.code === panel.expense.categoryCode,
-                )!}
+                category={
+                  data.categories.find(
+                    (category) => category.code === panel.expense.categoryCode,
+                  )!
+                }
               />
             )}
-            {panel.kind === "missions" && (
-              <MissionBoard onOpenReview={() => push({ kind: "weekly" })} />
+            {panel.kind === 'missions' && (
+              <MissionBoard onOpenReview={() => push({ kind: 'weekly' })} />
             )}
-            {panel.kind === "weekly" && (
+            {panel.kind === 'weekly' && (
               <WeeklyStory
                 totalIdr={weekly.totalIdr}
                 count={weekly.count}

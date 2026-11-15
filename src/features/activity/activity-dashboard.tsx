@@ -556,7 +556,6 @@ export function ActivityDashboard() {
         <ScanReceiptFlow
           onBack={back}
           onClose={close}
-          returnLabel="Kembali ke Aktivitas"
         />
       )}
       {panel?.kind === "chat" && (
@@ -565,7 +564,6 @@ export function ActivityDashboard() {
           onClose={close}
           initialSession={session.chatSession}
           onSuspend={session.setChatSession}
-          returnLabel="Kembali ke Aktivitas"
         />
       )}
       {panel?.kind === "voice" && (
@@ -573,7 +571,6 @@ export function ActivityDashboard() {
           onBack={back}
           onClose={close}
           onChat={() => push({ kind: "chat" })}
-          returnLabel="Kembali ke Aktivitas"
         />
       )}
       {panel &&

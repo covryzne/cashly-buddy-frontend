@@ -335,7 +335,7 @@ for (const source of ["scan", "chat"] as const) {
         .click();
     }
     await dialog(page)
-      .getByRole("button", { name: "Kembali ke Aktivitas", exact: true })
+      .getByRole("button", { name: "Tutup dialog", exact: true })
       .click();
     await expect(dialog(page)).toHaveCount(0);
     await expect(page).toHaveURL(/\/aktivitas$/);

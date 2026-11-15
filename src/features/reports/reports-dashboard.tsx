@@ -428,7 +428,6 @@ export function ReportsDashboard() {
           back={back}
           close={close}
           canGoBack={canGoBack}
-          returnLabel="Kembali ke Laporan"
         />
       )}
       {panel && !isAppAction(panel) && (

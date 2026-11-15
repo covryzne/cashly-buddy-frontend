@@ -408,7 +408,6 @@ export function ProfileDashboard() {
           back={back}
           close={close}
           canGoBack={canGoBack}
-          returnLabel="Kembali ke Profil"
         />
       )}
       {panel && !isAppAction(panel) && (

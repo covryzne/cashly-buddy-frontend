@@ -53,7 +53,6 @@ export function ChatReceiptFlow({
   onSourceChange,
   initialSession,
   onSuspend,
-  returnLabel = "Kembali ke Beranda",
 }: {
   onBack: () => void;
   onClose: () => void;
@@ -65,7 +64,6 @@ export function ChatReceiptFlow({
   onSourceChange?: (text: string) => void;
   initialSession?: ChatSessionSnapshot | null;
   onSuspend?: (snapshot: ChatSessionSnapshot) => void;
-  returnLabel?: string;
 }) {
   const { recordDrafts } = useExpenseSession();
   const recordId = useRef(crypto.randomUUID());
@@ -324,7 +322,6 @@ export function ChatReceiptFlow({
           </div>
         ) : (
           <div className="scan-success-actions">
-            <Button onClick={() => suspend(onClose)}>{returnLabel}</Button>
             <Button
               variant="secondary"
               onClick={() => {

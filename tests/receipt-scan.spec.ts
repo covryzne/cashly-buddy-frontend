@@ -295,7 +295,7 @@ for (const width of [360, 390, 1280]) {
       await expect(page.getByLabel("Harga satuan item 1")).toHaveValue("10000");
       await page.getByRole("button", { name: /Simpan pengeluaran/ }).click();
       await page
-        .getByRole("button", { name: "Kembali ke Beranda", exact: true })
+        .getByRole("button", { name: "Tutup dialog", exact: true })
         .click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
       await expect(page.locator(".hero-amount")).toHaveText("Rp1.248.500");

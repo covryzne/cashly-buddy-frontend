@@ -67,13 +67,11 @@ function ChatBatchFlowContent({
   onClose,
   initialSession,
   onSuspend,
-  returnLabel = "Kembali ke Beranda",
 }: {
   onBack: () => void;
   onClose: () => void;
   initialSession?: ChatBatchSnapshot | null;
   onSuspend?: (snapshot: ChatBatchSnapshot) => void;
-  returnLabel?: string;
 }) {
   // Ignore the previous single-entry shape retained by Fast Refresh during development.
   const { recordDrafts } = useExpenseSession();
@@ -380,7 +378,6 @@ function ChatBatchFlowContent({
           </div>
         ) : (
           <div className="scan-success-actions">
-            <Button onClick={() => suspend(onClose)}>{returnLabel}</Button>
             <Button variant="secondary" onClick={reset}>
               <MessageCircle size={17} />
               Catat lagi

@@ -54,11 +54,9 @@ type Step =
 function ScanReceiptFlowContent({
   onBack,
   onClose,
-  returnLabel = "Kembali ke Beranda",
 }: {
   onBack: () => void;
   onClose: () => void;
-  returnLabel?: string;
 }) {
   const camera = useReceiptCamera();
   const requestCamera = camera.request;
@@ -416,7 +414,6 @@ function ScanReceiptFlowContent({
           </div>
         ) : step === "success" ? (
           <div className="scan-success-actions">
-            <Button onClick={onClose}>{returnLabel}</Button>
             <Button variant="secondary" onClick={() => openCamera("success")}>
               <ScanLine size={17} />
               Scan lagi

@@ -29,14 +29,12 @@ export function AppActionDialogs({
   back,
   close,
   canGoBack,
-  returnLabel,
 }: {
   panel: AppActionPanel;
   push: (panel: AppActionPanel) => void;
   back: () => void;
   close: () => void;
   canGoBack: boolean;
-  returnLabel: string;
 }) {
   const session = useExpenseSession();
   if (panel.kind === "scan")
@@ -44,7 +42,6 @@ export function AppActionDialogs({
       <ScanReceiptFlow
         onBack={back}
         onClose={close}
-        returnLabel={returnLabel}
       />
     );
   if (panel.kind === "chat")
@@ -52,7 +49,6 @@ export function AppActionDialogs({
       <ChatBatchFlow
         onBack={back}
         onClose={close}
-        returnLabel={returnLabel}
         initialSession={session.chatSession}
         onSuspend={session.setChatSession}
       />
@@ -62,7 +58,6 @@ export function AppActionDialogs({
       <VoiceReceiptFlow
         onBack={back}
         onClose={close}
-        returnLabel={returnLabel}
         onChat={() => push({ kind: "chat" })}
       />
     );

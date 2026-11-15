@@ -103,13 +103,18 @@ for (const theme of ["light", "dark"] as const) {
       });
       await info.click();
       const modal = page.getByRole("dialog");
+      await expect(modal).toHaveAccessibleName(`Mochi level ${level}`);
+      await expect(modal.locator(".evolution-guide-list li")).toHaveCount(1);
+      await expect(modal.locator(".profile-guide-tabs")).toHaveCount(0);
+      await expect(modal.locator(".profile-guide-note")).toHaveCount(0);
+      await expect(modal).not.toContainText("Freeze");
       const detail = modal.locator(".evolution-guide-list li.is-highlighted");
       await expect(detail).toContainText(
         `${requirements[level - 1]} hari streak`,
       );
       await expect(detail).toContainText(level === 1 ? "Dipakai" : "Terkunci");
       await modal
-        .getByRole("button", { name: "Mengerti", exact: true })
+        .getByRole("button", { name: "Tutup dialog", exact: true })
         .click();
       await expect(info).toBeFocused();
       await expect(

@@ -17,6 +17,7 @@ import "../styles/reports.css";
 import "../styles/category-detail.css";
 import "../styles/profile.css";
 import "../styles/hero-carousel.css";
+import "../styles/whatsapp-connect.css";
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",

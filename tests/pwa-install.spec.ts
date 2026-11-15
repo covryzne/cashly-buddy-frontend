@@ -126,8 +126,10 @@ for (const platform of ["iphone", "ipad", "android", "desktop"] as const) {
       await page.screenshot({
         path: `test-results/install-${platform}-${theme}.png`,
       });
+      await expect(dialog.getByRole("button", { name: "Mengerti", exact: true })).toHaveCount(0);
+      await expect(dialog.locator(".dialog-footer")).toHaveCount(0);
       await dialog
-        .getByRole("button", { name: "Mengerti", exact: true })
+        .getByRole("button", { name: "Tutup dialog", exact: true })
         .click();
       await expect(page.getByRole("dialog")).toHaveCount(0);
       await expect(trigger).toBeFocused();
@@ -158,7 +160,7 @@ test("Halaman Profil → panduan instalasi adalah satu dialog dengan fokus yang 
   await expect(
     page.getByRole("dialog", { name: "Download Cashly", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Mengerti", exact: true }).click();
+  await page.getByRole("button", { name: "Tutup dialog", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(install).toBeFocused();
   await install.click();

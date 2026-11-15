@@ -360,7 +360,7 @@ test("Clipboard ditolak memberi fallback, quick add/profil/install dapat dibuka"
   await page.getByRole("button", { name: "Install", exact: true }).click();
   await expect(modal(page)).toHaveAccessibleName("Download Cashly");
   await modal(page)
-    .getByRole("button", { name: "Mengerti", exact: true })
+    .getByRole("button", { name: "Tutup dialog", exact: true })
     .click();
   await expect(modal(page)).toHaveCount(0);
 });

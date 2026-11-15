@@ -13,14 +13,64 @@ implementasi yang dijelaskan di dokumen ini tetap berlaku.
 
 Jalankan perintah dari folder `cashly-buddy-frontend`:
 
-```sh
+Memerlukan Node.js >=20.12. Salin template sekali, lalu isi `.env.dev`:
+
+```powershell
 npm ci
+Copy-Item .env.dev.example .env.dev
 npm run dev
 ```
 
 Buka http://localhost:3000: aplikasi mengarah ke `/login`. Pilih **Isi data contoh**,
 lalu **Masuk ke demo** untuk membuka `/beranda`. Acuan desain Beranda:
 `../design-references/cashly_beranda_varian_b_floating_cards/`.
+
+## Environment per branch
+
+`npm run dev`, `build`, dan `start` memilih file sebelum menjalankan Next.js:
+
+| Branch | File |
+| --- | --- |
+| dev / develop / development / branch fitur | `.env.dev` |
+| staging / stage | `.env.staging` |
+| main / master / prod / production | `.env.prod` |
+
+Template `.env.dev.example`, `.env.staging.example`, `.env.prod.example` boleh
+masuk Git; file asli tetap diabaikan. Salin template environment tujuan dan isi
+nilainya sebelum menjalankan command. Jangan duplikasi dengan `.env.local`,
+`.env.development.local` atau file standar Next lain; launcher menolak sumber
+campuran. Salinan `.env.development.local` lama yang identik sudah dihapus.
+
+```powershell
+npm run env:check
+npm run dev:staging
+npm run build:staging
+npm run start:staging
+npm run build:prod
+npm run start:prod
+```
+
+Perintah eksplisit memakai environment tujuan walau branch berbeda. Alternatif:
+`npm run build -- --app-env=staging` atau variabel proses `CASHLY_ENV=staging`.
+Prioritas: flag → CASHLY_ENV → metadata branch CI → Git → dev (hanya command dev
+tanpa Git). Build/start tanpa Git membutuhkan pilihan eksplisit.
+
+Untuk deployment dengan variabel server/CI tanpa file:
+
+```powershell
+$env:CASHLY_ENV = 'prod'
+$env:CASHLY_ENV_SOURCE = 'system'
+npm run build
+npm run start
+```
+
+Variabel proses/CI mengalahkan file; log hanya menyebut environment/filename,
+tidak nilainya. `NODE_ENV` tetap development untuk dev dan production untuk
+build/start. Build harus cocok dengan environment start. Nilai `NEXT_PUBLIC_*`
+tetap dibekukan saat build; rahasia server jangan memakai prefix tersebut.
+
+Restart server setelah mengganti branch/file env. Pakai script npm, bukan
+`npx next` langsung. Detail: `docs/environments.md`; tes loader: `npm run test:env`.
 
 ## Struktur folder
 

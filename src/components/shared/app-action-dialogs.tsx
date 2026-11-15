@@ -91,10 +91,8 @@ export function AppActionDialogs({
           : undefined
       }
       footer={
-        panel.kind === "install" ? (
-          <Button onClick={canGoBack ? back : close}>
-            {canGoBack ? "Kembali ke Profil" : "Mengerti"}
-          </Button>
+        panel.kind === "install" && canGoBack ? (
+          <Button onClick={back}>Kembali ke Profil</Button>
         ) : undefined
       }
     >

@@ -286,7 +286,7 @@ test("Catat, profil, panduan instalasi dan status offline tetap tersedia", async
   await page.getByRole("button", { name: "Install", exact: true }).click();
   await expect(dialog(page)).toHaveAccessibleName("Download Cashly");
   await dialog(page)
-    .getByRole("button", { name: "Mengerti", exact: true })
+    .getByRole("button", { name: "Tutup dialog", exact: true })
     .click();
   await expect(dialog(page)).toHaveCount(0);
   await page

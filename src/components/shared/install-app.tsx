@@ -176,7 +176,6 @@ export function InstallAppEntry({
           variant="sheet"
           className="install-dialog"
           onClose={() => setOpen(false)}
-          footer={<Button onClick={() => setOpen(false)}>Mengerti</Button>}
         >
           <InstallGuide />
         </Dialog>

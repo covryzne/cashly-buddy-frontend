@@ -86,15 +86,22 @@ for (const theme of ["light", "dark"] as const)
         exact: true,
       });
       await infoHero.click();
-      await expect(dialog(page)).toHaveAccessibleName("Evolusi Mochi & Freeze");
+      await expect(dialog(page)).toHaveAccessibleName("Mochi level 4");
+      await expect(dialog(page).getByRole("button", { name: "Mengerti", exact: true })).toHaveCount(0);
+      await expect(dialog(page).locator(".dialog-footer")).toHaveCount(0);
       await expect(
         dialog(page).locator(".evolution-guide-list li"),
       ).toHaveClass(/is-highlighted/);
       await expect(dialog(page)).toContainText("150 hari streak");
-      await dialog(page)
-        .getByRole("button", { name: "Streak & Freeze", exact: true })
-        .click();
-      await expect(dialog(page)).toContainText("tidak terpakai otomatis");
+      await expect(
+        dialog(page).getByRole("button", {
+          name: "Streak & Freeze",
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      await expect(
+        dialog(page).locator(".evolution-guide-list li"),
+      ).toHaveCount(1);
       expect(
         (
           await new AxeBuilder({ page })
@@ -103,9 +110,23 @@ for (const theme of ["light", "dark"] as const)
         ).violations,
       ).toEqual([]);
       await dialog(page)
-        .getByRole("button", { name: "Mengerti", exact: true })
+        .getByRole("button", { name: "Tutup dialog", exact: true })
         .click();
       await expect(infoHero).toBeFocused();
+      await page
+        .getByRole("button", { name: "Panduan Mochi", exact: true })
+        .click();
+      await expect(dialog(page)).toHaveAccessibleName("Evolusi Mochi & Freeze");
+      await expect(
+        dialog(page).locator(".evolution-guide-list li"),
+      ).toHaveCount(5);
+      await dialog(page)
+        .getByRole("button", { name: "Streak & Freeze", exact: true })
+        .click();
+      await expect(dialog(page)).toContainText("tidak terpakai otomatis");
+      await dialog(page)
+        .getByRole("button", { name: "Tutup dialog", exact: true })
+        .click();
       expect(errors).toEqual([]);
     });
   }
@@ -218,7 +239,7 @@ test("Tema sinkron dengan header, persistensi dan submodal kembali dengan fokus"
   await dialog(page).getByRole("radio", { name: "Gelap", exact: true }).check();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await dialog(page)
-    .getByRole("button", { name: "Mengerti", exact: true })
+    .getByRole("button", { name: "Tutup dialog", exact: true })
     .click();
   await expect(
     page.getByRole("button", { name: "Tema gelap. Ganti tema", exact: true }),
@@ -243,19 +264,22 @@ test("WhatsApp/pengingat belum aktif, instalasi dan quick add memakai flow bersa
 }) => {
   await open(page);
   await page.getByRole("button", { name: /Catat via WhatsApp/ }).click();
-  await expect(dialog(page)).toContainText("Akunmu belum dihubungkan");
+  await expect(dialog(page)).toHaveAccessibleName("Hubungkan WhatsApp");
+  await expect(dialog(page)).toContainText(
+    "OTP contoh belum mendaftarkan nomor WhatsApp",
+  );
   await dialog(page)
-    .getByRole("button", { name: "Mengerti", exact: true })
+    .getByRole("button", { name: "Tutup dialog", exact: true })
     .click();
   await page.getByRole("button", { name: /Pengingat catat harian/ }).click();
   await expect(dialog(page)).toContainText("Pengingat otomatis belum tersedia");
   await dialog(page)
-    .getByRole("button", { name: "Mengerti", exact: true })
+    .getByRole("button", { name: "Tutup dialog", exact: true })
     .click();
   await page.getByRole("button", { name: "Install", exact: true }).click();
   await expect(dialog(page)).toHaveAccessibleName("Download Cashly");
   await dialog(page)
-    .getByRole("button", { name: "Mengerti", exact: true })
+    .getByRole("button", { name: "Tutup dialog", exact: true })
     .click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page

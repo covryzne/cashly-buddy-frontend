@@ -21,44 +21,50 @@ export function EvolutionGuide({
     : evolutionStages;
   return (
     <div className="evolution-guide">
-      <p>
-        Level XP, streak, dan tahap evolusi Mochi punya peran yang berbeda. Yuk,
-        kenali perjalanan kecilmu.
-      </p>
-      <div
-        className="profile-guide-tabs"
-        role="group"
-        aria-label="Panduan Mochi"
-      >
-        <button
-          type="button"
-          aria-pressed={tab === "evolution"}
-          onClick={() => onTab("evolution")}
-        >
-          <Sparkles size={16} />
-          Tahapan evolusi
-        </button>
-        <button
-          type="button"
-          aria-pressed={tab === "freeze"}
-          onClick={() => onTab("freeze")}
-        >
-          <ShieldCheck size={16} />
-          Streak & Freeze
-        </button>
-      </div>
-      {tab === "evolution" ? (
+      {!selectedStage && (
         <>
-          <div className="profile-guide-note">
-            <Crown size={22} />
-            <div>
-              <h3>Evolusi yang terbuka tetap milikmu.</h3>
-              <p>
-                Streak yang terhenti tidak menurunkan tahap tertinggi yang sudah
-                kamu buka. Evolusi mengikuti streak, bukan jumlah XP.
-              </p>
-            </div>
+          <p>
+            Level XP, streak, dan tahap evolusi Mochi punya peran yang berbeda.
+            Yuk, kenali perjalanan kecilmu.
+          </p>
+          <div
+            className="profile-guide-tabs"
+            role="group"
+            aria-label="Panduan Mochi"
+          >
+            <button
+              type="button"
+              aria-pressed={tab === "evolution"}
+              onClick={() => onTab("evolution")}
+            >
+              <Sparkles size={16} />
+              Tahapan evolusi
+            </button>
+            <button
+              type="button"
+              aria-pressed={tab === "freeze"}
+              onClick={() => onTab("freeze")}
+            >
+              <ShieldCheck size={16} />
+              Streak & Freeze
+            </button>
           </div>
+        </>
+      )}
+      {selectedStage || tab === "evolution" ? (
+        <>
+          {!selectedStage && (
+            <div className="profile-guide-note">
+              <Crown size={22} />
+              <div>
+                <h3>Evolusi yang terbuka tetap milikmu.</h3>
+                <p>
+                  Streak yang terhenti tidak menurunkan tahap tertinggi yang
+                  sudah kamu buka. Evolusi mengikuti streak, bukan jumlah XP.
+                </p>
+              </div>
+            </div>
+          )}
           <ol className="evolution-guide-list">
             {stages.map((stage) => (
               <li

@@ -52,27 +52,26 @@ import {
 import { useProfileSession } from "./profile-session";
 import { ProfileEditForm } from "./profile-edit-form";
 import { EvolutionGuide } from "./evolution-guide";
+import {
+  WhatsappConnectIntro,
+  WhatsappOtpForm,
+  WhatsappExampleConnected,
+} from "./whatsapp-connect";
+import { whatsappExample } from "@/mocks/fixtures/whatsapp";
 
 type InfoPanel =
-  | "theme"
-  | "timezone"
-  | "currency"
-  | "reminder"
-  | "whatsapp"
-  | "privacy"
-  | "help"
-  | "xp";
+  "theme" | "timezone" | "currency" | "reminder" | "privacy" | "help" | "xp";
 type Panel =
   | AppActionPanel
   | { kind: "edit" | "logout" }
   | { kind: "info"; topic: InfoPanel }
-  | { kind: "guide"; stage?: number };
+  | { kind: "guide"; stage?: number }
+  | { kind: "whatsapp"; step: "intro" | "otp" };
 const infoTitles: Record<InfoPanel, string> = {
   theme: "Tampilan Cashly",
   timezone: "Zona waktu habit",
   currency: "Mata uang & format",
   reminder: "Pengingat catat harian",
-  whatsapp: "Catat via WhatsApp",
   privacy: "Privasi & keamanan",
   help: "Pusat bantuan",
   xp: "XP & level",
@@ -80,7 +79,12 @@ const infoTitles: Record<InfoPanel, string> = {
 
 export function ProfileDashboard() {
   const session = useExpenseSession();
-  const { profile, saveProfile } = useProfileSession();
+  const {
+    profile,
+    saveProfile,
+    whatsappExampleLinked,
+    setWhatsappExampleLinked,
+  } = useProfileSession();
   const { theme, setTheme } = useTheme();
   const { panel, open, push, close, back, canGoBack } = useModalStack<Panel>();
   const [draft, setDraft] = useState<ProfileDraft>(profile);
@@ -89,6 +93,17 @@ export function ProfileDashboard() {
   const [feedback, setFeedback] = useState("");
   const [guideTab, setGuideTab] = useState<"evolution" | "freeze">("evolution");
   const formId = useId();
+  const [whatsappChallenge, setWhatsappChallenge] = useState<{
+    source: "chat" | "example";
+    expiresAt: number;
+  }>({ source: "example", expiresAt: 0 });
+  function startWhatsapp(source: "chat" | "example") {
+    setWhatsappChallenge({
+      source,
+      expiresAt: Date.now() + whatsappExample.ttlMs,
+    });
+    push({ kind: "whatsapp", step: "otp" });
+  }
   const nextStage = evolutionStages.find(
     (stage) => stage.stage > homeFixture.maxMascotStageUnlocked,
   );
@@ -120,15 +135,23 @@ export function ProfileDashboard() {
     close();
   }
   const title =
-    panel?.kind === "edit"
-      ? "Ubah profil"
-      : panel?.kind === "guide"
-        ? "Evolusi Mochi & Freeze"
-        : panel?.kind === "logout"
-          ? "Keluar dari Cashly?"
-          : panel?.kind === "info"
-            ? infoTitles[panel.topic]
-            : "";
+    panel?.kind === "whatsapp"
+      ? whatsappExampleLinked
+        ? "WhatsApp contoh terhubung"
+        : panel.step === "otp"
+          ? "Masukkan kode OTP"
+          : "Hubungkan WhatsApp"
+      : panel?.kind === "edit"
+        ? "Ubah profil"
+        : panel?.kind === "guide"
+          ? panel.stage
+            ? `Mochi level ${panel.stage}`
+            : "Evolusi Mochi & Freeze"
+          : panel?.kind === "logout"
+            ? "Keluar dari Cashly?"
+            : panel?.kind === "info"
+              ? infoTitles[panel.topic]
+              : "";
   return (
     <>
       <a className="skip-link" href="#profile-main">
@@ -318,8 +341,10 @@ export function ProfileDashboard() {
                     icon={MessageCircle}
                     title="Catat via WhatsApp"
                     description="Catat pengeluaran langsung dari percakapanmu."
-                    value="Segera hadir"
-                    onClick={() => open({ kind: "info", topic: "whatsapp" })}
+                    value={
+                      whatsappExampleLinked ? "Contoh terhubung" : "Hubungkan"
+                    }
+                    onClick={() => open({ kind: "whatsapp", step: "intro" })}
                   />
                 </div>
               </section>
@@ -387,11 +412,13 @@ export function ProfileDashboard() {
           onClose={close}
           onBack={canGoBack ? back : undefined}
           variant={
-            panel.kind === "edit" || panel.kind === "guide"
+            panel.kind === "edit" ||
+            panel.kind === "guide" ||
+            panel.kind === "whatsapp"
               ? "sheet"
               : "default"
           }
-          className={`profile-dialog ${panel.kind === "edit" ? "profile-edit-dialog" : ""}`}
+          className={`profile-dialog ${panel.kind === "edit" ? "profile-edit-dialog" : ""} ${panel.kind === "whatsapp" ? "whatsapp-connect-dialog" : ""}`}
           footer={
             panel.kind === "edit" ? (
               <div className="profile-dialog-actions">
@@ -419,11 +446,37 @@ export function ProfileDashboard() {
                   Keluar
                 </Button>
               </div>
-            ) : (
-              <Button onClick={close}>Mengerti</Button>
-            )
+            ) : undefined
           }
         >
+          {panel.kind === "whatsapp" &&
+            (whatsappExampleLinked ? (
+              <WhatsappExampleConnected
+                onReset={() => {
+                  setWhatsappExampleLinked(false);
+                  close();
+                }}
+              />
+            ) : panel.step === "intro" ? (
+              <WhatsappConnectIntro onStart={startWhatsapp} />
+            ) : (
+              <WhatsappOtpForm
+                key={whatsappChallenge.expiresAt}
+                formId={formId}
+                source={whatsappChallenge.source}
+                expiresAt={whatsappChallenge.expiresAt}
+                onRestart={() =>
+                  setWhatsappChallenge((previous) => ({
+                    ...previous,
+                    expiresAt: Date.now() + whatsappExample.ttlMs,
+                  }))
+                }
+                onVerified={() => {
+                  setWhatsappExampleLinked(true);
+                  back();
+                }}
+              />
+            ))}
           {panel.kind === "edit" && (
             <ProfileEditForm
               draft={draft}
@@ -518,25 +571,16 @@ export function ProfileDashboard() {
                   </div>
                 </>
               )}
-              {(panel.topic === "reminder" || panel.topic === "whatsapp") && (
+              {panel.topic === "reminder" && (
                 <>
                   <span className="profile-info-icon">
-                    {panel.topic === "reminder" ? (
-                      <BellRing size={29} />
-                    ) : (
-                      <MessageCircle size={29} />
-                    )}
+                    <BellRing size={29} />
                   </span>
                   <span className="pill">Segera hadir</span>
-                  <h3>
-                    {panel.topic === "reminder"
-                      ? "Pengingat kecil, saat kamu siap."
-                      : "Catatan dari percakapanmu."}
-                  </h3>
+                  <h3>Pengingat kecil, saat kamu siap.</h3>
                   <p>
-                    {panel.topic === "reminder"
-                      ? "Pengingat otomatis belum tersedia. Untuk sekarang, kamu bisa membuka Cashly dari Home Screen saat ingin mencatat."
-                      : "Pencatatan melalui WhatsApp sedang disiapkan. Akunmu belum dihubungkan ke WhatsApp. Kamu tetap bisa mencatat lewat chat, suara, atau scan di Cashly."}
+                    Pengingat otomatis belum tersedia. Untuk sekarang, kamu bisa
+                    membuka Cashly dari Home Screen saat ingin mencatat.
                   </p>
                 </>
               )}

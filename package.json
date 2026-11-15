@@ -2,10 +2,20 @@
   "name": "cashly-buddy-frontend",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.12.0"
+  },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node scripts/run-next.mjs dev",
+    "build": "node scripts/run-next.mjs build",
+    "start": "node scripts/run-next.mjs start",
+    "dev:staging": "node scripts/run-next.mjs dev --app-env staging",
+    "build:staging": "node scripts/run-next.mjs build --app-env staging",
+    "start:staging": "node scripts/run-next.mjs start --app-env staging",
+    "build:prod": "node scripts/run-next.mjs build --app-env prod",
+    "start:prod": "node scripts/run-next.mjs start --app-env prod",
+    "env:check": "node scripts/run-next.mjs check",
+    "test:env": "node --test scripts/tests/environment.test.mjs",
     "lint": "eslint",
     "icons:generate": "node scripts/generate-pwa-icons.mjs",
     "test:e2e": "playwright test",

@@ -1189,6 +1189,39 @@ svg {
 }
 .dialog-sheet[open] {
   animation-name: cashly-sheet-in;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dialog-sheet[data-fit-viewport][open] {
+  position: fixed;
+  top: calc(var(--dialog-viewport-top, 0px) + 12px);
+  bottom: max(
+    0px,
+    calc(
+      100% - var(--dialog-viewport-top, 0px) -
+        var(--dialog-viewport-height, 100dvh)
+    )
+  );
+  max-height: min(92dvh, calc(var(--dialog-viewport-height, 100dvh) - 12px));
+}
+.dialog-sheet > .sheet-handle,
+.dialog-sheet > .dialog-header,
+.dialog-sheet > .dialog-footer {
+  flex-shrink: 0;
+}
+.dialog-sheet > .dialog-content {
+  /* Auto-height sheets need a natural basis; zero can collapse content in WebKit. */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 12px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+}
+.dialog-sheet > .dialog-footer {
+  position: relative;
+  bottom: auto;
 }
 .dialog-sheet .dialog-header {
   border-bottom: 0;

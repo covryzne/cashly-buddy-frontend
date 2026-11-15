@@ -933,25 +933,6 @@
   border-radius: 15px;
   gap: 7px;
 }
-.report-export-dialog[open] {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.report-export-dialog > .dialog-header,
-.report-export-dialog > .sheet-handle,
-.report-export-dialog > .dialog-footer {
-  flex-shrink: 0;
-}
-.report-export-dialog > .dialog-content {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-.report-export-dialog > .dialog-footer {
-  position: relative;
-  bottom: auto;
-}
 @media (max-width: 374px) {
   .report-export-digest {
     padding: 11px;

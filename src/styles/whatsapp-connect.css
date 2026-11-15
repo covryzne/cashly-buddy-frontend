@@ -150,21 +150,3 @@
 .whatsapp-connect-success p {
   margin: 0;
 }
-.whatsapp-connect-dialog[open] {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.whatsapp-connect-dialog > .dialog-header,
-.whatsapp-connect-dialog > .sheet-handle,
-.whatsapp-connect-dialog > .dialog-footer {
-  flex-shrink: 0;
-}
-.whatsapp-connect-dialog > .dialog-content {
-  min-height: 0;
-  overflow-y: auto;
-  flex: 1;
-}
-.whatsapp-connect-dialog > .dialog-footer {
-  position: relative;
-}

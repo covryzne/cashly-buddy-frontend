@@ -1,22 +1,5 @@
-.category-detail-dialog[open] {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.category-detail-dialog > .sheet-handle,
-.category-detail-dialog > .dialog-header,
-.category-detail-dialog > .dialog-footer {
-  flex-shrink: 0;
-}
 .category-detail-dialog > .dialog-content {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
   padding-top: 10px;
-}
-.category-detail-dialog > .dialog-footer {
-  position: relative;
-  bottom: auto;
 }
 .category-detail-dialog .dialog-heading-copy {
   flex: 0 1 auto;

@@ -15,6 +15,7 @@ export function Dialog({
   headerActions,
   background,
   showCloseButton = true,
+  fitViewport = variant === "sheet",
 }: {
   title: string;
   children: ReactNode;
@@ -27,6 +28,7 @@ export function Dialog({
   headerActions?: ReactNode;
   background?: ReactNode;
   showCloseButton?: boolean;
+  fitViewport?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -43,10 +45,49 @@ export function Dialog({
       previousFocus?.focus();
     };
   }, []);
+  useEffect(() => {
+    if (!fitViewport) return;
+    const dialog = ref.current;
+    if (!dialog) return;
+    const viewport = window.visualViewport;
+    let frame = 0;
+    const update = () => {
+      dialog.style.setProperty(
+        "--dialog-viewport-height",
+        `${viewport?.height || window.innerHeight}px`,
+      );
+      dialog.style.setProperty(
+        "--dialog-viewport-top",
+        `${Math.max(0, viewport?.offsetTop ?? 0)}px`,
+      );
+    };
+    const schedule = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        update();
+      });
+    };
+    update();
+    viewport?.addEventListener("resize", schedule);
+    viewport?.addEventListener("scroll", schedule);
+    window.addEventListener("resize", schedule);
+    window.addEventListener("pageshow", schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      viewport?.removeEventListener("resize", schedule);
+      viewport?.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("pageshow", schedule);
+      dialog.style.removeProperty("--dialog-viewport-height");
+      dialog.style.removeProperty("--dialog-viewport-top");
+    };
+  }, [fitViewport]);
   return (
     <dialog
       ref={ref}
       className={`dialog dialog-${variant} ${className}`}
+      data-fit-viewport={fitViewport ? "" : undefined}
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
       onCancel={onClose}

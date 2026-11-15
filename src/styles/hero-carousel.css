@@ -25,6 +25,14 @@
   position: relative;
   padding: 0;
 }
+/* The button owns tap-to-wave. The decorative canvas must not swallow the
+   carousel's first horizontal gesture (its runtime uses touch-action: pan-y). */
+.hero-carousel .spline-mascot,
+.hero-carousel .spline-mascot.is-ready,
+.hero-carousel .spline-mascot canvas {
+  pointer-events: none;
+  touch-action: auto;
+}
 .hero-carousel .evolution-stage-card {
   flex: 0 0 100%;
   min-width: 0;

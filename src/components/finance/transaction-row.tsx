@@ -21,7 +21,7 @@ export function TransactionRow({
   expense: Expense;
   category: Category;
   onSelect: () => void;
-  variant?: "default" | "timeline";
+  variant?: "default" | "timeline" | "category";
   source?: ExpenseSource;
   tags?: string[];
 }) {
@@ -33,34 +33,61 @@ export function TransactionRow({
         : MessageCircle;
   return (
     <button
-      className={`transaction-row ${variant === "timeline" ? "transaction-row-timeline" : ""}`}
+      className={`transaction-row ${variant === "timeline" ? "transaction-row-timeline" : variant === "category" ? "transaction-row-category" : ""}`}
       data-modal-focus-key={`expense:${expense.id}`}
       onClick={onSelect}
     >
       <CategoryIcon category={category} />
       <span className="transaction-copy">
-        <strong title={expense.merchant}>{expense.merchant}</strong>
+        {variant === "category" ? (
+          <>
+            <span className="category-transaction-title">
+              <strong title={expense.merchant}>{expense.merchant}</strong>
+              <span>{expense.paymentMethod || "Belum dipilih"}</span>
+            </span>
+            <small
+              className="category-transaction-description"
+              title={expense.description}
+            >
+              {expense.description || "Tanpa deskripsi"}
+            </small>
+            <time dateTime={expense.occurredAt}>
+              {formatDate(expense.occurredAt, {
+                day: "numeric",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+                hourCycle: "h23",
+              })}{" "}
+              WIB
+            </time>
+          </>
+        ) : (
+          <strong title={expense.merchant}>{expense.merchant}</strong>
+        )}
         {variant === "timeline" && source && (
           <span className={`transaction-source source-${source}`}>
             <SourceIcon size={11} aria-hidden="true" />
             {expenseSourceLabels[source]}
           </span>
         )}
-        <small>
-          {variant === "timeline"
-            ? formatDate(expense.occurredAt, {
-                hour: "2-digit",
-                minute: "2-digit",
-                hourCycle: "h23",
-              })
-            : formatDate(expense.occurredAt, {
-                day: "numeric",
-                month: "short",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}{" "}
-          · {expense.paymentMethod || "Pembayaran belum dipilih"}
-        </small>
+        {variant !== "category" && (
+          <small>
+            {variant === "timeline"
+              ? formatDate(expense.occurredAt, {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hourCycle: "h23",
+                })
+              : formatDate(expense.occurredAt, {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}{" "}
+            · {expense.paymentMethod || "Pembayaran belum dipilih"}
+          </small>
+        )}
         {variant === "timeline" && tags.length > 0 && (
           <span className="transaction-tags">
             {tags.map((tag) => (
@@ -75,7 +102,12 @@ export function TransactionRow({
           <ChevronRight size={15} aria-hidden="true" />
         </span>
       ) : (
-        <MoneyDisplay amountIdr={expense.amountIdr} expense />
+        <>
+          <MoneyDisplay amountIdr={expense.amountIdr} expense />
+          {variant === "category" && (
+            <ChevronRight size={16} aria-hidden="true" />
+          )}
+        </>
       )}
     </button>
   );

@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  Fragment,
   useContext,
   useMemo,
   useState,
@@ -25,11 +26,13 @@ type ExpenseSession = {
   updateExpense: (id: string, draft: ReceiptDraft) => void;
   removeExpense: (id: string) => void;
   restoreExpense: (expense: ActivityExpense) => void;
+  resetSession: () => void;
 };
 const Context = createContext<ExpenseSession | null>(null);
 
 /** In-memory prototype records only. No persistence, API or reward authority. */
 export function ExpenseSessionProvider({ children }: { children: ReactNode }) {
+  const [sessionEpoch, setSessionEpoch] = useState(0);
   const [expenses, setExpenses] = useState(activityExpenses);
   const [chatSession, setChatSession] = useState<ChatBatchSnapshot | null>(
     null,
@@ -39,6 +42,11 @@ export function ExpenseSessionProvider({ children }: { children: ReactNode }) {
       expenses,
       chatSession,
       setChatSession,
+      resetSession: () => {
+        setExpenses(activityExpenses);
+        setChatSession(null);
+        setSessionEpoch((current) => current + 1);
+      },
       updateExpense: (id, draft) =>
         setExpenses((previous) =>
           previous.map((expense) =>
@@ -72,7 +80,11 @@ export function ExpenseSessionProvider({ children }: { children: ReactNode }) {
     }),
     [expenses, chatSession],
   );
-  return <Context.Provider value={value}>{children}</Context.Provider>;
+  return (
+    <Context.Provider value={value}>
+      <Fragment key={sessionEpoch}>{children}</Fragment>
+    </Context.Provider>
+  );
 }
 export function useExpenseSession() {
   const context = useContext(Context);

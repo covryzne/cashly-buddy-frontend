@@ -16,8 +16,8 @@ const items = [
     href: "/aktivitas",
     page: "activity",
   },
-  { label: "Laporan", icon: ChartNoAxesColumn, href: null, page: null },
-  { label: "Profil", icon: CircleUserRound, href: null, page: null },
+  { label: "Laporan", icon: ChartNoAxesColumn, href: "/laporan", page: "reports" },
+  { label: "Profil", icon: CircleUserRound, href: "/profil", page: "profile" },
 ];
 export function AppNavigation({
   onAdd,
@@ -26,7 +26,7 @@ export function AppNavigation({
 }: {
   onAdd: () => void;
   onUpcoming: (label: string) => void;
-  activePage?: "home" | "activity";
+  activePage?: "home" | "activity" | "reports" | "profile";
 }) {
   function item(entry: (typeof items)[number], mobile: boolean) {
     const Icon = entry.icon;
@@ -37,9 +37,6 @@ export function AppNavigation({
       <>
         <Icon size={mobile ? 22 : 21} />
         <span>{entry.label}</span>
-        {!mobile && entry.label === "Laporan" && (
-          <span className="nav-soon">Nanti</span>
-        )}
       </>
     );
     return entry.href ? (

@@ -3,7 +3,14 @@ import {
   type ActivityExpense,
   expenseSourceLabels,
 } from "@/mocks/fixtures/activity";
-import { dateKey, rangeLabel, type PeriodSelection } from "@/lib/format/period";
+import {
+  dateKey,
+  rangeLabel,
+  addDays,
+  weekStart,
+  type PeriodSelection,
+} from "@/lib/format/period";
+export { periodBounds, addDays, weekStart } from "@/lib/format/period";
 import { formatDate } from "@/lib/format/datetime";
 import { monthKey } from "@/features/home/select-month";
 import type { ReceiptDraft } from "@/features/scan/receipt-schema";
@@ -35,22 +42,6 @@ export function inPeriod(expense: Expense, period: PeriodSelection) {
   return period.kind === "month"
     ? day.startsWith(period.month)
     : day >= period.start && day <= period.end;
-}
-export function periodBounds(period: PeriodSelection) {
-  if (period.kind === "range") return { start: period.start, end: period.end };
-  const end = new Date(`${period.month}-01T12:00:00Z`);
-  end.setUTCMonth(end.getUTCMonth() + 1, 0);
-  return { start: `${period.month}-01`, end: end.toISOString().slice(0, 10) };
-}
-export function weekStart(day: string) {
-  const date = new Date(`${day}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
-  return date.toISOString().slice(0, 10);
-}
-export function addDays(day: string, amount: number) {
-  const date = new Date(`${day}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + amount);
-  return date.toISOString().slice(0, 10);
 }
 export function activityGroupLabel(
   key: string,

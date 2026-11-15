@@ -1,3 +1,4 @@
+import Image from "next/image";
 import {
   CalendarDays,
   Check,
@@ -62,7 +63,13 @@ export function ExpenseDetail({
             <strong>Setiap catatan berarti.</strong>
             <small>Check-in dihitung sekali sehari.</small>
           </div>
-          <span className="receipt-buddy">Mochi</span>
+          <Image
+            className="receipt-buddy"
+            src="/mascot/mochi-crown-transparent.webp"
+            alt="Mochi"
+            width={48}
+            height={48}
+          />
         </aside>
         <div className="receipt-meta-panel">
           <dl className="receipt-metadata">

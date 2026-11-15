@@ -7,10 +7,12 @@ export function WeeklyStory({
   totalIdr,
   count,
   categories,
+  periodLabel,
 }: {
   totalIdr: string;
   count: number;
   categories: Category[];
+  periodLabel?: string;
 }) {
   const ranked = [...categories]
     .filter((category) => BigInt(category.amountIdr) > BigInt(0))
@@ -30,7 +32,7 @@ export function WeeklyStory({
       <div className="story-summary">
         <span>Total pengeluaran</span>
         <MoneyDisplay amountIdr={totalIdr} />
-        <small>{count} transaksi dalam 7 hari · WIB</small>
+        <small>{count} transaksi · {periodLabel ?? "dalam 7 hari"} · WIB</small>
       </div>
       <div className="story-list-heading">
         <h3>Jejak pengeluaranmu</h3>

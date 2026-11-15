@@ -4,6 +4,23 @@ export type PeriodSelection =
   | { kind: "month"; month: string }
   | { kind: "range"; start: string; end: string };
 
+export function periodBounds(period: PeriodSelection) {
+  if (period.kind === "range") return { start: period.start, end: period.end };
+  const end = new Date(`${period.month}-01T12:00:00Z`);
+  end.setUTCMonth(end.getUTCMonth() + 1, 0);
+  return { start: `${period.month}-01`, end: end.toISOString().slice(0, 10) };
+}
+export function addDays(day: string, amount: number) {
+  const date = new Date(`${day}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
+}
+export function weekStart(day: string) {
+  const date = new Date(`${day}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
+  return date.toISOString().slice(0, 10);
+}
+
 // Timestamps follow the product timezone, regardless of browser timezone.
 export function dateKey(value: string) {
   const parts = new Intl.DateTimeFormat("en", {

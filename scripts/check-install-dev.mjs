@@ -27,7 +27,7 @@ try {
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(new URL("/login", origin).href);
     const trigger = page.getByRole("button", {
-      name: "Download Cashly",
+      name: "Install",
       exact: true,
     });
     await trigger.click();
@@ -46,18 +46,16 @@ try {
     await page.getByRole("button", { name: "Mengerti", exact: true }).click();
     await expect(trigger).toBeFocused();
     await page.goto(new URL("/beranda", origin).href);
-    await page.getByRole("button", { name: "Profil", exact: true }).click();
-    await page
-      .getByRole("button", { name: "Download Cashly", exact: true })
-      .click();
+    await page.getByRole("link", { name: "Profil", exact: true }).click();
+    await page.getByRole("button", { name: "Install", exact: true }).click();
     await expect(page.locator("dialog[open]")).toHaveCount(1);
-    await page.getByRole("button", { name: "Kembali", exact: true }).click();
+    await page.getByRole("button", { name: "Mengerti", exact: true }).click();
     await expect(
-      page.getByRole("button", { name: "Download Cashly", exact: true }),
+      page.getByRole("button", { name: "Install", exact: true }),
     ).toBeFocused();
     assert.deepEqual(errors, []);
     console.log(
-      `${colorScheme}: install guide dev OK — CSS, login/Profile, Back/focus and clean hydration`,
+      `${colorScheme}: install guide dev OK — CSS, login/Profile, close/focus and clean hydration`,
     );
     await page.close();
   }

@@ -20,7 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { AppNavigation } from "@/components/shared/app-navigation";
-import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { AppPageHeader } from "@/components/shared/app-page-header";
 import { ProfileOverview } from "@/components/shared/profile-overview";
 import { InstallGuide } from "@/components/shared/install-app";
 import { FeaturePreview } from "@/components/shared/feature-preview";
@@ -275,18 +275,12 @@ export function ActivityDashboard() {
         onUpcoming={openUpcoming}
       />
       <div className="app-shell activity-page">
-        <header className="activity-header">
-          <div className="activity-header-inner">
-            <span className="activity-header-icon">
-              <ReceiptText size={21} />
-            </span>
-            <div>
-              <h1>Aktivitas Keuangan</h1>
-              <p>Timeline pengeluaran & catatan harian</p>
-            </div>
-            <ThemeToggle />
-          </div>
-        </header>
+        <AppPageHeader
+          className="activity-header"
+          title="Aktivitas Keuangan"
+          description="Timeline pengeluaran & catatan harian"
+          icon={ReceiptText}
+        />
         <main id="main-content" className="activity-main">
           {!online && (
             <p className="offline-banner" role="status">

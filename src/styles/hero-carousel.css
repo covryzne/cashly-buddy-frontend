@@ -1,0 +1,144 @@
+.hero-carousel {
+  min-width: 0;
+  text-align: center;
+}
+.hero-carousel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  text-align: left;
+}
+.hero-level-badge {
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.hero-carousel-viewport {
+  position: relative;
+}
+.hero-carousel .evolution-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  position: relative;
+  padding: 0;
+}
+.hero-carousel .evolution-stage-card {
+  flex: 0 0 100%;
+  min-width: 0;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  padding-bottom: 10px;
+}
+.hero-slide-header {
+  min-height: 44px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 12px;
+  text-align: left;
+}
+.hero-slide-header .icon-button {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  color: var(--primary-text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.hero-carousel-streak {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 7px 12px;
+  z-index: 1;
+  pointer-events: none;
+}
+.hero-carousel-streak svg {
+  width: 18px;
+  height: 18px;
+}
+.hero-carousel-art.profile-mochi-stage {
+  position: relative;
+  margin: 0;
+}
+.hero-stage-image {
+  display: block;
+  width: 184px;
+  height: 184px;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.hero-carousel-renderer {
+  display: grid;
+  place-items: center;
+  width: 240px;
+  height: 184px;
+  transition:
+    opacity 240ms ease,
+    filter 240ms ease;
+}
+.hero-carousel-art.is-locked .hero-carousel-renderer {
+  opacity: 0.38;
+  filter: grayscale(0.8) brightness(0.85);
+}
+.hero-art-lock {
+  position: absolute;
+  bottom: 13px;
+  left: calc(50% + 42px);
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: var(--card-shadow);
+  pointer-events: none;
+}
+.hero-carousel-navigation {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+.evolution-dots {
+  display: flex;
+  justify-content: center;
+}
+.evolution-dots button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  border-radius: 9px;
+}
+.evolution-dots span {
+  display: block;
+  width: 6px;
+  height: 6px;
+  background: var(--muted);
+  border-radius: 999px;
+  transition: width 200ms ease;
+}
+.evolution-dots [aria-pressed="true"] span {
+  width: 18px;
+  background: var(--primary);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-carousel-renderer,
+  .evolution-dots span {
+    transition: none;
+  }
+}

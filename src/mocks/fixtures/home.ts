@@ -27,7 +27,7 @@ export const homeFixture = {
   xp: 340,
   streak: 12,
   mascotStage: 1,
-  maxMascotStageUnlocked: 3,
+  maxMascotStageUnlocked: 1,
   freezeBalance: 1,
   categories: [
     {

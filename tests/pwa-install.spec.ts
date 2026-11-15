@@ -91,7 +91,7 @@ for (const platform of ["iphone", "ipad", "android", "desktop"] as const) {
       );
       await expect(page.getByRole("dialog")).toHaveCount(0);
       const trigger = page.getByRole("button", {
-        name: "Download Cashly",
+        name: "Install",
         exact: true,
       });
       await trigger.click();
@@ -139,18 +139,18 @@ for (const platform of ["iphone", "ipad", "android", "desktop"] as const) {
   }
 }
 
-test("Profil → panduan adalah satu submodal dengan Back dan fokus yang benar", async ({
+test("Halaman Profil → panduan instalasi adalah satu dialog dengan fokus yang benar", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 700 });
   await page.goto("/beranda");
-  const profile = page.getByRole("button", { name: "Profil", exact: true });
+  const profile = page.getByRole("link", { name: "Profil", exact: true });
   await profile.click();
   await expect(
-    page.getByRole("dialog", { name: "Profil", exact: true }),
+    page.getByRole("heading", { name: "Profil Akun", exact: true }),
   ).toBeVisible();
   const install = page.getByRole("button", {
-    name: "Download Cashly",
+    name: "Install",
     exact: true,
   });
   await install.click();
@@ -158,18 +158,12 @@ test("Profil → panduan adalah satu submodal dengan Back dan fokus yang benar",
   await expect(
     page.getByRole("dialog", { name: "Download Cashly", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Kembali", exact: true }).click();
-  await expect(
-    page.getByRole("dialog", { name: "Profil", exact: true }),
-  ).toBeVisible();
+  await page.getByRole("button", { name: "Mengerti", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(install).toBeFocused();
   await install.click();
-  await page
-    .getByRole("button", { name: "Kembali ke Profil", exact: true })
-    .click();
+  await page.keyboard.press("Escape");
   await expect(install).toBeFocused();
-  await page.getByRole("button", { name: "Tutup dialog", exact: true }).click();
-  await expect(profile).toBeFocused();
 });
 
 for (const mode of ["media", "legacy"] as const) {
@@ -200,15 +194,15 @@ for (const mode of ["media", "legacy"] as const) {
       page.getByRole("heading", { name: "Selamat datang kembali!" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Download Cashly", exact: true }),
+      page.getByRole("button", { name: "Install", exact: true }),
     ).toHaveCount(0);
     await page.goto("/beranda");
-    await page.getByRole("button", { name: "Profil", exact: true }).click();
-    await expect(page.getByRole("status")).toContainText(
-      "Cashly dibuka dari Home Screen",
-    );
+    await page.getByRole("link", { name: "Profil", exact: true }).click();
     await expect(
-      page.getByRole("button", { name: "Download Cashly", exact: true }),
+      page.locator('.profile-install-card [role="status"]'),
+    ).toContainText("Cashly dibuka dari Home Screen");
+    await expect(
+      page.getByRole("button", { name: "Install", exact: true }),
     ).toHaveCount(0);
   });
 }
@@ -217,12 +211,10 @@ test("appinstalled menghapus ajakan dan menutup guide tanpa popup berikutnya", a
   page,
 }) => {
   await page.goto("/login");
-  await page
-    .getByRole("button", { name: "Download Cashly", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Install", exact: true }).click();
   await page.evaluate(() => window.dispatchEvent(new Event("appinstalled")));
   await expect(
-    page.getByRole("button", { name: "Download Cashly", exact: true }),
+    page.getByRole("button", { name: "Install", exact: true }),
   ).toHaveCount(0);
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });

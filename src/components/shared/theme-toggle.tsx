@@ -1,33 +1,14 @@
 "use client";
-import { useSyncExternalStore } from "react";
 import { Monitor, Moon, Sun } from "lucide-react";
-type Theme = "system" | "light" | "dark";
-const subscribe = (notify: () => void) => {
-  window.addEventListener("cashly-theme", notify);
-  return () => window.removeEventListener("cashly-theme", notify);
-};
-function readTheme(): Theme {
-  const theme = document.documentElement.dataset.theme;
-  return theme === "light" || theme === "dark" ? theme : "system";
-}
+import { useTheme } from "@/lib/theme/use-theme";
 export function ThemeToggle() {
-  const theme = useSyncExternalStore(
-    subscribe,
-    readTheme,
-    () => "system" as Theme,
-  );
+  const { theme, setTheme } = useTheme();
   const Icon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
   function changeTheme() {
     const next = ({ system: "light", light: "dark", dark: "system" } as const)[
       theme
     ];
-    document.documentElement.dataset.theme = next;
-    try {
-      localStorage.setItem("cashly-theme", next);
-    } catch {
-      /* Optional persistence. */
-    }
-    window.dispatchEvent(new Event("cashly-theme"));
+    setTheme(next);
   }
   return (
     <button

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useSyncExternalStore } from 'react';
-import { Sparkles, Zap, Hand, ArrowUpRight, WifiOff } from 'lucide-react';
+import { Sparkles, Zap, Hand, ArrowUpRight, WifiOff, Plus } from 'lucide-react';
 import {
   homeFixture as data,
   type Category,
@@ -11,6 +11,8 @@ import { formatDate } from '@/lib/format/datetime';
 import { MoneyDisplay } from '@/components/finance/money-display';
 import { CategoryIcon } from '@/components/finance/category-icon';
 import { TransactionRow } from '@/components/finance/transaction-row';
+import { CategoryDetail } from '@/components/finance/category-detail';
+import { defaultCategoryDetailFilters, type CategoryDetailFilters } from '@/features/expenses/select-category-detail';
 import { ExpenseSummaryCard } from '@/components/finance/expense-summary-card';
 import { StreakCard } from '@/components/gamification/streak-card';
 import { MissionBoard } from '@/components/gamification/mission-board';
@@ -37,6 +39,7 @@ import { ScanReceiptFlow } from '@/features/scan/scan-receipt-flow';
 import { ChatBatchFlow } from '@/features/expenses/chat-batch-flow';
 import { VoiceReceiptFlow } from '@/features/expenses/voice-receipt-flow';
 import { useExpenseSession } from '@/features/expenses/expense-session';
+import { useProfileSession } from '@/features/profile/profile-session';
 
 const subscribeClock = (notify: () => void) => {
   window.addEventListener('focus', notify);
@@ -66,6 +69,7 @@ const subscribeOnline = (notify: () => void) => {
   };
 };
 export function HomeDashboard() {
+  const { profile } = useProfileSession();
   const { expenses, chatSession, setChatSession } = useExpenseSession();
   const currentMonth = useSyncExternalStore(
     subscribeClock,
@@ -90,6 +94,7 @@ export function HomeDashboard() {
     canGoBack,
   } = useModalStack<Panel>();
   const [greeting, setGreeting] = useState(false);
+  const [categoryFilters, setCategoryFilters] = useState<CategoryDetailFilters>(defaultCategoryDetailFilters);
   const online = useSyncExternalStore(
     subscribeOnline,
     () => navigator.onLine,
@@ -151,7 +156,7 @@ export function HomeDashboard() {
                 Sedikit perhatian, kebiasaan yang lebih baik.
               </p>
               <h1>
-                Hi, {data.name}! <span aria-hidden="true">👋</span>
+                Hi, {profile.name}! <span aria-hidden="true">👋</span>
               </h1>
               <p className="muted greeting-date">
                 {formatDate(data.asOf, {
@@ -202,7 +207,7 @@ export function HomeDashboard() {
                   <button
                     key={category.code}
                     className={`floating-category float-${index}`}
-                    onClick={() => setPanel({ kind: 'category', category })}
+                    onClick={() => { setCategoryFilters(defaultCategoryDetailFilters); setPanel({ kind: 'category', category }); }}
                   >
                     <CategoryIcon category={category} />
                     <span>
@@ -216,8 +221,8 @@ export function HomeDashboard() {
                 Mochi kamu masih level {data.mascotStage} nih
               </p>
               <p className="companion-hint" aria-live="polite">
-                {greeting ? (
-                  'Hai, Nara! Senang menemanimu hari ini.'
+                {greeting && profile.friendlyGreeting ? (
+                  `Hai, ${profile.name}! Senang menemanimu hari ini.`
                 ) : (
                   <>
                     <Hand size={14} />
@@ -323,13 +328,14 @@ export function HomeDashboard() {
             onBack={canGoBack ? back : undefined}
             variant={
               panel.kind === 'add' ||
+              panel.kind === 'category' ||
               panel.kind === 'expense' ||
               panel.kind === 'install'
                 ? 'sheet'
                 : 'default'
             }
             className={
-              panel.kind === 'expense'
+              panel.kind === 'category' ? 'category-detail-dialog' : panel.kind === 'expense'
                 ? 'expense-detail-dialog'
                 : panel.kind === 'install'
                   ? 'install-dialog'
@@ -337,8 +343,9 @@ export function HomeDashboard() {
                     ? 'quick-add-dialog'
                     : undefined
             }
+            headerActions={panel.kind === 'category' ? <span className="category-header-count">{selectedExpenses.length} transaksi</span> : undefined}
             footer={
-              panel.kind === 'install' ? (
+              panel.kind === 'category' ? <Button data-modal-focus-key="category-add" onClick={() => push({ kind: 'add' })}><Plus size={17} />Catat pengeluaran</Button> : panel.kind === 'install' ? (
                 <Button onClick={back}>Kembali ke Profil</Button>
               ) : panel.kind === 'expense' ? (
                 <ExpenseDetailActions onDone={close} />
@@ -351,6 +358,7 @@ export function HomeDashboard() {
             }
           >
             {panel.kind !== 'add' &&
+              panel.kind !== 'category' &&
               panel.kind !== 'expense' &&
               panel.kind !== 'profile' &&
               panel.kind !== 'install' && (
@@ -390,16 +398,11 @@ export function HomeDashboard() {
             {panel.kind === 'upcoming' && (
               <FeaturePreview label={panel.label} />
             )}
-            {panel.kind === 'profile' && <ProfileOverview name={data.name} onInstall={() => push({ kind: 'install' })} />}
+            {panel.kind === 'profile' && <ProfileOverview name={profile.name} onInstall={() => push({ kind: 'install' })} />}
             {panel.kind === 'install' && <InstallGuide />}
-            {(panel.kind === 'category' || panel.kind === 'transactions') && (
+            {panel.kind === 'category' && <CategoryDetail category={panel.category} expenses={expenses} period={selection} filters={categoryFilters} onFiltersChange={setCategoryFilters} onSelect={(expense) => push({ kind: 'expense', expense })} />}
+            {panel.kind === 'transactions' && (
               <>
-                {panel.kind === 'category' && (
-                  <div className="category-total">
-                    <span>Total {panel.category.label.toLowerCase()}</span>
-                    <MoneyDisplay amountIdr={panel.category.amountIdr} />
-                  </div>
-                )}
                 <div className="transaction-list">
                   {selectedExpenses.length === 0 && (
                     <p className="empty-expenses">

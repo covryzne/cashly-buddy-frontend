@@ -281,17 +281,18 @@ test("Catat, profil, panduan instalasi dan status offline tetap tersedia", async
   await expect(page.locator(".activity-header")).toBeVisible();
   await page
     .locator(".bottom-nav:visible")
-    .getByRole("button", { name: "Profil", exact: true })
+    .getByRole("link", { name: "Profil", exact: true })
     .click();
-  await dialog(page)
-    .getByRole("button", { name: "Install", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Install", exact: true }).click();
   await expect(dialog(page)).toHaveAccessibleName("Download Cashly");
   await dialog(page)
-    .getByRole("button", { name: "Kembali", exact: true })
+    .getByRole("button", { name: "Mengerti", exact: true })
     .click();
-  await expect(dialog(page)).toHaveAccessibleName("Profil");
-  await dialog(page).getByRole("button", { name: "Tutup dialog" }).click();
+  await expect(dialog(page)).toHaveCount(0);
+  await page
+    .locator(".bottom-nav:visible")
+    .getByRole("link", { name: "Aktivitas", exact: true })
+    .click();
   await context.setOffline(true);
   await expect(page.locator(".offline-banner")).toBeVisible();
   await expect(rows(page)).toHaveCount(6);

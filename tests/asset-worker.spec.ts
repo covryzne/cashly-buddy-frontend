@@ -22,6 +22,7 @@ function worker(
     caches: storage,
     fetch: fetcher,
     Request,
+    Headers,
     Response,
     URL,
     AbortController,
@@ -65,6 +66,63 @@ test("Ikon Apple berfilename baru masuk allowlist dan memakai cache aset yang ad
   expect(await (await dispatch(request))?.text()).toBe("mochi-icon");
   expect(await (await dispatch(request))?.text()).toBe("mochi-icon");
   expect(downloads).toBe(1);
+});
+
+test("Warmup optimasi dan gambar browser memakai WebP transparan tanpa mengabaikan Vary", async () => {
+  const stored = new Map<
+    string,
+    { accept: string | null; response: Response }
+  >();
+  const downloads: string[] = [];
+  const dispatch = worker(
+    {
+      open: async () => ({
+        match: async (request: Request, options?: CacheQueryOptions) => {
+          expect(options?.ignoreVary).not.toBe(true);
+          const entry = stored.get(request.url);
+          return entry?.accept === request.headers.get("accept")
+            ? entry.response.clone()
+            : undefined;
+        },
+        put: async (request: Request, response: Response) => {
+          stored.set(request.url, {
+            accept: request.headers.get("accept"),
+            response: response.clone(),
+          });
+        },
+        keys: async () => [],
+      }),
+    },
+    async (request) => {
+      const accept = request.headers.get("accept") ?? "";
+      downloads.push(accept);
+      return new Response(
+        accept.includes("image/webp") ? "alpha-webp" : "black-jpeg",
+        {
+          headers: {
+            "Content-Type": accept.includes("image/webp")
+              ? "image/webp"
+              : "image/jpeg",
+            Vary: "Accept",
+          },
+        },
+      );
+    },
+  );
+  const url =
+    "https://cashly.test/_next/image?url=%2Fmascot%2Fmochi-crown-transparent.webp&w=128&q=75";
+  const [warm, image] = await Promise.all([
+    dispatch(new Request(url)),
+    dispatch(
+      new Request(url, {
+        headers: { Accept: "image/avif,image/webp,image/*" },
+      }),
+    ),
+  ]);
+  expect(await warm?.text()).toBe("alpha-webp");
+  expect(await image?.text()).toBe("alpha-webp");
+  expect(await (await dispatch(new Request(url)))?.text()).toBe("alpha-webp");
+  expect(downloads).toEqual(["image/webp"]);
 });
 
 test("Worker tidak mengintersep HTML, API, auth, foto privat, atau request Authorization", () => {

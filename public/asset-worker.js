@@ -1,11 +1,15 @@
 /* Public assets only. Bump VERSION whenever a listed file or Spline export changes,
    even when its URL stays the same. Keep SCENE in sync with spline-mascot.tsx. */
-const VERSION = "v2";
+const VERSION = "v3-alpha";
 const PREFIX = "cashly-public-assets-";
 const CACHE = `${PREFIX}${VERSION}`;
 const SCENE = "https://prod.spline.design/R4tRoaLYG0dA8fQD/scene.splinecode";
 const ASSETS = [
   "/mascot/mochi-crown-transparent.webp",
+  "/mascot/mochi-crown-transparent.png",
+  "/mascot/mochi-level-2.webp",
+  "/mascot/mochi-level-3.webp",
+  "/mascot/mochi-level-4.webp",
   "/branding/cashly-header.webp",
   "/branding/google-g.png",
   "/icons/icon-192.png?v=mochi-1",
@@ -14,7 +18,7 @@ const ASSETS = [
   "/icons/favicon-16.png?v=mochi-1",
   "/icons/favicon-32.png?v=mochi-1",
   "/apple-touch-icon.png?v=mochi-2",
-  // New URL, same approved artwork: retain existing valid scene/image caches.
+  // Stable Apple touch-icon URL, using the approved app artwork.
   "/icons/apple-touch-icon-mochi-3.png",
   "/favicon.ico?v=mochi-1",
 ];
@@ -63,15 +67,18 @@ function usable(response) {
 }
 
 async function assetResponse(request) {
+  if (new URL(request.url).pathname === "/_next/image") {
+    // A generic warmup Accept header makes Next flatten alpha into JPEG.
+    // Public source images already require WebP support. Use one alpha-safe
+    // representation for both warmup and browser requests, preserving Vary.
+    const headers = new Headers(request.headers);
+    headers.set("Accept", "image/webp");
+    request = new Request(request, { headers });
+  }
   let cache;
   try {
     cache = await caches.open(CACHE);
-    // Warmup fetch and <img> send different Accept headers. These allowlisted
-    // WebP/PNG images are displayable in either representation; their URL already
-    // includes source, width and quality. Avoid alternating Vary: Accept misses.
-    const stored = await cache.match(request, {
-      ignoreVary: new URL(request.url).pathname === "/_next/image",
-    });
+    const stored = await cache.match(request);
     if (stored && usable(stored)) return stored;
     if (stored) await cache.delete(request);
   } catch {

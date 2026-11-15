@@ -1,5 +1,22 @@
 # Aset Mochi
 
+## Hero Profil level 2–5 (2026-11-15)
+
+- Level 2: `mochi-level-2.png` / `.webp`, blob pink lebar dari image.png_2.
+  Background Blender, garis grid dan overlay seleksi pada badan dihapus.
+- Level 3: `mochi-level-3.png` / `.webp`, jelly biru dengan bintang emas dan wink.
+- Level 4: `mochi-level-4.png` / `.webp`, karakter lavender tinggi bermata besar.
+- Level 5: `mochi-crown-transparent.png`, aset crown yang diminta pengguna,
+  dipakai tanpa mengganti artwork. Level 1 tetap scene Spline.
+- PNG adalah master alpha hasil edit imagegen bawaan. WebP 512px adalah ekspor
+  quality 90 / alphaQuality 100. Background benar-benar transparan. Prompt final
+  disimpan di `../../docs/mascot-level-edit-prompts.md`.
+- Latar hitam pada login/avatar berasal dari JPEG hasil warmup optimizer yang
+  tersimpan di cache lama; bukan background baru pada PNG/WebP sumber.
+  Worker v3-alpha memaksa WebP untuk jalur optimasi dan menghormati Vary.
+
+## Aset sebelumnya
+
 - Referensi terbaru: `mochi-reference (2).png`, disediakan pengguna.
 - Master transparan: `mochi-crown-transparent.png` (1254 × 1254, RGBA).
 - Aset UI: `mochi-crown-transparent.webp` (1254 × 1254, alpha dipertahankan;

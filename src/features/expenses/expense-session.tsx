@@ -1,24 +1,16 @@
 "use client";
 
-import {
-  createContext,
-  Fragment,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
-import {
-  activityExpenses,
-  type ActivityExpense,
-} from "@/mocks/fixtures/activity";
-import {
-  receiptAmounts,
-  type ReceiptDraft,
-} from "@/features/scan/receipt-schema";
+import { createContext, Fragment, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { activityExpenses, type ActivityExpense } from "@/mocks/fixtures/activity";
+import { receiptAmounts, receiptSchema, type ReceiptDraft } from "@/features/scan/receipt-schema";
 import { wibDateTime } from "@/lib/format/datetime";
+import { clearSnapshot, readSnapshot, writeSnapshot } from "@/lib/pwa/local-snapshot";
+import { useOnline } from "@/lib/pwa/connectivity";
+import { Button } from "@/components/ui/button";
 import type { ChatBatchSnapshot } from "./chat-batch";
 
+export const localAppRoutes = ["/", "/beranda", "/aktivitas", "/laporan", "/profil", "/offline"];
 type ExpenseSession = {
   expenses: ActivityExpense[];
   chatSession: ChatBatchSnapshot | null;
@@ -26,65 +18,139 @@ type ExpenseSession = {
   updateExpense: (id: string, draft: ReceiptDraft) => void;
   removeExpense: (id: string) => void;
   restoreExpense: (expense: ActivityExpense) => void;
-  resetSession: () => void;
+  recordDrafts: (records: { id: string; draft: ReceiptDraft; source: ActivityExpense["source"] }[]) => void;
+  resetSession: () => Promise<void>;
+  updatedAt: string | null;
+  storageError: boolean;
+  persisted: boolean;
 };
 const Context = createContext<ExpenseSession | null>(null);
 
-/** In-memory prototype records only. No persistence, API or reward authority. */
+/** Single fictional demo namespace. No real login, API or reward authority. */
 export function ExpenseSessionProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const isApp = localAppRoutes.includes(pathname);
+  const online = useOnline();
   const [sessionEpoch, setSessionEpoch] = useState(0);
-  const [expenses, setExpenses] = useState(activityExpenses);
-  const [chatSession, setChatSession] = useState<ChatBatchSnapshot | null>(
-    null,
-  );
-  const value = useMemo<ExpenseSession>(
-    () => ({
-      expenses,
-      chatSession,
-      setChatSession,
-      resetSession: () => {
-        setExpenses(activityExpenses);
-        setChatSession(null);
-        setSessionEpoch((current) => current + 1);
-      },
-      updateExpense: (id, draft) =>
-        setExpenses((previous) =>
-          previous.map((expense) =>
-            expense.id === id
-              ? {
-                  ...expense,
-                  draft,
-                  merchant: draft.merchant || draft.items[0].name,
-                  description: draft.items.map((item) => item.name).join(", "),
-                  categoryCode: draft.categoryCode,
-                  paymentMethod: draft.paymentMethod,
-                  occurredAt: wibDateTime(
-                    draft.occurredDate,
-                    draft.occurredTime,
-                  ),
-                  amountIdr: receiptAmounts(draft).total.toString(),
-                }
-              : expense,
-          ),
-        ),
-      removeExpense: (id) =>
-        setExpenses((previous) =>
-          previous.filter((expense) => expense.id !== id),
-        ),
-      restoreExpense: (expense) =>
-        setExpenses((previous) =>
-          previous.some((entry) => entry.id === expense.id)
-            ? previous
-            : [...previous, expense],
-        ),
-    }),
-    [expenses, chatSession],
-  );
-  return (
-    <Context.Provider value={value}>
-      <Fragment key={sessionEpoch}>{children}</Fragment>
-    </Context.Provider>
-  );
+  const [expenses, setExpenses] = useState<ActivityExpense[]>([]);
+  const [chatSession, setChatSession] = useState<ChatBatchSnapshot | null>(null);
+  const [ready, setReady] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  const [storageError, setStorageError] = useState(false);
+  const [persisted, setPersisted] = useState(false);
+  const generation = useRef(0);
+  const channel = useRef<BroadcastChannel | null>(null);
+
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const broadcast = new BroadcastChannel("cashly-demo-session");
+    channel.current = broadcast;
+    broadcast.onmessage = (event) => {
+      if (event.data !== "logout") return;
+      generation.current++;
+      setExpenses([]);
+      setChatSession(null);
+      setUpdatedAt(null);
+      setPersisted(false);
+      setSessionEpoch(epoch => epoch + 1);
+    };
+    return () => { channel.current = null; broadcast.close(); };
+  }, []);
+
+  useEffect(() => {
+    if (!isApp || ready) return;
+    let cancelled = false;
+    const version = generation.current;
+    const active = () => !cancelled && generation.current === version;
+    void (async () => {
+      try {
+        let snapshot = await readSnapshot();
+        if (!active()) return;
+        // An offline entry must never invent missing local records.
+        if (!snapshot && navigator.onLine && pathname !== "/offline" && pathname !== "/") {
+          const now = new Date().toISOString();
+          await writeSnapshot(activityExpenses, now);
+          snapshot = { version: 1, owner: "fictional-demo", expenses: activityExpenses, updatedAt: now };
+        }
+        if (!active()) return;
+        setExpenses(snapshot?.expenses ?? []);
+        setUpdatedAt(snapshot?.updatedAt ?? null);
+        setPersisted(Boolean(snapshot));
+      } catch {
+        if (!active()) return;
+        setStorageError(true);
+        if (navigator.onLine && pathname !== "/offline" && pathname !== "/") {
+          setExpenses(activityExpenses);
+          setUpdatedAt(new Date().toISOString());
+        }
+      } finally {
+        if (active()) setReady(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isApp, pathname, ready]);
+
+  function commit(next: ActivityExpense[]) {
+    if (!navigator.onLine || !updatedAt) return;
+    const now = new Date().toISOString();
+    const version = generation.current;
+    setExpenses(next);
+    setUpdatedAt(now);
+    void writeSnapshot(next, now).then(() => {
+      if (generation.current === version) { setPersisted(true); setStorageError(false); }
+    }).catch(() => {
+      if (generation.current === version) { setStorageError(true); setPersisted(false); }
+    });
+  }
+  async function resetSession() {
+    generation.current++;
+    // A failed delete keeps the logout dialog available for a visible retry.
+    await clearSnapshot();
+    setExpenses([]);
+    setChatSession(null);
+    setUpdatedAt(null);
+    setPersisted(false);
+    setSessionEpoch(epoch => epoch + 1);
+    channel.current?.postMessage("logout");
+  }
+
+  const value: ExpenseSession = {
+    expenses, chatSession, setChatSession, resetSession, updatedAt, storageError, persisted,
+    updateExpense: (id, draft) => commit(expenses.map(expense => expense.id === id ? {
+      ...expense, draft, merchant: draft.merchant || draft.items[0].name,
+      description: draft.items.map(item => item.name).join(", "),
+      categoryCode: draft.categoryCode, paymentMethod: draft.paymentMethod,
+      occurredAt: wibDateTime(draft.occurredDate, draft.occurredTime),
+      amountIdr: receiptAmounts(draft).total.toString(),
+    } : expense)),
+    removeExpense: id => commit(expenses.filter(expense => expense.id !== id)),
+    restoreExpense: expense => commit(expenses.some(entry => entry.id === expense.id) ? expenses : [...expenses, expense]),
+    recordDrafts: records => {
+      const additions: ActivityExpense[] = records.map(({ id, draft, source }) => {
+        const valid = receiptSchema.parse(draft);
+        return {
+          id: `local-${id}`, draft: valid, source, tags: [],
+          merchant: valid.merchant || valid.items[0].name,
+          description: valid.items.map(item => item.name).join(", "),
+          categoryCode: valid.categoryCode, paymentMethod: valid.paymentMethod,
+          occurredAt: wibDateTime(valid.occurredDate, valid.occurredTime),
+          amountIdr: receiptAmounts(valid).total.toString(),
+        };
+      });
+      const ids = new Set(additions.map(record => record.id));
+      commit([...expenses.filter(record => !ids.has(record.id)), ...additions]);
+    },
+  };
+  const unavailable = isApp && ready && !updatedAt;
+  return <Context.Provider value={value}>
+    {isApp && !ready ? <main className="local-data-empty" aria-busy="true"><p role="status">Menyiapkan data Cashly…</p></main>
+      : unavailable ? <main className="local-data-empty">
+        <h1>Data belum tersedia di perangkat</h1>
+        <p>{storageError ? "Penyimpanan lokal tidak tersedia atau tidak dapat dibaca." : "Belum ada salinan data lokal. Ini bukan berarti riwayat pengeluaranmu kosong."}</p>
+        <p>{online ? "Buka pratinjau saat online untuk memuat data contoh." : "Hubungkan internet untuk membuka kembali pratinjau dan memuat data contoh."}</p>
+        <Button disabled={!online} onClick={() => window.location.assign(new URL("/beranda", window.location.origin).href)}>Buka pratinjau online</Button>
+      </main> : <Fragment key={sessionEpoch}>{children}</Fragment>}
+  </Context.Provider>;
 }
 export function useExpenseSession() {
   const context = useContext(Context);

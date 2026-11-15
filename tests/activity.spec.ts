@@ -239,7 +239,7 @@ test("Edit tervalidasi, total Beranda konsisten, hapus dan urungkan", async ({
   await expect(rows(page)).toHaveCount(6);
   await expect(total(page)).toHaveText("Rp1.255.500");
   await page.reload();
-  await expect(total(page)).toHaveText("Rp1.248.500");
+  await expect(total(page)).toHaveText("Rp1.255.500");
 });
 
 test("Catat, profil, panduan instalasi dan status offline tetap tersedia", async ({
@@ -294,7 +294,7 @@ test("Catat, profil, panduan instalasi dan status offline tetap tersedia", async
     .getByRole("link", { name: "Aktivitas", exact: true })
     .click();
   await context.setOffline(true);
-  await expect(page.locator(".offline-banner")).toBeVisible();
+  await expect(page.locator(".activity-main .local-data-status > span")).toHaveText("Offline");
   await expect(rows(page)).toHaveCount(6);
   await context.setOffline(false);
 });
@@ -339,7 +339,8 @@ for (const source of ["scan", "chat"] as const) {
       .click();
     await expect(dialog(page)).toHaveCount(0);
     await expect(page).toHaveURL(/\/aktivitas$/);
-    // Capture confirmations remain snapshots until the separate ledger integration.
-    await expect(total(page)).toHaveText("Rp1.248.500");
+    // Confirmations now join the same local demo ledger (ADR-0061).
+    await expect(total(page)).toHaveText(source === "scan" ? "Rp1.296.000" : "Rp1.268.500");
+    await expect(rows(page)).toHaveCount(7);
   });
 }

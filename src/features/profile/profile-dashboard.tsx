@@ -1,7 +1,9 @@
 "use client";
 
+import { LocalDataStatus } from "@/components/shared/local-data-status";
+
 import { useId, useState } from "react";
-import { flushSync } from "react-dom";
+import { useOnline } from "@/lib/pwa/connectivity";
 import { useExpenseSession } from "@/features/expenses/expense-session";
 import {
   BellRing,
@@ -78,6 +80,8 @@ const infoTitles: Record<InfoPanel, string> = {
 };
 
 export function ProfileDashboard() {
+  const online = useOnline();
+  const [logoutError, setLogoutError] = useState("");
   const session = useExpenseSession();
   const {
     profile,
@@ -118,7 +122,7 @@ export function ProfileDashboard() {
     open({ kind: "edit" });
   }
   function submitProfile() {
-    if (photoBusy) return;
+    if (photoBusy || !navigator.onLine) return;
     const result = profileSchema.safeParse(draft);
     if (!result.success) {
       const next: Record<string, string> = {};
@@ -169,6 +173,7 @@ export function ProfileDashboard() {
           icon={CircleUserRound}
         />
         <main id="profile-main" className="profile-main">
+          <LocalDataStatus />
           {feedback && (
             <p className="profile-feedback" role="status">
               <CheckCircle2 size={16} />
@@ -425,7 +430,7 @@ export function ProfileDashboard() {
                 <Button variant="secondary" onClick={close}>
                   Batal
                 </Button>
-                <Button form={formId} type="submit" disabled={photoBusy}>
+                <Button form={formId} type="submit" disabled={photoBusy || !online}>
                   <Check size={17} />
                   Simpan profil
                 </Button>
@@ -437,9 +442,13 @@ export function ProfileDashboard() {
                 </Button>
                 <Button
                   className="profile-logout-confirm"
-                  onClick={() => {
-                    flushSync(session.resetSession);
-                    window.location.replace("/login");
+                  onClick={async () => {
+                    try {
+                      await session.resetSession();
+                      window.location.replace("/login");
+                    } catch {
+                      setLogoutError("Data lokal belum dapat dibersihkan. Tutup tab Cashly lain lalu coba keluar lagi.");
+                    }
                   }}
                 >
                   <LogOut size={16} />
@@ -450,7 +459,7 @@ export function ProfileDashboard() {
           }
         >
           {panel.kind === "whatsapp" &&
-            (whatsappExampleLinked ? (
+            (!online ? <p role="status">Penautan dan verifikasi WhatsApp memerlukan koneksi internet. WhatsApp tetap opsional untuk menggunakan Cashly.</p> : whatsappExampleLinked ? (
               <WhatsappExampleConnected
                 onReset={() => {
                   setWhatsappExampleLinked(false);
@@ -478,7 +487,7 @@ export function ProfileDashboard() {
               />
             ))}
           {panel.kind === "edit" && (
-            <ProfileEditForm
+            <><p hidden={online} role="status">Hubungkan internet untuk menyimpan perubahan profil.</p><ProfileEditForm
               draft={draft}
               onChange={(value) => {
                 setDraft(value);
@@ -491,7 +500,7 @@ export function ProfileDashboard() {
               formId={formId}
               onSubmit={submitProfile}
               onBusyChange={setPhotoBusy}
-            />
+            /></>
           )}
           {panel.kind === "guide" && (
             <EvolutionGuide
@@ -506,9 +515,10 @@ export function ProfileDashboard() {
                 <LogOut size={29} />
               </span>
               <h3>Sampai ketemu lagi!</h3>
+              {logoutError && <p role="alert">{logoutError}</p>}
               <p>
-                Perubahan sementara dalam sesi ini akan direset ketika kamu
-                keluar. Pilihan tema tetap tersimpan di perangkatmu.
+                Salinan data contoh di perangkat dan perubahan sesi akan dihapus
+                ketika kamu keluar. Pilihan tema tetap tersimpan di perangkatmu.
               </p>
             </div>
           )}

@@ -332,7 +332,7 @@ test("Keluar butuh konfirmasi dan mereset state sementara", async ({
     await page.evaluate(() =>
       sessionStorage.getItem("qa-profile-before-leave"),
     ),
-  ).toBe("Nara");
+  ).toBe("");
   await page.goto("/profil");
   await expect(page.locator(".profile-account-card h2")).toHaveText("Nara");
 });

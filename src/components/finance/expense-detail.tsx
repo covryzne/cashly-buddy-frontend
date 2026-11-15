@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { useOnline } from "@/lib/pwa/connectivity";
 import {
   CalendarDays,
   Check,
@@ -135,14 +136,15 @@ export function ExpenseDetailActions({
   onEdit?: () => void;
   onDelete?: () => void;
 }) {
+  const online = useOnline();
   return (
     <div
       className={`receipt-actions ${onDelete ? "receipt-actions-editable" : ""}`}
     >
       <Button
-        disabled={!onEdit}
+        disabled={!onEdit || !online}
         onClick={onEdit}
-        title={onEdit ? undefined : "Pengeditan belum tersedia"}
+        title={!online ? "Perlu koneksi internet" : onEdit ? undefined : "Pengeditan belum tersedia"}
         data-modal-focus-key="edit-expense"
       >
         <PencilLine size={18} />
@@ -151,6 +153,7 @@ export function ExpenseDetailActions({
       {onDelete && (
         <Button
           variant="outline"
+          disabled={!online}
           onClick={onDelete}
           className="activity-delete-button"
           data-modal-focus-key="delete-expense"

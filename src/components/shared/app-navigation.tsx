@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useOnline } from "@/lib/pwa/connectivity";
 import {
   Home,
   ReceiptText,
@@ -28,6 +29,7 @@ export function AppNavigation({
   onUpcoming: (label: string) => void;
   activePage?: "home" | "activity" | "reports" | "profile";
 }) {
+  const online = useOnline();
   function item(entry: (typeof items)[number], mobile: boolean) {
     const Icon = entry.icon;
     const selected = entry.page === activePage;
@@ -39,6 +41,7 @@ export function AppNavigation({
         <span>{entry.label}</span>
       </>
     );
+    if (!online) return <a key={entry.label} href={entry.href} className={className} aria-current={selected ? "page" : undefined}>{content}</a>;
     return entry.href ? (
       <Link
         key={entry.label}

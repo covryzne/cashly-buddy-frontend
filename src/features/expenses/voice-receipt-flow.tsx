@@ -1,5 +1,8 @@
 'use client';
 
+import type { ComponentProps } from "react";
+import { OnlineRequired } from "@/components/shared/online-required";
+
 import Image from 'next/image';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import {
@@ -21,7 +24,7 @@ import { useVoiceRecorder } from './use-voice-recorder';
 import { ChatReceiptFlow } from './chat-receipt-flow';
 import { PROTOTYPE_VOICE_TRANSCRIPT } from './voice-transcript';
 
-export function VoiceReceiptFlow({
+function VoiceReceiptFlowContent({
   onBack,
   onClose,
   onChat,
@@ -248,4 +251,8 @@ export function VoiceReceiptFlow({
       </div>
     </Dialog>
   );
+}
+
+export function VoiceReceiptFlow(props: ComponentProps<typeof VoiceReceiptFlowContent>) {
+  return <OnlineRequired onBack={props.onBack} onClose={props.onClose}><VoiceReceiptFlowContent {...props} /></OnlineRequired>;
 }

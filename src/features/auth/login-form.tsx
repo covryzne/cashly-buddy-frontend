@@ -1,4 +1,6 @@
 "use client";
+
+import { useOnline } from "@/lib/pwa/connectivity";
 import { useRef, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -12,6 +14,7 @@ import { GoogleSignInButton } from "./google-sign-in-button";
 import { autofillHydrationProps } from "./browser-autofill";
 
 export function LoginForm() {
+  const online = useOnline();
   const router = useRouter();
   const [values, setValues] = useState<LoginValues>({
     email: "",
@@ -24,6 +27,7 @@ export function LoginForm() {
   const formRef = useRef<HTMLFormElement>(null);
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!navigator.onLine) return;
     if (isPending) return;
     const parsed = loginSchema.safeParse(values);
     if (!parsed.success) {
@@ -73,6 +77,7 @@ export function LoginForm() {
       <div className="auth-divider">
         <span>atau masuk dengan email</span>
       </div>
+      {!online && <p role="status" className="offline-banner">Perlu koneksi internet untuk masuk, mendaftar, atau memulihkan akun.</p>}
       <form
         {...autofillHydrationProps}
         ref={formRef}
@@ -99,7 +104,7 @@ export function LoginForm() {
               aria-invalid={Boolean(errors.email)}
               aria-describedby={errors.email ? "login-email-error" : undefined}
               required
-              disabled={isPending}
+              disabled={isPending || !online}
             />
           </div>
           {errors.email && (
@@ -114,7 +119,7 @@ export function LoginForm() {
           value={values.password}
           onChange={(value) => change("password", value)}
           error={errors.password}
-          disabled={isPending}
+          disabled={isPending || !online}
           labelAction={
             <Link className="text-button" href="/forgot-password">
               Lupa kata sandi?
@@ -126,14 +131,14 @@ export function LoginForm() {
             {errors.form}
           </p>
         )}
-        <Button type="submit" className="login-submit" disabled={isPending}>
+        <Button type="submit" className="login-submit" disabled={isPending || !online}>
           {isPending ? "Membuka Beranda…" : "Masuk ke demo"}
           <ArrowRight size={19} />
         </Button>
         <Button
           variant="secondary"
           className="fill-demo"
-          disabled={isPending}
+          disabled={isPending || !online}
           onClick={() => {
             setValues(demoCredentials);
             setErrors({});

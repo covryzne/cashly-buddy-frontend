@@ -1,5 +1,8 @@
 "use client";
 
+import { LocalDataStatus } from "@/components/shared/local-data-status";
+import { useOnline } from "@/lib/pwa/connectivity";
+
 import Image from "next/image";
 import { useRef, useState } from "react";
 import {
@@ -74,6 +77,7 @@ const units = {
 };
 
 export function ReportsDashboard() {
+  const online = useOnline();
   const session = useExpenseSession();
   const today = useCalendarDay(homeFixture.asOf);
   const currentMonth: PeriodSelection = {
@@ -186,6 +190,7 @@ export function ReportsDashboard() {
           icon={BookOpen}
         />
         <main id="reports-main" className="reports-main">
+          <LocalDataStatus />
           <div className="report-heading">
             <div>
               <p>Analisis finansial</p>
@@ -446,7 +451,7 @@ export function ReportsDashboard() {
           footer={
             panel.kind === "story" ? (
               <Button
-                disabled={reviewed || !snapshot.story.count}
+                disabled={!online || reviewed || !snapshot.story.count}
                 onClick={() => {
                   setReviewedKey(snapshot.story.key);
                   close();

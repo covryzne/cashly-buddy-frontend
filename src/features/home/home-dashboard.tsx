@@ -1,7 +1,9 @@
 'use client';
 
+import { LocalDataStatus } from "@/components/shared/local-data-status";
+
 import { useState, useSyncExternalStore } from 'react';
-import { Sparkles, Zap, Hand, ArrowUpRight, WifiOff, Plus } from 'lucide-react';
+import { Sparkles, Zap, Hand, ArrowUpRight, Plus } from 'lucide-react';
 import {
   homeFixture as data,
   type Category,
@@ -60,14 +62,6 @@ type Panel =
   | { kind: 'transactions' }
   | { kind: 'missions' }
   | { kind: 'weekly' };
-const subscribeOnline = (notify: () => void) => {
-  window.addEventListener('online', notify);
-  window.addEventListener('offline', notify);
-  return () => {
-    window.removeEventListener('online', notify);
-    window.removeEventListener('offline', notify);
-  };
-};
 export function HomeDashboard() {
   const { profile } = useProfileSession();
   const { expenses, chatSession, setChatSession } = useExpenseSession();
@@ -95,11 +89,6 @@ export function HomeDashboard() {
   } = useModalStack<Panel>();
   const [greeting, setGreeting] = useState(false);
   const [categoryFilters, setCategoryFilters] = useState<CategoryDetailFilters>(defaultCategoryDetailFilters);
-  const online = useSyncExternalStore(
-    subscribeOnline,
-    () => navigator.onLine,
-    () => true,
-  );
   const upcoming = (label: string) =>
     setPanel(
       label === 'Profil' ? { kind: 'profile' } : { kind: 'upcoming', label },
@@ -144,12 +133,7 @@ export function HomeDashboard() {
           <ThemeToggle />
         </div>
         <main id="main-content" className="dashboard">
-          {!online && (
-            <p className="offline-banner" role="status">
-              <WifiOff size={18} />
-              Kamu sedang offline. Periksa koneksi internetmu.
-            </p>
-          )}
+          <LocalDataStatus />
           <div className="greeting-row">
             <div>
               <p className="desktop-eyebrow">

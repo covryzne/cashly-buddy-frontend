@@ -1,4 +1,8 @@
 "use client";
+
+import type { ComponentProps } from "react";
+import { OnlineRequired } from "@/components/shared/online-required";
+import { useExpenseSession } from "@/features/expenses/expense-session";
 import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 import {
@@ -47,7 +51,7 @@ type Step =
   | "success"
   | "help";
 
-export function ScanReceiptFlow({
+function ScanReceiptFlowContent({
   onBack,
   onClose,
   returnLabel = "Kembali ke Beranda",
@@ -58,6 +62,8 @@ export function ScanReceiptFlow({
 }) {
   const camera = useReceiptCamera();
   const requestCamera = camera.request;
+  const { recordDrafts } = useExpenseSession();
+  const recordId = useRef(crypto.randomUUID());
   const [step, setStep] = useState<Step>("checking");
   const enteredWithoutIntro = useRef(false);
   const [photo, setPhoto] = useState<ReceiptPhoto | null>(null);
@@ -148,6 +154,7 @@ export function ScanReceiptFlow({
     });
   };
   const replacePhoto = (next: ReceiptPhoto) => {
+    recordId.current = crypto.randomUUID();
     if (photoRef.current?.url) revokeUrl(photoRef.current.url);
     photoRef.current = next;
     setPhoto(next);
@@ -195,6 +202,7 @@ export function ScanReceiptFlow({
     } else go("permission");
   };
   const openManualReview = () => {
+    recordId.current = crypto.randomUUID();
     setDraft(blankReceipt());
     setManualReview(true);
     setErrors({});
@@ -298,6 +306,7 @@ export function ScanReceiptFlow({
       return;
     }
     setConfirmed(result.data);
+    recordDrafts([{ id: recordId.current, draft: result.data, source: "receipt" }]);
     setErrors({});
     go("success");
   };
@@ -646,4 +655,8 @@ export function ScanReceiptFlow({
       )}
     </Dialog>
   );
+}
+
+export function ScanReceiptFlow(props: ComponentProps<typeof ScanReceiptFlowContent>) {
+  return <OnlineRequired onBack={props.onBack} onClose={props.onClose}><ScanReceiptFlowContent {...props} /></OnlineRequired>;
 }

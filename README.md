@@ -120,10 +120,13 @@ perlu mengubah visibilitas tunnel atau membagikan token akses.
 - Root mendaftarkan `/asset-worker.js` pada HTTPS/localhost, termasuk tunnel dev.
   Saat form login muncul, gambar/ikon runtime dan scene Mochi disiapkan di
   background tanpa menahan login atau membuat canvas/WebGL.
-- Worker memakai cache-first hanya untuk allowlist. Next image variants diterima
-  hanya jika sumbernya ada dalam daftar. HTML/RSC, auth, API, kredensial, foto
-  struk, dan respons error tidak disimpan. Font/JS/CSS tetap memakai cache HTTP
-  normal milik Next/browser; ini tidak menyediakan offline app shell.
+- Worker aset memakai cache-first untuk allowlist publik. Next image variants
+  diterima hanya jika sumbernya ada dalam daftar; ukuran baru saat offline bisa
+  memakai gambar sumber publik yang sudah tersimpan.
+- ADR-0061 menambahkan `/offline` sebagai shell UI publik beserta JS/CSS/font
+  build production. HTML halaman akun, RSC, auth, API, kredensial dan foto/audio
+  privat tidak dimasukkan cache. Data contoh transaksi disimpan terpisah dalam
+  IndexedDB; belum ada sinkronisasi server atau otorisasi akun production.
 - Reduced motion dan Save-Data melewati preload scene besar. Beranda tetap dapat
   memuat 3D ketika dipilih secara normal. Worker/cache yang tidak tersedia
   memiliki fallback fetch biasa; gagal scene memakai ilustrasi Mochi.
@@ -156,9 +159,12 @@ perlu mengubah visibilitas tunnel atau membagikan token akses.
   pencatatan pengeluaran menampilkan informasi tahap berikutnya.
 - Tema sistem/terang/gelap, navigasi mobile dengan safe area, sidebar desktop,
   fallback mascot, dukungan reduced motion, dan indikator offline.
-- Manifest dan ikon aplikasi Mochi tersedia. Service worker hanya menyimpan aset
-  publik dalam allowlist; tidak menyimpan HTML, data keuangan, API, auth, foto
-  struk, atau offline writes. Backend dan pemberian reward belum terhubung.
+- Manifest dan ikon Mochi tersedia. Shell offline publik dan data contoh lokal
+  dapat dibaca setelah persiapan online. Pencatatan/perubahan membutuhkan koneksi;
+  logout membersihkan snapshot lokal. Uji buka ulang offline dengan `npm run build`
+  lalu `npm run start`, bukan HMR `npm run dev`. Lihat
+  [panduan prototype offline](docs/offline-prototype.md). Backend, bot dan reward
+  belum terhubung.
 - Ilustrasi statis Mochi terbaru memakai referensi `public/mascot/mochi-reference (2).png`
   (mahkota, jubah dan koin), dengan latar dihapus menggunakan imagegen bawaan.
   Master alpha: `public/mascot/mochi-crown-transparent.png`; versi WebP untuk login,

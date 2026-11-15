@@ -1,4 +1,6 @@
 "use client";
+
+import { useOnline } from "@/lib/pwa/connectivity";
 import { autofillHydrationProps } from "./browser-autofill";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -17,6 +19,7 @@ import { demoCredentials } from "@/mocks/fixtures/auth";
 import { forgotPasswordSchema } from "./forgot-password-schema";
 
 export function ForgotPasswordForm() {
+  const online = useOnline();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string>();
   const [complete, setComplete] = useState(false);
@@ -29,6 +32,7 @@ export function ForgotPasswordForm() {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!navigator.onLine) return;
     const result = forgotPasswordSchema.safeParse({ email });
     if (!result.success) {
       setError(result.error.issues[0].message);
@@ -85,7 +89,7 @@ export function ForgotPasswordForm() {
           </Button>
         </div>
       ) : (
-        <form
+      <form
           {...autofillHydrationProps}
           ref={formRef}
           className="login-form forgot-password-form"
@@ -94,6 +98,7 @@ export function ForgotPasswordForm() {
           method="post"
           aria-describedby="forgot-password-notice"
         >
+          {!online && <p role="status" className="offline-banner">Pemulihan akun memerlukan koneksi internet.</p>}
           <div className="form-field">
             <label htmlFor="forgot-password-email">Email</label>
             <div className="input-wrap">
@@ -123,7 +128,7 @@ export function ForgotPasswordForm() {
               </p>
             )}
           </div>
-          <Button type="submit" className="login-submit">
+          <Button type="submit" className="login-submit" disabled={!online}>
             Simulasikan kirim tautan
             <ArrowRight size={19} />
           </Button>

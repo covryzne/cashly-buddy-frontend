@@ -13,6 +13,16 @@ const nextConfig: NextConfig = {
           { key: "Service-Worker-Allowed", value: "/" },
         ],
       },
+      {
+        source: "/offline-worker.js",
+        headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }],
+      },
+      ...(process.env.NODE_ENV === "production"
+        ? [{
+            source: "/offline",
+            headers: [{ key: "X-Cashly-Offline-Shell", value: "public-demo-v1" }],
+          }]
+        : []),
     ];
   },
   async redirects() {

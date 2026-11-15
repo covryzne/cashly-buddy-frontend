@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useExpenseSession } from "./expense-session";
 import { useEffect, useId, useRef, useState } from "react";
 import {
   Clock3,
@@ -66,6 +67,8 @@ export function ChatReceiptFlow({
   onSuspend?: (snapshot: ChatSessionSnapshot) => void;
   returnLabel?: string;
 }) {
+  const { recordDrafts } = useExpenseSession();
+  const recordId = useRef(crypto.randomUUID());
   const [step, setStep] = useState<ChatStep>(
     initialSession?.step ??
       (initialDraft ? "review" : initialText ? "processing" : "chat"),
@@ -265,6 +268,7 @@ export function ChatReceiptFlow({
       confirmedAt: new Date().toISOString(),
       messages: messages.map((message) => ({ ...message })),
     });
+    recordDrafts([{ id: recordId.current, draft: result.data, source }]);
     setErrors({});
     setStep("success");
   }
@@ -337,6 +341,7 @@ export function ChatReceiptFlow({
                 setDraft(blankReceipt());
                 setMissing(null);
                 setConfirmed(null);
+                recordId.current = crypto.randomUUID();
                 setStep("chat");
               }}
             >

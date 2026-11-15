@@ -1,6 +1,8 @@
 /* Public assets only. Bump VERSION whenever a listed file or Spline export changes,
    even when its URL stays the same. Keep SCENE in sync with spline-mascot.tsx. */
 const VERSION = "v3-alpha";
+// Separate public offline shell; asset allowlist and private-data exclusions stay scoped.
+if (typeof importScripts === "function") importScripts("/offline-worker.js");
 const PREFIX = "cashly-public-assets-";
 const CACHE = `${PREFIX}${VERSION}`;
 const SCENE = "https://prod.spline.design/R4tRoaLYG0dA8fQD/scene.splinecode";
@@ -111,6 +113,18 @@ async function assetResponse(request) {
           }
         }
         return response;
+      } catch (error) {
+        // An unvisited page may request a new Next image width while offline.
+        // Reuse the cached public source instead of showing a broken image.
+        const url = new URL(request.url);
+        if (cache && url.pathname === "/_next/image") {
+          const source = url.searchParams.get("url");
+          if (source && publicImage(new URL(source, self.location.origin))) {
+            const fallback = await cache.match(new Request(new URL(source, self.location.origin)));
+            if (fallback && usable(fallback)) return fallback;
+          }
+        }
+        throw error;
       } finally {
         clearTimeout(timeout);
         pending.delete(request.url);
@@ -121,8 +135,17 @@ async function assetResponse(request) {
   return (await download).clone();
 }
 
+self.warmPublicOfflineAssets = async function () {
+  // Small public posters/icons only; never preload the large Spline scene here.
+  await Promise.all(ASSETS.map(async path => {
+    const response = await assetResponse(new Request(new URL(path, self.location.origin)));
+    if (!usable(response)) throw new Error("Public offline asset unavailable");
+  }));
+};
+
 self.addEventListener("install", (event) => {
-  // Safe to activate immediately: this worker never caches page code or data.
+  // Public demo shell only; never force a page reload. Revisit activation and
+  // rollout coordination before adding authenticated production offline data.
   event.waitUntil(self.skipWaiting());
 });
 

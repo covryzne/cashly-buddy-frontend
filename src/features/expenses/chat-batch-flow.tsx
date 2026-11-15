@@ -1,5 +1,9 @@
 "use client";
 
+import type { ComponentProps } from "react";
+import { OnlineRequired } from "@/components/shared/online-required";
+import { useExpenseSession } from "./expense-session";
+
 import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 import {
@@ -58,7 +62,7 @@ function fieldErrors(draft: ReceiptDraft) {
   return errors;
 }
 
-export function ChatBatchFlow({
+function ChatBatchFlowContent({
   onBack,
   onClose,
   initialSession,
@@ -72,6 +76,7 @@ export function ChatBatchFlow({
   returnLabel?: string;
 }) {
   // Ignore the previous single-entry shape retained by Fast Refresh during development.
+  const { recordDrafts } = useExpenseSession();
   const restored = Array.isArray(initialSession?.entries)
     ? initialSession
     : null;
@@ -272,6 +277,7 @@ export function ChatBatchFlow({
       messages: messages.map((message) => ({ ...message })),
       confirmedAt: new Date().toISOString(),
     });
+    recordDrafts(validated.flatMap(entry => entry.draft ? [{ id: entry.id, draft: entry.draft, source: "chat" as const }] : []));
     setStep("success");
   }
   function reset() {
@@ -530,6 +536,7 @@ export function ChatBatchFlow({
                 Selesai
               </span>
               <h3>Catatanmu siap!</h3>
+              <p>Ditambahkan ke daftar contoh Cashly. Belum dikirim ke server.</p>
               <p>
                 {confirmed.entries.length} pengeluaran ·{" "}
                 <MoneyDisplay
@@ -556,4 +563,8 @@ export function ChatBatchFlow({
       </div>
     </Dialog>
   );
+}
+
+export function ChatBatchFlow(props: ComponentProps<typeof ChatBatchFlowContent>) {
+  return <OnlineRequired onBack={props.onBack} onClose={props.onClose}><ChatBatchFlowContent {...props} /></OnlineRequired>;
 }

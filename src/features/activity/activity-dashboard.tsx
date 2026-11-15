@@ -1,5 +1,7 @@
 "use client";
 
+import { LocalDataStatus } from "@/components/shared/local-data-status";
+
 import Image from "next/image";
 import { useId, useRef, useState } from "react";
 import {
@@ -16,7 +18,6 @@ import {
   Sparkles,
   Trash2,
   Undo2,
-  WifiOff,
   X,
 } from "lucide-react";
 import { AppNavigation } from "@/components/shared/app-navigation";
@@ -57,7 +58,7 @@ import {
 } from "@/lib/format/period";
 import { formatDate } from "@/lib/format/datetime";
 import { useCalendarDay } from "@/lib/use-calendar-day";
-import { useSyncExternalStore } from "react";
+import { useOnline } from "@/lib/pwa/connectivity";
 import { ActivityFilterForm } from "./activity-filters";
 import {
   activityGroupLabel,
@@ -85,16 +86,9 @@ const views = [
   { value: "day", label: "Harian" },
   { value: "week", label: "Mingguan" },
 ] as const;
-const subscribeOnline = (notify: () => void) => {
-  window.addEventListener("online", notify);
-  window.addEventListener("offline", notify);
-  return () => {
-    window.removeEventListener("online", notify);
-    window.removeEventListener("offline", notify);
-  };
-};
 
 export function ActivityDashboard() {
+  const online = useOnline();
   const session = useExpenseSession();
   const today = useCalendarDay(homeFixture.asOf);
   const defaultPeriod: PeriodSelection = {
@@ -144,11 +138,6 @@ export function ActivityDashboard() {
   const search = useRef<HTMLInputElement>(null);
   const undo = useRef<HTMLButtonElement>(null);
   const formId = useId();
-  const online = useSyncExternalStore(
-    subscribeOnline,
-    () => navigator.onLine,
-    () => true,
-  );
   const active =
     panel && "id" in panel
       ? session.expenses.find((expense) => expense.id === panel.id)
@@ -218,7 +207,7 @@ export function ActivityDashboard() {
     push({ kind: "edit", id: active.id });
   }
   function saveEdit() {
-    if (!active || !editDraft) return;
+    if (!navigator.onLine || !active || !editDraft) return;
     const result = receiptSchema.safeParse(editDraft);
     if (!result.success) {
       const next: Record<string, string> = {};
@@ -235,7 +224,7 @@ export function ActivityDashboard() {
     back();
   }
   function removeExpense() {
-    if (!active) return;
+    if (!navigator.onLine || !active) return;
     setDeleted(active);
     session.removeExpense(active.id);
     setAnnouncement("");
@@ -243,7 +232,7 @@ export function ActivityDashboard() {
     requestAnimationFrame(() => undo.current?.focus({ preventScroll: true }));
   }
   function restoreExpense() {
-    if (!deleted) return;
+    if (!navigator.onLine || !deleted) return;
     const id = deleted.id;
     session.restoreExpense(deleted);
     setDeleted(null);
@@ -282,16 +271,11 @@ export function ActivityDashboard() {
           icon={ReceiptText}
         />
         <main id="main-content" className="activity-main">
-          {!online && (
-            <p className="offline-banner" role="status">
-              <WifiOff size={18} />
-              Kamu sedang offline. Periksa koneksi internetmu.
-            </p>
-          )}
+          <LocalDataStatus />
           {deleted && (
             <div className="activity-undo" role="status">
               <span>Pengeluaran dihapus.</span>
-              <Button variant="ghost" ref={undo} onClick={restoreExpense}>
+              <Button variant="ghost" ref={undo} disabled={!online} onClick={restoreExpense}>
                 <Undo2 size={15} />
                 Urungkan
               </Button>
@@ -651,7 +635,7 @@ export function ActivityDashboard() {
                 />
               ) : panel.kind === "edit" ? (
                 <div className="scan-review-actions">
-                  <Button type="submit" form={formId}>
+                  <Button type="submit" form={formId} disabled={!online}>
                     <Check size={18} />
                     Simpan perubahan
                   </Button>
@@ -663,6 +647,7 @@ export function ActivityDashboard() {
                   </Button>
                   <Button
                     className="activity-confirm-delete"
+                    disabled={!online}
                     onClick={removeExpense}
                   >
                     <Trash2 size={17} />

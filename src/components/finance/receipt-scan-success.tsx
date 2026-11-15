@@ -34,6 +34,7 @@ export function ReceiptScanSuccess({ draft }: { draft: ReceiptDraft }) {
           Selesai
         </span>
         <h3>Catatanmu siap!</h3>
+        <p>Ditambahkan ke daftar contoh Cashly. Belum dikirim ke server.</p>
         <p>
           Pengeluaran <MoneyDisplay amountIdr={amounts.total.toString()} />
           {draft.merchant ? ` di ${draft.merchant}` : ""}.

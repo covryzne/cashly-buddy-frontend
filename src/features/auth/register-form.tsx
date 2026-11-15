@@ -1,4 +1,6 @@
 'use client';
+
+import { useOnline } from "@/lib/pwa/connectivity";
 import { autofillHydrationProps } from './browser-autofill';
 
 import { useRef, useState, useTransition, type FormEvent } from 'react';
@@ -27,6 +29,7 @@ const emptyValues: RegisterValues = {
 };
 
 export function RegisterForm() {
+  const online = useOnline();
   const router = useRouter();
   const [values, setValues] = useState<RegisterValues>(emptyValues);
   const [errors, setErrors] = useState<
@@ -48,6 +51,7 @@ export function RegisterForm() {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!navigator.onLine) return;
     const parsed = registerSchema.safeParse(values);
     if (!parsed.success) {
       const nextErrors: typeof errors = {};
@@ -91,7 +95,7 @@ export function RegisterForm() {
         </p>
         <Button
           className="auth-full-button"
-          disabled={isPending}
+          disabled={isPending || !online}
           onClick={() => startTransition(() => router.push('/beranda'))}
         >
           {isPending ? 'Membuka Beranda…' : 'Jelajahi demo'}
@@ -120,6 +124,7 @@ export function RegisterForm() {
       <div className="auth-divider">
         <span>atau daftar dengan email</span>
       </div>
+      {!online && <p role="status" className="offline-banner">Perlu koneksi internet untuk masuk, mendaftar, atau memulihkan akun.</p>}
       <form
         {...autofillHydrationProps}
         ref={formRef}
@@ -191,7 +196,7 @@ export function RegisterForm() {
           onChange={(value) => change('confirmPassword', value)}
           error={errors.confirmPassword}
         />
-        <Button type="submit" className="login-submit">
+        <Button type="submit" className="login-submit" disabled={!online}>
           Simulasikan buat akun
           <ArrowRight size={19} />
         </Button>

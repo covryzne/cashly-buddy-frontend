@@ -1,50 +1,16 @@
 "use client";
-
 import { useState } from "react";
 import Image from "next/image";
-import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
+import { useOnline } from "@/lib/pwa/connectivity";
 
 export function GoogleSignInButton() {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <Button
-        variant="outline"
-        className="google-sign-in"
-        onClick={() => setOpen(true)}
-      >
-        <Image
-          src="/branding/google-g.png"
-          width={200}
-          height={204}
-          sizes="20px"
-          style={{ width: 20, height: "auto" }}
-          alt=""
-        />
-        Lanjutkan dengan Google
-      </Button>
-      {open && (
-        <Dialog title="Lanjutkan dengan Google" onClose={() => setOpen(false)}>
-          <div className="auth-provider-preview">
-            <span className="auth-preview-icon">
-              <ShieldCheck size={28} />
-            </span>
-            <h3>Kenalan dulu lewat demo, yuk.</h3>
-            <p>
-              Google belum terhubung pada prototipe ini. Tidak ada akun Google
-              yang dibuka atau data yang dikirim.
-            </p>
-            <p className="muted">
-              Tutup jendela ini dan pilih Isi data contoh untuk mencoba Cashly.
-            </p>
-            <Button className="auth-full-button" onClick={() => setOpen(false)}>
-              Kembali ke form
-            </Button>
-          </div>
-        </Dialog>
-      )}
-    </>
-  );
+  const [pending, setPending] = useState(false);
+  const online = useOnline();
+  return <form action="/auth/google" method="post" onSubmit={() => setPending(true)}>
+    <Button type="submit" variant="outline" className="google-sign-in" disabled={!online || pending}>
+      <Image src="/branding/google-g.png" width={200} height={204} sizes="20px" style={{ width: 20, height: "auto" }} alt="" />
+      {pending ? "Menghubungkan ke Google..." : "Lanjutkan dengan Google"}
+    </Button>
+  </form>;
 }

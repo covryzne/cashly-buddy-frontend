@@ -3,10 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, ImagePlus, Smile, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useProfileSession } from "./profile-session";
 import { ProfileAvatar } from "@/components/shared/profile-avatar";
 import {
   avatarFileError,
-  profileAccount,
   type ProfileDraft,
 } from "./profile-model";
 
@@ -27,6 +27,7 @@ export function ProfileEditForm({
   onBusyChange: (busy: boolean) => void;
   onPhoto: (photo: string) => void;
 }) {
+  const { account: profileAccount } = useProfileSession();
   const fileInput = useRef<HTMLInputElement>(null);
   const reader = useRef<FileReader | null>(null);
   const generation = useRef(0);

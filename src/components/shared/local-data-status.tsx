@@ -9,7 +9,7 @@ import { prepareAssetCache } from "@/lib/assets/cache";
 export function LocalDataStatus() {
   const online = useOnline();
   const offlineDocument = useContext(OfflineDocumentContext);
-  const { updatedAt, storageError } = useExpenseSession();
+  const { updatedAt, storageError, remoteMode, sampleData, hasMore } = useExpenseSession();
 
   useEffect(() => {
     let active = true;
@@ -35,6 +35,7 @@ export function LocalDataStatus() {
     : null;
 
   return <>
+    {remoteMode && <p className="offline-banner">{sampleData ? "Data contoh dari database development." : "Data akun dari server."} Pengeluaran tersedia untuk dibaca; perubahan pengeluaran dan profil belum disimpan ke server.{hasMore ? " Menampilkan 100 transaksi terbaru." : ""} Progres Mochi dan fitur lain masih pratinjau.</p>}
     <section className="local-data-status" data-state={online ? "online" : "offline"}
       aria-label="Status koneksi" role="status">
       {online ? <Wifi size={15} aria-hidden="true" /> : <WifiOff size={15} aria-hidden="true" />}

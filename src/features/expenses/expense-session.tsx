@@ -8,6 +8,7 @@ import { wibDateTime } from "@/lib/format/datetime";
 import { clearSnapshot, readSnapshot, writeSnapshot } from "@/lib/pwa/local-snapshot";
 import { useOnline } from "@/lib/pwa/connectivity";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import type { ChatBatchSnapshot } from "./chat-batch";
 
 export const localAppRoutes = ["/", "/beranda", "/aktivitas", "/laporan", "/profil", "/offline"];
@@ -23,26 +24,30 @@ type ExpenseSession = {
   updatedAt: string | null;
   storageError: boolean;
   persisted: boolean;
+  remoteMode: boolean;
+  sampleData: boolean;
+  hasMore: boolean;
 };
 const Context = createContext<ExpenseSession | null>(null);
 
 /** Single fictional demo namespace. No real login, API or reward authority. */
-export function ExpenseSessionProvider({ children }: { children: ReactNode }) {
+export function ExpenseSessionProvider({ children, remote }: { children: ReactNode; remote?: { expenses: ActivityExpense[]; sampleData: boolean; hasMore: boolean } }) {
   const pathname = usePathname();
   const isApp = localAppRoutes.includes(pathname);
   const online = useOnline();
   const [sessionEpoch, setSessionEpoch] = useState(0);
-  const [expenses, setExpenses] = useState<ActivityExpense[]>([]);
+  const [expenses, setExpenses] = useState<ActivityExpense[]>(remote?.expenses ?? []);
+  const [mutationNotice, setMutationNotice] = useState(false);
   const [chatSession, setChatSession] = useState<ChatBatchSnapshot | null>(null);
-  const [ready, setReady] = useState(false);
-  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  const [ready, setReady] = useState(Boolean(remote));
+  const [updatedAt, setUpdatedAt] = useState<string | null>(remote ? new Date().toISOString() : null);
   const [storageError, setStorageError] = useState(false);
   const [persisted, setPersisted] = useState(false);
   const generation = useRef(0);
   const channel = useRef<BroadcastChannel | null>(null);
 
   useEffect(() => {
-    if (typeof BroadcastChannel === "undefined") return;
+    if (remote || typeof BroadcastChannel === "undefined") return;
     const broadcast = new BroadcastChannel("cashly-demo-session");
     channel.current = broadcast;
     broadcast.onmessage = (event) => {
@@ -55,7 +60,7 @@ export function ExpenseSessionProvider({ children }: { children: ReactNode }) {
       setSessionEpoch(epoch => epoch + 1);
     };
     return () => { channel.current = null; broadcast.close(); };
-  }, []);
+  }, [remote]);
 
   useEffect(() => {
     if (!isApp || ready) return;
@@ -91,6 +96,7 @@ export function ExpenseSessionProvider({ children }: { children: ReactNode }) {
   }, [isApp, pathname, ready]);
 
   function commit(next: ActivityExpense[]) {
+    if (remote) { setMutationNotice(true); return; }
     if (!navigator.onLine || !updatedAt) return;
     const now = new Date().toISOString();
     const version = generation.current;
@@ -116,6 +122,7 @@ export function ExpenseSessionProvider({ children }: { children: ReactNode }) {
 
   const value: ExpenseSession = {
     expenses, chatSession, setChatSession, resetSession, updatedAt, storageError, persisted,
+    remoteMode: Boolean(remote), sampleData: remote?.sampleData ?? false, hasMore: remote?.hasMore ?? false,
     updateExpense: (id, draft) => commit(expenses.map(expense => expense.id === id ? {
       ...expense, draft, merchant: draft.merchant || draft.items[0].name,
       description: draft.items.map(item => item.name).join(", "),
@@ -143,6 +150,7 @@ export function ExpenseSessionProvider({ children }: { children: ReactNode }) {
   };
   const unavailable = isApp && ready && !updatedAt;
   return <Context.Provider value={value}>
+    {mutationNotice && <Dialog title="Data belum diubah" onClose={() => setMutationNotice(false)}><p>Data dari server tersedia untuk dibaca. Penyimpanan dan perubahan pengeluaran akan dihubungkan pada tahap berikutnya.</p></Dialog>}
     {isApp && !ready ? <main className="local-data-empty" aria-busy="true"><p role="status">Menyiapkan data Cashly…</p></main>
       : unavailable ? <main className="local-data-empty">
         <h1>Data belum tersedia di perangkat</h1>

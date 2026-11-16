@@ -1,0 +1,86 @@
+// Synthetic loopback provider and API. No real Google, Supabase, SMTP or secrets.
+import { createServer } from "node:http";
+import { createHash } from "node:crypto";
+import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const site = "http://127.0.0.1:34567";
+const upstream = "http://127.0.0.1:34568";
+const emailMode = process.env.CASHLY_TEST_EMAIL === "true";
+let password = "";
+const userId = "10000000-0000-4000-8000-000000000001";
+const accountId = "20000000-0000-4000-8000-000000000001";
+const user = { id: userId, aud: "authenticated", role: "authenticated", email: "oauth-test@example.invalid", email_confirmed_at: "2026-11-16T00:00:00Z", created_at: "2026-11-16T00:00:00Z", app_metadata: { provider: "google", providers: ["google"] }, user_metadata: { full_name: "OAuth Tester" }, identities: [{ provider: "google", user_id: userId }] };
+const account = { account_id: accountId, display_name: "OAuth Tester", email: user.email, timezone: "Asia/Jakarta", theme_preference: "system", joined_at: user.created_at, sample_data: true };
+let challenge, revoked = false, backendDown = false;
+const calls = [];
+function session() {
+  const exp = Math.floor(Date.now() / 1000) + 3600;
+  const token = [ { alg: "HS256", typ: "JWT" }, { sub: userId, aud: "authenticated", exp, iss: `${upstream}/auth/v1` } ].map(value => Buffer.from(JSON.stringify(value)).toString("base64url")).join(".") + ".c3ludGhldGlj";
+  return { access_token: token, refresh_token: "synthetic-refresh", token_type: "bearer", expires_in: 3600, expires_at: exp, user };
+}
+if (emailMode) { user.app_metadata = { provider: "email", providers: ["email"] }; user.identities = [{ provider: "email", user_id: userId }]; }
+const server = createServer(async (req, res) => {
+  const url = new URL(req.url, upstream);
+  const send = (status, body) => { res.writeHead(status, { "Content-Type": "application/json" }); res.end(JSON.stringify(body)); };
+  if (url.pathname === "/__test/state") return send(200, { calls, revoked });
+  if (url.pathname === "/__test/backend-down") { backendDown = url.searchParams.get("enabled") === "true"; return send(200, {}); }
+  calls.push(url.pathname); // Paths only; never log code, verifier, credentials or bodies.
+  if (url.pathname === "/api/v1/auth/configuration") return send(200, { supabase_url: upstream, publishable_key: "synthetic-publishable-key", local: true });
+  if (["/api/v1/auth/register", "/api/v1/auth/login"].includes(url.pathname)) {
+    let raw = ""; for await (const chunk of req) raw += chunk;
+    const body = JSON.parse(raw);
+    if (url.pathname.endsWith("/register")) {
+      if (password) return send(400, { error: { code: "REGISTRATION_FAILED" } });
+      password = body.password; user.email = body.email; user.user_metadata = { full_name: body.name };
+      account.email = body.email; account.display_name = body.name;
+    } else if (body.email !== user.email || body.password !== password) return send(401, { error: { code: "INVALID_CREDENTIALS" } });
+    if (url.pathname.endsWith("/register")) {
+      revoked = true;
+      return send(201, { data: { status: "registered", account, session: null } });
+    }
+    revoked = false;
+    return send(200, { data: { status: backendDown ? "account_pending" : "authenticated", account: backendDown ? null : account, session: session() } });
+  }
+  if (url.pathname === "/auth/v1/authorize") {
+    if (url.searchParams.get("provider") !== "google" || url.searchParams.get("redirect_to") !== `${site}/auth/callback`) return send(400, {});
+    challenge = url.searchParams.get("code_challenge"); revoked = false;
+    res.writeHead(302, { Location: `${site}/auth/callback?code=synthetic-code` }); return res.end();
+  }
+  if (url.pathname === "/auth/v1/signup") {
+    if (!emailMode) return send(501, {});
+    let raw = ""; for await (const chunk of req) raw += chunk;
+    const body = JSON.parse(raw);
+    if (password) return send(400, { code: "user_already_exists" });
+    password = body.password; user.email = body.email; user.user_metadata = body.data;
+    account.email = body.email; account.display_name = body.data.full_name; revoked = false;
+    return send(200, session());
+  }
+  if (url.pathname === "/auth/v1/token") {
+    let raw = ""; for await (const chunk of req) raw += chunk;
+    const body = JSON.parse(raw);
+    if (url.searchParams.get("grant_type") === "password") {
+      if (!emailMode || body.email !== user.email || body.password !== password) return send(400, { code: "invalid_credentials" });
+      revoked = false; return send(200, session());
+    }
+    if (url.searchParams.get("grant_type") === "pkce" && (!challenge || createHash("sha256").update(body.code_verifier ?? "").digest("base64url") !== challenge)) return send(400, { error: "invalid_grant" });
+    challenge = null; return send(200, session());
+  }
+  if (url.pathname === "/auth/v1/user") return send(revoked ? 401 : 200, revoked ? { message: "invalid session" } : user);
+  if (url.pathname === "/auth/v1/logout") { revoked = true; res.writeHead(204); return res.end(); }
+  if (url.pathname.startsWith("/api/v1/")) {
+    if (backendDown) return send(503, {});
+    if (!req.headers.authorization?.startsWith("Bearer ") || revoked) return send(401, {});
+    if (["/api/v1/auth/bootstrap", "/api/v1/me"].includes(url.pathname)) return send(200, { data: account });
+    if (url.pathname === "/api/v1/expenses") return send(200, { data: [{ id: "30000000-0000-4000-8000-000000000001", merchant: "Kopi Contoh", description: "Kopi contoh", category_code: "food_drink", amount_idr: "28000", occurred_at: new Date().toISOString(), payment_method: "qris", source: "dashboard" }], has_more: false });
+  }
+  return send(501, {});
+});
+await new Promise(resolve => server.listen(34568, "127.0.0.1", resolve));
+const child = spawn(process.execPath, [require.resolve("next/dist/bin/next"), "start", "--hostname", "127.0.0.1", "--port", "34567"], {
+  stdio: "inherit", windowsHide: true,
+  env: { ...process.env, CASHLY_ENV_SOURCE: "system", CASHLY_ENV: emailMode ? "dev" : "staging", APP_ORIGIN: site, CASHLY_API_ORIGIN: upstream, SUPABASE_URL: upstream, SUPABASE_PUBLISHABLE_KEY: "synthetic-publishable-key" },
+});
+function stop() { child.kill(); server.close(); }
+process.on("SIGINT", stop); process.on("SIGTERM", stop);
+child.on("exit", code => { server.close(); process.exitCode = code ?? 0; });

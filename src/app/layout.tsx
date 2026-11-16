@@ -1,8 +1,6 @@
 ﻿import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { AssetCacheBootstrap } from "@/components/shared/asset-cache-bootstrap";
-import { ExpenseSessionProvider } from "@/features/expenses/expense-session";
-import { ProfileSessionProvider } from "@/features/profile/profile-session";
 import "react-day-picker/style.css";
 import "../styles/tokens.css";
 import "./globals.css";
@@ -85,9 +83,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Keep this exception local; descendant hydration warnings stay active. */}
       <body suppressHydrationWarning>
         <AssetCacheBootstrap />
-        <ExpenseSessionProvider>
-          <ProfileSessionProvider>{children}</ProfileSessionProvider>
-        </ExpenseSessionProvider>
+        {children}
       </body>
     </html>
   );

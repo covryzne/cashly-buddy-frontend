@@ -13,6 +13,9 @@ export function AuthPasswordField({
   error,
   disabled,
   labelAction,
+  name,
+  autoComplete = "off",
+  descriptionId,
 }: {
   id: string;
   label: string;
@@ -21,6 +24,9 @@ export function AuthPasswordField({
   error?: string;
   disabled?: boolean;
   labelAction?: ReactNode;
+  name?: string;
+  autoComplete?: "off" | "current-password" | "new-password";
+  descriptionId?: string;
 }) {
   const [visible, setVisible] = useState(false);
   const isConfirmation = id.endsWith("confirm-password");
@@ -35,15 +41,16 @@ export function AuthPasswordField({
         <Input
           {...autofillHydrationProps}
           id={id}
+          name={name}
           type={visible ? "text" : "password"}
-          autoComplete="off"
+          autoComplete={autoComplete}
           placeholder={
             isConfirmation ? "Ulangi kata sandi" : "Minimal 8 karakter"
           }
           value={value}
           onChange={(event) => onChange(event.target.value)}
           aria-invalid={Boolean(error)}
-          aria-describedby={error ? `${id}-error` : undefined}
+          aria-describedby={[descriptionId, error ? `${id}-error` : undefined].filter(Boolean).join(" ") || undefined}
           required
           disabled={disabled}
         />

@@ -5,6 +5,7 @@ import { LocalDataStatus } from "@/components/shared/local-data-status";
 import { useId, useState } from "react";
 import { useOnline } from "@/lib/pwa/connectivity";
 import { useExpenseSession } from "@/features/expenses/expense-session";
+import { logoutGoogle } from "@/features/auth/session-boundary";
 import {
   BellRing,
   Check,
@@ -47,7 +48,6 @@ import { formatDate } from "@/lib/format/datetime";
 import { themeLabels, useTheme, type Theme } from "@/lib/theme/use-theme";
 import {
   evolutionStages,
-  profileAccount,
   profileSchema,
   type ProfileDraft,
 } from "./profile-model";
@@ -85,6 +85,7 @@ export function ProfileDashboard() {
   const session = useExpenseSession();
   const {
     profile,
+    account: profileAccount,
     saveProfile,
     whatsappExampleLinked,
     setWhatsappExampleLinked,
@@ -443,10 +444,11 @@ export function ProfileDashboard() {
                   className="profile-logout-confirm"
                   onClick={async () => {
                     try {
+                      if (session.remoteMode) await logoutGoogle();
                       await session.resetSession();
                       window.location.replace("/login");
                     } catch {
-                      setLogoutError("Data lokal belum dapat dibersihkan. Tutup tab Cashly lain lalu coba keluar lagi.");
+                      setLogoutError("Sesi belum berhasil ditutup. Periksa koneksi lalu coba keluar lagi.");
                     }
                   }}
                 >

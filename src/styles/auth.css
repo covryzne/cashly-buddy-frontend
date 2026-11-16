@@ -1,4 +1,4 @@
-﻿.auth-page {
+.auth-page {
   min-height: 100svh;
   display: flex;
   flex-direction: column;
@@ -602,3 +602,36 @@
     font-size: 10px;
   }
 }
+.password-requirements {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.password-guide {
+  margin: -4px 0 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--subtle);
+}
+.password-guide-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.password-length { color: var(--muted); font-variant-numeric: tabular-nums; }
+.password-length[data-invalid="true"] { color: var(--danger); }
+.password-requirements li { display: flex; align-items: center; gap: 6px; line-height: 1.4; }
+.password-requirements li svg { flex-shrink: 0; opacity: 0.45; }
+.password-requirements li[data-met="true"] { color: var(--success); }
+.password-requirements li[data-met="true"] svg { opacity: 1; }
+.auth-success-icon { color: var(--primary); margin-bottom: 12px; }
+.auth-success-dialog p { line-height: 1.65; }

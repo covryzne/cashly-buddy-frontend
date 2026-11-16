@@ -1,11 +1,24 @@
 # Cashly Buddy Frontend
 
+Local email/password development (ADR-0068): follow backend
+[LOCAL_DEVELOPMENT.md](../cashly-buddy-backend/LOCAL_DEVELOPMENT.md).
+FE still runs with `npm run dev`; Supabase is managed only from BE. Local signup
+activates immediately without SMTP or Google. Hosted/email auth remains deferred.
+
 Frontend Cashly menggunakan Next.js App Router, TypeScript, dan Tailwind CSS.
 Tahap awal berfokus pada prototipe frontend dengan data fiktif. Requirement
 proyek tersedia di `../specs/README.md`.
 
+Update Google OAuth (ADR-0066): login sekarang melalui Google/Supabase dengan
+cookie server, bootstrap akun FastAPI, dan pembacaan PostgreSQL per akun.
+Ikuti [setup Google OAuth](GOOGLE_OAUTH_SETUP.md) sebelum mencoba login.
+Email/password dan SMTP ditunda. Snapshot offline lama tetap demo terpisah;
+data akun OAuth tidak disimpan ke snapshot tersebut.
+
 Copy UI utama mengikuti tampilan produk tanpa badge/peringatan simulasi, dummy,
 atau demo (ADR-0024). Penanda dan bantuan akun contoh tetap ada pada alur auth.
+Update ADR-0066: mode akun Google menandai data development dan fitur yang belum
+menyimpan ke server secara eksplisit; tombol masuk demo telah diganti login Google.
 Perubahan copy tidak menambah OCR, penyimpanan, atau reward; fixture dan batas
 implementasi yang dijelaskan di dokumen ini tetap berlaku.
 
@@ -21,8 +34,8 @@ Copy-Item .env.dev.example .env.dev
 npm run dev
 ```
 
-Buka http://localhost:3000: aplikasi mengarah ke `/login`. Pilih **Isi data contoh**,
-lalu **Masuk ke demo** untuk membuka `/beranda`. Acuan desain Beranda:
+Buka http://localhost:3000: aplikasi mengarah ke `/login`. Pilih **Lanjutkan dengan Google**
+setelah provider dan env dikonfigurasi. Acuan desain Beranda:
 `../design-references/cashly_beranda_varian_b_floating_cards/`.
 
 ## Environment per branch

@@ -10,7 +10,7 @@ for (const width of [320, 360, 390, 430, 768, 1280, 1440]) {
       await expect(
         page.getByRole("heading", { name: "Selamat datang kembali!" }),
       ).toBeVisible();
-      await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Lanjutkan dengan Google" })).toBeVisible();
       await expect(page.getByText("Langkah kecil hari ini")).toBeVisible();
       await expect(page.getByText("Pelan-pelan, bareng Mochi.")).toBeVisible();
       await expect(
@@ -34,83 +34,10 @@ for (const width of [320, 360, 390, 430, 768, 1280, 1440]) {
   }
 }
 
-test("Entry, validasi, tampilkan password, dan masuk demo tanpa kirim kredensial", async ({
-  page,
-}) => {
-  const mutations: string[] = [];
-  page.on("request", (request) => {
-    if (request.method() !== "GET") mutations.push(request.url());
-  });
+test("Login exposes Google only while email auth is deferred", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/login$/);
-  await page.getByRole("button", { name: "Masuk ke demo" }).click();
-  await expect(
-    page.getByText("Masukkan alamat email yang valid."),
-  ).toBeVisible();
-  await expect(page.getByText("Kata sandi minimal 8 karakter.")).toBeVisible();
-  await expect(page.getByLabel("Email", { exact: true })).toBeFocused();
-  await page.getByLabel("Email", { exact: true }).fill("someone@example.com");
-  await page
-    .getByLabel("Kata sandi", { exact: true })
-    .fill("wrong-demo-password");
-  await page.getByRole("button", { name: "Masuk ke demo" }).click();
-  await expect(page.locator(".login-form").getByRole("alert")).toContainText(
-    "Gunakan akun contoh",
-  );
-  await page.getByRole("button", { name: "Isi data contoh" }).click();
-  await expect(page.locator(".login-form").getByRole("alert")).toHaveCount(0);
-  await page
-    .getByRole("button", { name: "Tampilkan kata sandi", exact: true })
-    .click();
-  await expect(page.getByLabel("Kata sandi", { exact: true })).toHaveAttribute(
-    "type",
-    "text",
-  );
-  await page
-    .getByRole("button", { name: "Sembunyikan kata sandi", exact: true })
-    .click();
-  await expect(page.getByLabel("Kata sandi", { exact: true })).toHaveAttribute(
-    "type",
-    "password",
-  );
-  await page.getByRole("button", { name: "Masuk ke demo" }).click();
-  await expect(page).toHaveURL(/\/beranda$/);
-  await expect(page.getByRole("heading", { name: "Hi, Nara!" })).toBeVisible();
-  expect(mutations).toEqual([]);
-  expect(
-    await page.evaluate(() => ({
-      cookies: document.cookie,
-      session: Object.keys(sessionStorage),
-      local: Object.keys(localStorage),
-    })),
-  ).toEqual({ cookies: "", session: [], local: [] });
-  await page
-    .getByRole("link", { name: "Beranda", exact: true })
-    .filter({ visible: true })
-    .click();
-  await expect(page).toHaveURL(/\/beranda$/);
-});
-
-test("Navigasi pemulihan dan pendaftaran, tema konsisten", async ({ page }) => {
-  await page.goto("/login");
-  const forgot = page.getByRole("link", { name: "Lupa kata sandi?" });
-  await forgot.click();
-  await expect(page).toHaveURL(/\/forgot-password$/);
-  await expect(
-    page.getByRole("heading", { name: "Lupa kata sandi?", exact: true }),
-  ).toBeVisible();
-  await page
-    .getByRole("link", { name: "Kembali ke masuk", exact: true })
-    .click();
-  await expect(page).toHaveURL(/\/login$/);
-  await expect(
-    page.getByRole("link", { name: "Buat akun", exact: true }),
-  ).toHaveAttribute("href", "/register");
-  await page.getByRole("button", { name: /Ganti tema/ }).click();
-  await page.getByRole("button", { name: /Ganti tema/ }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await page.getByRole("button", { name: "Isi data contoh" }).click();
-  await page.getByRole("button", { name: "Masuk ke demo" }).click();
-  await expect(page).toHaveURL(/\/beranda$/);
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.getByRole("button", { name: "Lanjutkan dengan Google" })).toBeVisible();
+  await expect(page.getByLabel("Kata sandi", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Masuk ke demo" })).toHaveCount(0);
 });

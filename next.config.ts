@@ -1,11 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  logging: { incomingRequests: false },
   // Tailwind uses postcss.config.mjs; Next handles CSS imports natively.
   cacheComponents: true,
   partialPrefetching: true,
   async headers() {
     return [
+      { source: "/auth/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+      { source: "/auth/callback", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
       {
         source: "/asset-worker.js",
         headers: [

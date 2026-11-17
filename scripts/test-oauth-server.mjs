@@ -10,6 +10,7 @@ const emailMode = process.env.CASHLY_TEST_EMAIL === "true";
 let password = "";
 let otpMode = false, confirmed = true;
 let resendDown = false;
+let linkCase = "same";
 const userId = "10000000-0000-4000-8000-000000000001";
 const accountId = "20000000-0000-4000-8000-000000000001";
 const user = { id: userId, aud: "authenticated", role: "authenticated", email: "oauth-test@example.invalid", email_confirmed_at: "2026-11-16T00:00:00Z", created_at: "2026-11-16T00:00:00Z", app_metadata: { provider: "google", providers: ["google"] }, user_metadata: { full_name: "OAuth Tester" }, identities: [{ provider: "google", user_id: userId }] };
@@ -35,12 +36,39 @@ const server = createServer(async (req, res) => {
   if (url.pathname === "/__test/resend-down") { resendDown = url.searchParams.get("enabled") === "true"; return send(200, {}); }
   if (url.pathname === "/__test/profile-mode") {
     account.password_login_enabled=false; account.google_connected=true; password=""; revoked=false;
-    user.email="oauth-test@example.invalid";account.email=user.email;
+    user.id=userId;user.email="oauth-test@example.invalid";account.email=user.email;
+    user.identities=[{provider:"google",user_id:userId,identity_id:"google-test",identity_data:{email:user.email,email_verified:true}}];
     const dates=[2,1].map(n=>new Date(new Date(today+"T00:00:00Z").getTime()-n*86400000).toISOString().slice(0,10));
     Object.assign(game,{hero_level:2,current_streak:30,longest_streak:30,streak_status:"needs_recovery",protection_remaining:5,today_checked_in:false,recovery:{protected_local_dates:dates,required:2,can_restore:true,streak_after_recovery:31}});
     return send(200,{});
   }
+  if (url.pathname === "/__test/link-mode") {
+    linkCase=url.searchParams.get("case")??"same";
+    user.id=userId;user.email="oauth-test@example.invalid";account.email=user.email;
+    user.identities=[{provider:"email",user_id:userId,identity_id:"email-test"}];
+    account.password_login_enabled=true;account.google_connected=false;revoked=false;
+    password="Local-Test123!";calls.length=0;
+    return send(200,{});
+  }
   calls.push(url.pathname); // Paths only; never log code, verifier, credentials or bodies.
+  if(url.pathname==="/auth/v1/user/identities/authorize") {
+    if(!req.headers.authorization?.startsWith("Bearer "))return send(401,{});
+    if(linkCase==="disabled")return send(400,{code:"manual_linking_disabled"});
+    if(url.searchParams.get("redirect_to")!==`${site}/auth/google/connect/callback`)return send(400,{});
+    challenge=url.searchParams.get("code_challenge");
+    return send(200,{url:`${upstream}/fake-google-link`});
+  }
+  if(url.pathname==="/fake-google-link") {
+    if(linkCase!=="cancel"){
+      user.identities.push({provider:"google",user_id:userId,identity_id:"google-test",identity_data:{email:linkCase==="mismatch"?"different@example.invalid":user.email,email_verified:true}});
+      account.google_connected=true;
+    }
+    res.writeHead(302,{Location:`${site}/auth/google/connect/callback?${linkCase==="cancel"?"error=access_denied":"code=synthetic-link"}`});return res.end();
+  }
+  if(url.pathname==="/auth/v1/user/identities/google-test"&&req.method==="DELETE") {
+    user.identities=user.identities.filter(identity=>identity.provider!=="google");account.google_connected=false;
+    return send(200,{});
+  }
   if (url.pathname === "/api/v1/auth/configuration") return send(200, { supabase_url: upstream, publishable_key: "synthetic-publishable-key", local: emailMode });
   if (url.pathname === "/api/v1/auth/email/resend") return resendDown ? send(503, {}) : send(202, { data: { status: "verification_required", session: null } });
   if (url.pathname === "/api/v1/auth/email/verify") {
@@ -89,6 +117,7 @@ const server = createServer(async (req, res) => {
       revoked = false; return send(200, session());
     }
     if (url.searchParams.get("grant_type") === "pkce" && (!challenge || createHash("sha256").update(body.code_verifier ?? "").digest("base64url") !== challenge)) return send(400, { error: "invalid_grant" });
+    if(body.auth_code==='synthetic-link'&&linkCase==='switched')user.id="10000000-0000-4000-8000-000000000099";
     challenge = null; return send(200, session());
   }
   if (url.pathname === "/auth/v1/user") return send(revoked ? 401 : 200, revoked ? { message: "invalid session" } : user);
@@ -107,6 +136,7 @@ const server = createServer(async (req, res) => {
       let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
       const mode=url.pathname.includes('/email/') ? 'email':'password';
       if(url.pathname.endsWith('/request')) {
+        if(mode==='email'&&body.email==='taken@example.invalid')return send(409,{error:{code:"EMAIL_ALREADY_REGISTERED",message:"Email sudah terdaftar pada akun lain. Gunakan email yang berbeda."}});
         security={challenge_id:"50000000-0000-4000-8000-000000000001",expires_at:new Date(Date.now()+300000).toISOString(),current_email:account.email,new_email:body.email??null};
         return send(202,{data:{status:"verification_required",...security}});
       }

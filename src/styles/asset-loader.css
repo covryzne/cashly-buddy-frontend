@@ -8,3 +8,23 @@
 .mascot-loading .asset-loader {
   color: var(--primary-text);
 }
+.app-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.app-loader > div { display: flex; color: var(--primary-text); }
+.app-loader-inline {
+  display: inline-flex;
+  flex-direction: row;
+  gap: 8px;
+  color: inherit;
+  font-size: inherit;
+  vertical-align: middle;
+}
+.app-loader-inline > div { color: inherit; }

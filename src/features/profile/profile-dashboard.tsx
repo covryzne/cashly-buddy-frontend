@@ -1,4 +1,5 @@
 "use client";
+import { AppLoader } from "@/components/shared/app-loader";
 
 import { LocalDataStatus } from "@/components/shared/local-data-status";
 
@@ -434,8 +435,7 @@ export function ProfileDashboard() {
                   Batal
                 </Button>
                 <Button form={formId} type="submit" disabled={photoBusy || !online}>
-                  <Check size={17} />
-                  Simpan profil
+                  {photoBusy ? <AppLoader inline /> : <><Check size={17} />Simpan profil</>}
                 </Button>
               </div>
             ) : panel.kind === "logout" ? (

@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/auth/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
       { source: "/auth/callback", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
+      { source: "/auth/google/connect/callback", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
       {
         source: "/asset-worker.js",
         headers: [

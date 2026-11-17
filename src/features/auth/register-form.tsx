@@ -1,4 +1,5 @@
 'use client';
+import { AppLoader } from "@/components/shared/app-loader";
 
 import { useOnline } from "@/lib/pwa/connectivity";
 import { autofillHydrationProps } from './browser-autofill';
@@ -98,7 +99,7 @@ export function RegisterForm() {
           disabled={isPending || !online}
           onClick={() => startTransition(() => router.push('/beranda'))}
         >
-          {isPending ? 'Membuka Beranda…' : 'Jelajahi demo'}
+          {isPending ? <AppLoader inline /> : 'Jelajahi demo'}
           <ArrowRight size={18} />
         </Button>
         <button className="text-button" onClick={() => setComplete(false)}>

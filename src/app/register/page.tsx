@@ -4,6 +4,7 @@ import { GoogleSignInButton } from "@/features/auth/google-sign-in-button";
 import { providerConfig } from "@/lib/auth/config";
 import { PasswordAuthForm } from "@/features/auth/password-auth-form";
 import { Suspense } from "react";
+import { AppLoader } from "@/components/shared/app-loader";
 import { connection } from "next/server";
 
 export const metadata: Metadata = { title: "Buat akun · Cashly" };
@@ -11,7 +12,7 @@ export const metadata: Metadata = { title: "Buat akun · Cashly" };
 export default function RegisterPage() {
   return (
     <AuthShell mode="register">
-      <Suspense fallback={<p role="status">Menyiapkan form...</p>}><RegisterContent /></Suspense>
+      <Suspense fallback={<AppLoader />}><RegisterContent /></Suspense>
     </AuthShell>
   );
 }

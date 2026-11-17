@@ -1,4 +1,5 @@
 "use client";
+import { AppLoader } from "@/components/shared/app-loader";
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import {
@@ -103,8 +104,7 @@ export function WhatsappConnectIntro({
           </a>
         ) : (
           <Button disabled>
-            <MessageCircle size={18} />
-            {availability === "loading" ? "Menyiapkan chat…" : "Buka WhatsApp"}
+            {availability === "loading" ? <AppLoader inline /> : <><MessageCircle size={18} />Buka WhatsApp</>}
           </Button>
         )}
         <Button

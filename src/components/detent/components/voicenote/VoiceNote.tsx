@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2026 Detent. MIT; see ../../LICENSE.
 // https://detentui.com/r/voicenote — adapted for Cashly media, tokens and accessibility.
 "use client";
+import { AppLoader } from "@/components/shared/app-loader";
 import {
   useCallback,
   useEffect,
@@ -260,7 +261,7 @@ function VoiceNotePlayer({
               exit={{ opacity: 0, scale: reduce ? 1 : 0.6 }}
               transition={reduce ? { duration: 0 } : spring.snappy}
             >
-              {playing ? <Pause size={17} /> : <Play size={17} />}
+              {starting ? <AppLoader inline iconOnly size={17} /> : playing ? <Pause size={17} /> : <Play size={17} />}
             </motion.span>
           </AnimatePresence>
         </motion.button>

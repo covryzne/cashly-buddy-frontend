@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useId, useState } from "react";
-import { AssetLoader } from "@/components/shared/asset-loader";
+import { AppLoader } from "@/components/shared/app-loader";
 import {
   Camera,
   MessageCircle,
@@ -192,7 +192,7 @@ export function ReceiptAnalysis({
                 {index < stage ? (
                   <Check size={18} />
                 ) : index === stage ? (
-                  <AssetLoader size={18} />
+                  <AppLoader inline iconOnly size={18} />
                 ) : (
                   <Icon size={18} />
                 )}

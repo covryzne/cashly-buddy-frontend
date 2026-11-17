@@ -1,4 +1,5 @@
 'use client';
+import { AppLoader } from "@/components/shared/app-loader";
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { ClipboardPaste, Clock3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -221,8 +222,7 @@ export function EmailVerificationForm({
             onClick={() => void pasteCode()}
             disabled={pending || expired || pasting}
           >
-            <ClipboardPaste size={16} aria-hidden="true" />
-            {pasting ? 'Membaca...' : 'Tempel OTP'}
+            {pasting ? <AppLoader inline /> : <><ClipboardPaste size={16} aria-hidden="true" />Tempel OTP</>}
           </Button>
           <span className="sr-only" id={`${id}-hint`}>
             Masukkan enam digit kode. Kamu bisa mengetik atau menempelkan
@@ -257,7 +257,7 @@ export function EmailVerificationForm({
           type="submit"
           disabled={!online || pending || expired || token.length !== 6}
         >
-          {pending ? 'Memproses...' : 'Verifikasi email'}
+          {pending ? <AppLoader inline /> : 'Verifikasi email'}
         </Button>
         <Button
           type="button"

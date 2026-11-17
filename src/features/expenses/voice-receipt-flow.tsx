@@ -1,4 +1,5 @@
 'use client';
+import { AppLoader } from "@/components/shared/app-loader";
 
 import type { ComponentProps } from "react";
 import { OnlineRequired } from "@/components/shared/online-required";
@@ -158,7 +159,7 @@ function VoiceReceiptFlowContent({
             ) : voice.status === 'requesting' ? (
               'Menunggu izin mikrofon'
             ) : voice.status === 'stopping' ? (
-              'Menyiapkan rekaman'
+              <AppLoader inline />
             ) : voice.status === 'ready' ? (
               'Rekaman siap diputar'
             ) : example ? (
@@ -191,12 +192,12 @@ function VoiceReceiptFlowContent({
                 voice.status === 'recording' ? voice.stop() : void voice.start()
               }
             >
-              <FluidOrb
+              {voice.status === 'requesting' || voice.status === 'stopping' ? <AppLoader /> : <FluidOrb
                 size={160}
                 color="var(--primary)"
                 className="voice-orb"
                 aria-hidden="true"
-              />
+              />}
             </button>
           )}
           {voice.audioUrl && (

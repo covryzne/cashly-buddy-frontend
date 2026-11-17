@@ -11,6 +11,16 @@ test.beforeEach(async ({ page, request }) => {
 
 test("profile persists editable fields, email is read-only and duplicate username is recoverable", async ({ page }) => {
   await page.goto("/profil");
+  const accountSettings = page.getByRole("region", { name: "Akun", exact: true });
+  await expect(accountSettings.getByText("Connected", { exact: true })).toBeVisible();
+  await expect(accountSettings.getByText("Belum dibuat", { exact: true })).toBeVisible();
+  for (const theme of ["light", "dark"]) {
+    await page.evaluate(theme => document.documentElement.dataset.theme = theme, theme);
+    await page.setViewportSize({ width: 320, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+    await accountSettings.screenshot({ path: `test-results/account-google-${theme}.png` });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("button", { name: /Buat kata sandi Cashly/ })).toBeVisible();
   await page.getByRole("button", { name: "Ubah profil" }).click();
   await expect(page.getByLabel("Email", { exact: true })).toBeDisabled();
@@ -58,6 +68,7 @@ test("Google user optionally creates password with OTP then signs in to the same
   await expect(page).toHaveURL(/\/beranda/);
   await page.goto("/profil");
   await expect(page.getByRole("button", { name: /Ganti kata sandi/ })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Akun", exact: true }).getByText("Connected", { exact: true })).toBeVisible();
 });
 
 test("email requires both OTPs and recovery confirms quota before check-in", async ({ page }) => {

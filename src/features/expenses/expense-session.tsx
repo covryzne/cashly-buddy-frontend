@@ -1,4 +1,5 @@
 "use client";
+import { AppLoader } from "@/components/shared/app-loader";
 
 import { createContext, Fragment, useContext, useEffect, useCallback, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
@@ -232,7 +233,7 @@ export function ExpenseSessionProvider({ children, remote }: { children: ReactNo
   const unavailable = isApp && ready && !updatedAt;
   return <Context.Provider value={value}>
     {mutationError && <Dialog title="Permintaan belum selesai" onClose={() => setMutationError("")}><p role="alert">{mutationError}</p></Dialog>}
-    {isApp && !ready ? <main className="local-data-empty" aria-busy="true"><p role="status">Menyiapkan data Cashly…</p></main>
+    {isApp && !ready ? <main className="local-data-empty" aria-busy="true"><AppLoader /></main>
       : unavailable ? <main className="local-data-empty">
         <h1>Data belum tersedia di perangkat</h1>
         <p>{storageError ? "Penyimpanan lokal tidak tersedia atau tidak dapat dibaca." : "Belum ada salinan data lokal. Ini bukan berarti riwayat pengeluaranmu kosong."}</p>

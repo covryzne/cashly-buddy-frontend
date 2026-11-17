@@ -11,7 +11,7 @@ import {
 } from "react";
 
 import SplineMascot from "./spline-mascot";
-import { AssetLoader } from "@/components/shared/asset-loader";
+import { AppLoader } from "@/components/shared/app-loader";
 class SceneBoundary extends Component<
   { children: ReactNode; onFailure: () => void },
   { failed: boolean }
@@ -105,11 +105,8 @@ export function MascotStageRenderer({
       {phase === "loading" && (
         <div
           className="mascot-loading"
-          role="status"
-          aria-label="Memuat Mochi 3D"
         >
-          <AssetLoader size={28} />
-          <span>Memuat Mochi...</span>
+          <AppLoader />
         </div>
       )}
       {eligible && phase !== "failed" && (

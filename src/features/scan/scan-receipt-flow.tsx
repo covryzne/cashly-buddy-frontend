@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AssetLoader } from "@/components/shared/asset-loader";
+import { AppLoader } from "@/components/shared/app-loader";
 import { MoneyDisplay } from "@/components/finance/money-display";
 import { ReceiptReview } from "@/components/finance/receipt-review";
 import { ReceiptScanSuccess } from "@/components/finance/receipt-scan-success";
@@ -439,7 +439,7 @@ function ScanReceiptFlowContent({
             >
               <div className="scan-shutter-inner">
                 {busy ? (
-                  <AssetLoader size={28} />
+                  <AppLoader inline iconOnly size={28} />
                 ) : (
                   <span className="scan-capture-glyph">
                     <ScanLine size={30} />
@@ -475,15 +475,13 @@ function ScanReceiptFlowContent({
         <ReceiptAnalysis example={photo?.source === "example"} />
       )}
       {step === "checking" && (
-        <div className="scan-permission" role="status">
-          <AssetLoader />
-          <p>Menyiapkan kamera…</p>
+        <div className="scan-permission">
+          <AppLoader />
         </div>
       )}
       {busy && step !== "camera" && (
-        <div className="scan-loading" role="status">
-          <AssetLoader size={18} />
-          Menyiapkan foto…
+        <div className="scan-loading">
+          <AppLoader inline />
         </div>
       )}
       {step === "permission" && (
@@ -564,7 +562,7 @@ function ScanReceiptFlowContent({
               <div className="scan-camera-placeholder">
                 {camera.status === "requesting" ? (
                   <>
-                    <AssetLoader />
+                    <AppLoader />
                     <p role="status">
                       Pilih Izinkan pada permintaan kamera browser.
                     </p>

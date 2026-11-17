@@ -1,4 +1,5 @@
 "use client";
+import { AppLoader } from "@/components/shared/app-loader";
 import { useRef, useState } from "react";
 import { ClipboardPaste } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,6 @@ export function OtpCodeField({ id, label, value, onChange, onError, disabled = f
     <div className="otp-entry"><div className="otp-digit-row" aria-hidden="true">{Array.from({ length: 6 }, (_, index) => <span key={index} className="otp-digit" data-active={focused && active === index || undefined}>{value[index] ?? ""}</span>)}</div>
       <Input ref={input} id={id} className="otp-native-input" inputMode="numeric" autoComplete="one-time-code" value={value} maxLength={6} pattern="[0-9]{6}" disabled={disabled} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onSelect={event => setActive(Math.min(event.currentTarget.selectionStart ?? value.length, 5))} onChange={event => fill(event.target.value)} onPaste={event => { event.preventDefault(); fill(event.clipboardData.getData("text")); }} required />
     </div>
-    <Button variant="secondary" className="otp-paste-button" disabled={disabled || pasting} onClick={() => void paste()}><ClipboardPaste size={16} />{pasting ? "Membaca..." : "Tempel OTP"}</Button>
+    <Button variant="secondary" className="otp-paste-button" disabled={disabled || pasting} onClick={() => void paste()}>{pasting ? <AppLoader inline /> : <><ClipboardPaste size={16} />Tempel OTP</>}</Button>
   </div>;
 }

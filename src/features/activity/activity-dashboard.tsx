@@ -1,4 +1,5 @@
 "use client";
+import { AppLoader } from "@/components/shared/app-loader";
 
 import { LocalDataStatus } from "@/components/shared/local-data-status";
 
@@ -279,8 +280,7 @@ export function ActivityDashboard() {
             <div className="activity-undo" role="status">
               <span>Pengeluaran dihapus.</span>
               <Button variant="ghost" ref={undo} disabled={!online || session.mutationPending} onClick={restoreExpense}>
-                <Undo2 size={15} />
-                Urungkan
+                {session.mutationPending ? <AppLoader inline /> : <><Undo2 size={15} />Urungkan</>}
               </Button>
             </div>
           )}
@@ -637,8 +637,7 @@ export function ActivityDashboard() {
               ) : panel.kind === "edit" ? (
                 <div className="scan-review-actions">
                   <Button type="submit" form={formId} disabled={!online || session.mutationPending}>
-                    <Check size={18} />
-                    Simpan perubahan
+                    {session.mutationPending ? <AppLoader inline /> : <><Check size={18} />Simpan perubahan</>}
                   </Button>
                 </div>
               ) : panel.kind === "delete" ? (
@@ -651,8 +650,7 @@ export function ActivityDashboard() {
                     disabled={!online || session.mutationPending}
                     onClick={removeExpense}
                   >
-                    <Trash2 size={17} />
-                    Hapus pengeluaran
+                    {session.mutationPending ? <AppLoader inline /> : <><Trash2 size={17} />Hapus pengeluaran</>}
                   </Button>
                 </div>
               ) : panel.kind === "install" ? (

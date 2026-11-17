@@ -2542,9 +2542,6 @@ svg {
 .day-marker-button:not(:disabled):hover {background:var(--butter);color:var(--streak);}
 .day-marker-button:not(:disabled):hover svg {opacity:1;}
 .day-marker-button:focus-visible {outline:3px solid var(--primary);outline-offset:4px;}
-.checkin-spinner {animation:checkin-spin .8s linear infinite;}
-@keyframes checkin-spin {to {transform:rotate(360deg);}}
-@media(prefers-reduced-motion:reduce) {.checkin-spinner {animation:none;}}
 .weekly-review-controls {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:100%;text-align:center;}
 .weekly-review-controls .caption {margin:0;font-size:11px;line-height:1.5;color:var(--muted);}
 .weekly-review-controls .button {width:auto;min-height:38px;padding:8px 16px;border-radius:12px;font-size:13px;line-height:1.4;}

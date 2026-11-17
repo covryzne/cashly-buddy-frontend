@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { AppLoader } from "@/components/shared/app-loader";
 import { backend, verifiedSession } from "@/lib/auth/server";
 import { accountSchema, apiExpensesSchema } from "@/lib/auth/types";
 import { ExpenseSessionProvider } from "@/features/expenses/expense-session";
@@ -29,7 +30,7 @@ async function loadData() {
 }
 
 export default function SystemLayout({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<main className="local-data-empty"><p role="status">Menyiapkan akun Cashly…</p></main>}><SystemContent>{children}</SystemContent></Suspense>;
+  return <Suspense fallback={<main className="local-data-empty"><AppLoader /></main>}><SystemContent>{children}</SystemContent></Suspense>;
 }
 
 async function SystemContent({ children }: { children: React.ReactNode }) {

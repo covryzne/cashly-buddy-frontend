@@ -43,6 +43,11 @@ test("local signup, account bootstrap, logout and password login without Google 
   expect(cookies.length).toBeGreaterThan(0);
   expect(cookies.every(cookie => cookie.httpOnly && cookie.sameSite === "Lax")).toBeTruthy();
   await page.goto("/profil");
+  const accountSettings = page.getByRole("region", { name: "Akun", exact: true });
+  await expect(accountSettings.getByText("Disconnected", { exact: true })).toBeVisible();
+  await expect(accountSettings.getByRole("button", { name: /Ganti kata sandi/ })).toBeVisible();
+  await expect(accountSettings.getByRole("button", { name: /Buat kata sandi Cashly/ })).toHaveCount(0);
+  await accountSettings.screenshot({ path: "test-results/account-email-only.png" });
   await page.locator(".profile-logout").click();
   await page.locator(".profile-logout-confirm").click();
   await expect(page).toHaveURL(/\/login/);

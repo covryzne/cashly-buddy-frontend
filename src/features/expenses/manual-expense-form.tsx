@@ -1,4 +1,5 @@
 "use client";
+import { AppLoader } from "@/components/shared/app-loader";
 import { useId, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ export function ManualExpenseForm({onClose}:{onClose:()=>void}) {
   }
   return <Dialog title="Catat pengeluaran manual" onClose={onClose} variant="screen"
     className="scan-flow" footer={<Button form={formId} type="submit" disabled={session.mutationPending}>
-      {session.mutationPending ? "Menyimpan…" : "Simpan pengeluaran"}</Button>}>
+      {session.mutationPending ? <AppLoader inline /> : "Simpan pengeluaran"}</Button>}>
     <ReceiptReview draft={draft} errors={errors} formId={formId} onChange={setDraft}
       onSubmit={submit} onRetake={onClose} showSourcePreview={false} manual />
   </Dialog>;

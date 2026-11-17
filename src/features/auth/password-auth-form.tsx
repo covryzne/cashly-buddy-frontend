@@ -1,4 +1,5 @@
 "use client";
+import { AppLoader } from "@/components/shared/app-loader";
 
 import { useId, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import Link from "next/link";
@@ -11,7 +12,7 @@ import { useOnline } from "@/lib/pwa/connectivity";
 import { AuthPasswordField } from "./auth-password-field";
 import { loginSchema } from "./login-schema";
 import { registerSchema } from "./register-schema";
-import { passwordRules } from "./password-policy";
+import { PasswordRequirements } from "./password-requirements";
 import { EmailVerificationForm } from "./email-verification-form";
 
 const subscribe = () => () => {};
@@ -79,14 +80,11 @@ export function PasswordAuthForm({ mode }: { mode: "login" | "register" }) {
       {register && <div className="form-field"><label htmlFor={`${fieldPrefix}-name`}>Nama panggilan</label><div className="input-wrap"><UserRound size={19} aria-hidden="true" /><Input id={`${fieldPrefix}-name`} name="name" placeholder="Masukkan nama panggilanmu" autoComplete="nickname" value={values.name} onChange={event => change("name", event.target.value)} disabled={disabled} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? `${fieldPrefix}-name-error` : undefined} /></div>{errors.name && <p id={`${fieldPrefix}-name-error`} className="field-error">{errors.name}</p>}</div>}
       <div className="form-field"><label htmlFor={`${fieldPrefix}-email`}>Email</label><div className="input-wrap"><Mail size={19} aria-hidden="true" /><Input id={`${fieldPrefix}-email`} name="email" type="email" placeholder="nama@email.com" autoComplete="email" value={values.email} onChange={event => change("email", event.target.value)} disabled={disabled} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? `${fieldPrefix}-email-error` : undefined} /></div>{errors.email && <p id={`${fieldPrefix}-email-error`} className="field-error">{errors.email}</p>}</div>
       <AuthPasswordField id={`${fieldPrefix}-password`} name="password" autoComplete={register ? "new-password" : "current-password"} label="Kata sandi" value={values.password} onChange={value => change("password", value)} error={errors.password} disabled={disabled} descriptionId={register ? `${fieldPrefix}-requirements` : undefined} />
-      {register && <div id={`${fieldPrefix}-requirements`} className="password-guide">
-        <div className="password-guide-heading"><span>Syarat kata sandi</span><span className="password-length" data-invalid={values.password.length > 16 ? "true" : undefined}>{values.password.length}/16</span></div>
-        <ul className="password-requirements" aria-label="Syarat kata sandi">{passwordRules.map(rule => <li key={rule.label} data-met={rule.test(values.password) ? "true" : "false"}><CircleCheck size={14} aria-hidden="true" /><span>{rule.label}</span>{rule.test(values.password) && <span className="sr-only"> terpenuhi</span>}</li>)}</ul>
-      </div>}
+      {register && <PasswordRequirements id={`${fieldPrefix}-requirements`} value={values.password} />}
       {register && <AuthPasswordField id={`${fieldPrefix}-confirm-password`} name="confirmPassword" autoComplete="new-password" label="Konfirmasi kata sandi" value={values.confirmPassword} onChange={value => change("confirmPassword", value)} error={values.confirmPassword ? undefined : errors.confirmPassword} disabled={disabled} feedback={values.confirmPassword ? { matches: values.password === values.confirmPassword, text: values.password === values.confirmPassword ? "Kata sandi cocok" : "Kata sandi belum cocok" } : undefined} />}
       {errors.form && <p className="field-error" role="alert">{errors.form}</p>}
       {!online && <p role="status">Hubungkan kembali koneksi untuk melanjutkan.</p>}
-      <Button type="submit" className="auth-full-button" disabled={!online || disabled}>{pending ? "Memproses..." : register ? "Buat akun" : "Masuk"}</Button>
+      <Button type="submit" className="auth-full-button" disabled={!online || disabled}>{pending ? <AppLoader inline /> : register ? "Buat akun" : "Masuk"}</Button>
     </form>
     <p className="login-register">{register ? "Sudah punya akun? " : "Belum punya akun? "}<Link className="text-button" href={register ? "/login" : "/register"}>{register ? "Masuk" : "Buat akun"}</Link></p>
     {created && <Dialog title={created === "verified" ? "Akun telah terverifikasi" : "Akun berhasil dibuat"} onClose={finishRegistration} showCloseButton={false} className="auth-success-dialog" footer={<Button autoFocus className="auth-full-button" onClick={finishRegistration}>Ke halaman login</Button>}>

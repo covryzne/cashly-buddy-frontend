@@ -1,14 +1,6 @@
-import {
-  BookOpen,
-  Check,
-  CheckCheck,
-  ChevronRight,
-  Flame,
-  ShieldCheck,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Check, CheckCheck, Flame, ShieldCheck } from "lucide-react";
 
-export function MissionBoard({ onOpenReview }: { onOpenReview: () => void }) {
+export function MissionBoard() {
   return (
     <div className="mission-board">
       <div className="mission-board-summary">
@@ -17,14 +9,14 @@ export function MissionBoard({ onOpenReview }: { onOpenReview: () => void }) {
         </span>
         <div>
           <strong>Satu langkah baik hari ini.</strong>
-          <p>1 dari 2 misi selesai</p>
+          <p>1 dari 1 misi selesai</p>
         </div>
-        <span className="mission-summary-count">1/2</span>
+        <span className="mission-summary-count">1/1</span>
       </div>
       <progress
         className="mission-board-progress"
         value={1}
-        max={2}
+        max={1}
         aria-label="Progres misi"
       />
       <ul className="mission-detail-list">
@@ -51,40 +43,12 @@ export function MissionBoard({ onOpenReview }: { onOpenReview: () => void }) {
             <strong>1/1</strong>
           </div>
         </li>
-        <li className="mission-detail">
-          <div className="mission-detail-heading">
-            <span className="mission-detail-icon tone-butter">
-              <BookOpen size={21} />
-            </span>
-            <div>
-              <small>Mingguan</small>
-              <h3>Review cerita mingguan</h3>
-            </div>
-          </div>
-          <p>
-            Luangkan waktu sebentar untuk mengenali pola pengeluaranmu minggu
-            ini.
-          </p>
-          <div className="mission-detail-foot">
-            <span className="mission-pending-dot" />
-            <span>Belum direview</span>
-            <strong>0/1</strong>
-          </div>
-          <Button
-            variant="secondary"
-            data-modal-focus-key="weekly-story"
-            onClick={onOpenReview}
-          >
-            Lihat cerita mingguan
-            <ChevronRight size={17} />
-          </Button>
-        </li>
       </ul>
       <div className="mission-board-note">
         <ShieldCheck size={18} />
         <p>
           Check-in dihitung sekali sehari. Membuka misi atau menyapa Mochi tidak
-          menambah XP.
+          menambah streak.
         </p>
       </div>
     </div>

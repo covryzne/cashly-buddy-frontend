@@ -2,20 +2,18 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { Flame, Info, LockKeyhole, Sparkles, Zap } from "lucide-react";
+import { Flame, Info, LockKeyhole, Sparkles } from "lucide-react";
 import { evolutionStages as profileHeroLevels } from "@/features/profile/profile-model";
 import { MascotStageRenderer } from "./mascot-stage-renderer";
 
 export function EvolutionCarousel({
   currentStage,
   maxUnlocked,
-  xp,
   streak,
   onDetails,
 }: {
   currentStage: number;
   maxUnlocked: number;
-  xp: number;
   streak: number;
   onDetails: (stage: number) => void;
 }) {
@@ -67,8 +65,8 @@ export function EvolutionCarousel({
     >
       <div className="hero-carousel-toolbar">
         <span className="profile-account-kind">
-          <Zap size={12} />
-          {xp} XP terkumpul
+          <Flame size={12} />
+          Hero level {currentStage}
         </span>
         <span className="pill hero-level-badge" aria-live="polite">
           <Sparkles size={12} />

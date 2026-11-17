@@ -1,6 +1,6 @@
 import { homeFixture, type Expense } from "@/mocks/fixtures/home";
 import { formatDate } from "@/lib/format/datetime";
-import { addDays, dateKey, rangeLabel, weekStart, type PeriodSelection } from "@/lib/format/period";
+import { dateKey, rangeLabel, type PeriodSelection } from "@/lib/format/period";
 
 export function monthKey(value = new Date().toISOString()) {
   const parts = new Intl.DateTimeFormat("en", {
@@ -12,16 +12,6 @@ export function monthKey(value = new Date().toISOString()) {
 }
 
 // Fixture selectors only. Canonical financial totals will come from the API.
-export function selectWeeklyStory(
-  expenses: readonly Expense[] = homeFixture.expenses,
-  asOf = homeFixture.asOf,
-  alignToWeek = false,
-) {
-  const end = dateKey(asOf);
-  const start = alignToWeek ? weekStart(end) : addDays(end,-6);
-  return selectPeriod({kind:"range",start,end},expenses);
-}
-
 export function selectMonth(month: string) {
   return selectPeriod({ kind: "month", month });
 }

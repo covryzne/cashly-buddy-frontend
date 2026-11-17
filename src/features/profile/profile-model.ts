@@ -58,8 +58,8 @@ export const evolutionStages = [
   {
     stage: 1,
     name: "Little Cashly",
-    days: 10,
-    description: "Sepuluh hari, awal perjalanan kecil bersama Mochi.",
+    days: 0,
+    description: "Awal perjalananmu. Mochi tersedia sejak hari pertama.",
   },
   {
     stage: 2,

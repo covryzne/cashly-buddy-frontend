@@ -6,12 +6,13 @@ import { dateKey } from "@/lib/format/period";
 import { formatDate, wibDateTime } from "@/lib/format/datetime";
 
 export const gameSchema = z.object({
-  level: z.number(), total_xp: z.number(), current_streak: z.number(), longest_streak: z.number(),
-  freeze_balance: z.number(), max_mascot_stage_unlocked: z.number(), today_checked_in: z.boolean(),
+  hero_level: z.number().min(1).max(5), current_streak: z.number(), longest_streak: z.number(),
+  protection_remaining: z.number(), protection_month: z.string(),
+  streak_status: z.enum(["active","needs_recovery","broken"]), today_checked_in: z.boolean(),
   today_local_date: z.string().optional(), timezone:z.string().optional(),
-  recovery: z.object({ protected_local_date: z.string() }).nullable(),
+  recovery: z.object({ protected_local_dates: z.array(z.string()), required:z.number(), can_restore:z.boolean(), streak_after_recovery:z.number() }).nullable(),
   calendar: z.array(z.object({ date: z.string(), status: z.string() })),
-  missions: z.array(z.object({ code: z.string(), title: z.string(), completed: z.boolean(), xp: z.number(), can_complete:z.boolean().default(false), available_from:z.string().nullable().optional(), test_override:z.boolean().default(false) })),
+  missions: z.array(z.object({ code: z.string(), title: z.string(), completed: z.boolean(), can_complete:z.boolean().default(false), available_from:z.string().nullable().optional(), test_override:z.boolean().default(false) })),
 });
 export type GameOverview = z.infer<typeof gameSchema>;
 export const paymentLabels: Record<string, string> = {
@@ -51,7 +52,7 @@ export function expensePayload(draft: ReceiptDraft, version?: number) {
 export async function apiRequest(path: string, method="GET", body?: unknown, key?: string) {
   const response = await fetch(`/api/cashly/${path}`, {method, cache:"no-store",
     headers: {"Content-Type":"application/json", ...(method!=="GET" ? {"Idempotency-Key":key ?? crypto.randomUUID()} : {})},
-    body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(20000),
+    body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(path.startsWith("me/security/") ? 50000 : 20000),
   });
   const result = await response.json();
   if (!response.ok) throw new Error(typeof result.error?.message === "string" ? result.error.message :

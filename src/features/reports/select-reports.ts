@@ -95,8 +95,6 @@ function trendIntervals(start: string, end: string) {
 export function selectReports(
   expenses: readonly Expense[],
   period: PeriodSelection,
-  today: string,
-  currentWeekStory = false,
 ) {
   const snapshot = selectPeriod(period, expenses);
   const bounds = periodBounds(period);
@@ -142,28 +140,6 @@ export function selectReports(
       BigInt(point.totalIdr) > BigInt(best?.totalIdr ?? "0") ? point : best,
     null,
   );
-  const storyEnd =
-    currentWeekStory ? today : today >= bounds.start && today < bounds.end ? today : bounds.end;
-  const storyStart =
-    currentWeekStory ? weekStart(today) : addDays(storyEnd, -6) < bounds.start ? bounds.start : addDays(storyEnd, -6);
-  const story = selectPeriod(
-    { kind: "range", start: storyStart, end: storyEnd },
-    currentWeekStory ? expenses : snapshot.expenses,
-  );
-  // Reopening a review after changes must show the changed snapshot as unreviewed.
-  const storyKey = JSON.stringify([
-    storyStart,
-    storyEnd,
-    story.expenses.map((expense) => [
-      expense.id,
-      expense.amountIdr,
-      expense.categoryCode,
-      expense.occurredAt,
-      expense.merchant,
-      expense.description,
-      expense.paymentMethod,
-    ]),
-  ]);
   return {
     ...snapshot,
     categories,
@@ -187,7 +163,6 @@ export function selectReports(
       percent: percentChange,
     },
     trend: { unit: intervals.unit, points, peak },
-    story: { ...story, start: storyStart, end: storyEnd, key: storyKey },
   };
 }
 export type ReportSnapshot = ReturnType<typeof selectReports>;

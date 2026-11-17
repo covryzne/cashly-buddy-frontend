@@ -221,28 +221,19 @@ test("Preset, rentang tanggal, tren dan empty state sesuai transaksi", async ({
   );
   await expect(
     page.getByRole("button", { name: "Buka Money Story lengkap" }),
-  ).toBeDisabled();
+  ).toHaveCount(0);
   await page
     .getByRole("group", { name: "Periode laporan" })
     .getByRole("button", { name: "Bulan ini", exact: true })
     .click();
   await expect(total(page)).toHaveText("Rp1.248.500");
 });
-test("Review eksplisit, perubahan Aktivitas memperbarui Laporan dan menandai review baru", async ({
+test("Perubahan Aktivitas memperbarui Laporan tanpa review mingguan", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await open(page);
   await expect(page.locator(".report-reviewed")).toHaveCount(0);
-  await page.getByRole("button", { name: "Buka Money Story lengkap" }).click();
-  await expect(modal(page)).toContainText("Rp1.110.000");
-  await modal(page).getByRole("button", { name: "Tutup dialog" }).click();
-  await expect(page.locator(".report-reviewed")).toHaveCount(0);
-  await page.getByRole("button", { name: "Buka Money Story lengkap" }).click();
-  await modal(page)
-    .getByRole("button", { name: "Selesai review", exact: true })
-    .click();
-  await expect(page.locator(".report-reviewed")).toBeVisible();
   await page
     .locator(".bottom-nav:visible")
     .getByRole("link", { name: "Aktivitas", exact: true })

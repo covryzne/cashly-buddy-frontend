@@ -36,7 +36,7 @@ import {
   isAppAction,
   type AppActionPanel,
 } from "@/components/shared/app-action-dialogs";
-import { ProfileAvatar } from "@/components/shared/profile-avatar";
+import { AccountSecurityPanel } from "./account-security-panel";
 import { SettingsRow } from "@/components/shared/settings-row";
 import { InstallAppEntry } from "@/components/shared/install-app";
 import { useModalStack } from "@/components/shared/use-modal-stack";
@@ -62,7 +62,7 @@ import {
 import { whatsappExample } from "@/mocks/fixtures/whatsapp";
 
 type InfoPanel =
-  "theme" | "timezone" | "currency" | "reminder" | "privacy" | "help" | "xp";
+  "theme" | "timezone" | "currency" | "reminder" | "privacy" | "help" | "hero";
 type Panel =
   | AppActionPanel
   | { kind: "edit" | "logout" }
@@ -76,7 +76,7 @@ const infoTitles: Record<InfoPanel, string> = {
   reminder: "Pengingat catat harian",
   privacy: "Privasi & keamanan",
   help: "Pusat bantuan",
-  xp: "XP & level",
+  hero: "Level hero",
 };
 
 export function ProfileDashboard() {
@@ -136,7 +136,10 @@ export function ProfileDashboard() {
       );
       return;
     }
-    if (!await saveProfile(result.data)) return;
+    setPhotoBusy(true);
+    const saved=await saveProfile(result.data);
+    setPhotoBusy(false);
+    if (!saved) return;
     setFeedback("Profilmu sudah diperbarui.");
     close();
   }
@@ -184,7 +187,6 @@ export function ProfileDashboard() {
           )}
           <section className="profile-account-card" aria-label="Profil akun">
             <div className="profile-account-top">
-              <ProfileAvatar profile={profile} size={66} />
               <div>
                 <h2>{profile.name}</h2>
                 <p>@{profile.username}</p>
@@ -231,7 +233,6 @@ export function ProfileDashboard() {
                 <EvolutionCarousel
                   currentStage={gameData.mascotStage}
                   maxUnlocked={gameData.maxMascotStageUnlocked}
-                  xp={gameData.xp}
                   streak={gameData.streak}
                   onDetails={(stage) => openGuide("evolution", stage)}
                 />
@@ -270,17 +271,17 @@ export function ProfileDashboard() {
                 <button
                   type="button"
                   className="profile-stat-card"
-                  onClick={() => open({ kind: "info", topic: "xp" })}
+                  onClick={() => open({ kind: "info", topic: "hero" })}
                 >
                   <span>
-                    XP & Level <Zap size={17} />
+                    Level hero <Zap size={17} />
                   </span>
                   <strong>
-                    {gameData.xp} <small>XP</small>
+                    {gameData.level} <small>level hero</small>
                   </strong>
                   <p>Level {gameData.level} · Perjalananmu sendiri.</p>
                   <small>
-                    Kenali XP dan level <Info size={12} />
+                    Kenali level hero <Info size={12} />
                   </small>
                 </button>
                 <button
@@ -289,19 +290,20 @@ export function ProfileDashboard() {
                   onClick={() => openGuide("freeze")}
                 >
                   <span>
-                    Streak Freeze <ShieldCheck size={17} />
+                    Proteksi bulanan <ShieldCheck size={17} />
                   </span>
                   <strong>
                     {gameData.freezeBalance} <small>tersedia</small>
                   </strong>
                   <p>Perlindungan streak dengan konfirmasi manual.</p>
                   <small>
-                    Lihat aturan Freeze <Info size={12} />
+                    Lihat aturan proteksi <Info size={12} />
                   </small>
                 </button>
               </div>
             </section>
             <div className="profile-settings-column">
+              <AccountSecurityPanel />
               <section
                 className="profile-settings-section"
                 aria-labelledby="profile-preferences-title"
@@ -495,13 +497,9 @@ export function ProfileDashboard() {
                 setDraft(value);
                 setErrors({});
               }}
-              onPhoto={(photo) =>
-                setDraft((current) => ({ ...current, avatar: "photo", photo }))
-              }
               errors={errors}
               formId={formId}
               onSubmit={submitProfile}
-              onBusyChange={setPhotoBusy}
             /></>
           )}
           {panel.kind === "guide" && (
@@ -596,21 +594,19 @@ export function ProfileDashboard() {
                   </p>
                 </>
               )}
-              {panel.topic === "xp" && (
+              {panel.topic === "hero" && (
                 <>
                   <span className="profile-info-icon">
                     <Zap size={29} />
                   </span>
                   <h3>
-                    Level {gameData.level} · {gameData.xp} XP
+                    Hero level {gameData.level}
                   </h3>
                   <p>
-                    XP berasal dari aktivitas yang memenuhi syarat. Level XP
-                    berbeda dari streak dan tahap evolusi Mochi.
+                    Level hero mengikuti streak: 0, 30, 100, 150 dan 200 hari.
                   </p>
                   <p>
-                    Membuka halaman, menyapa Mochi, atau melihat panduan tidak
-                    menambah XP. Angka yang ditampilkan mengikuti status akun.
+                    Jika streak putus dan tidak dipulihkan, hero kembali ke level 1.
                   </p>
                   <Button
                     variant="secondary"
@@ -632,9 +628,7 @@ export function ProfileDashboard() {
                   <h3>Kenali apa yang disimpan.</h3>
                   <ul className="profile-info-list">
                     <li>
-                      Nama, bio, dan foto profil saat ini disimpan sementara
-                      selama sesi. Muat ulang halaman akan memulai data awal.
-                    </li>
+                      Nama dan username disimpan pada akunmu melalui API. Email dikelola Supabase Auth.</li>
                     <li>
                       Foto profil, foto struk, dan rekaman suara tidak diunggah
                       melalui alur yang tersedia saat ini.
@@ -668,7 +662,7 @@ export function ProfileDashboard() {
                     ],
                     [
                       "Apakah menyapa Mochi menambah streak?",
-                      "Menyapa Mochi adalah interaksi kecil untuk menemanimu. Streak dan XP berasal dari aktivitas yang memenuhi syarat, bukan membuka halaman atau menyapa Mochi.",
+                      "Menyapa Mochi adalah interaksi kecil untuk menemanimu. Streak berasal dari aktivitas yang memenuhi syarat, bukan membuka halaman atau menyapa Mochi.",
                     ],
                   ].map(([question, answer]) => (
                     <details key={question}>

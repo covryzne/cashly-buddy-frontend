@@ -154,8 +154,7 @@ export function EmailVerificationForm({
     }
   }
   return (
-    <section className="email-verification" aria-labelledby={`${id}-title`}>
-      {/* <h3 id={`${id}-title`}>Verifikasi email</h3> */}
+    <section className="email-verification" aria-label="Verifikasi email">
       <p className="muted">
         Masukkan kode yang sudah dikirimkan ke <strong>{email}</strong> dan
         periksa folder spam juga, ya.

@@ -3,7 +3,6 @@ import AxeBuilder from "@axe-core/playwright";
 import { dateKey } from "../src/lib/format/period";
 import {
   selectPeriod,
-  selectWeeklyStory,
 } from "../src/features/home/select-month";
 
 test.use({ timezoneId: "America/Los_Angeles" });
@@ -22,7 +21,6 @@ test("Batas hari WIB dan rentang inklusif pada fixture", () => {
   });
   expect(day.totalIdr).toBe("348000");
   expect(day.count).toBe(2);
-  expect(selectWeeklyStory().totalIdr).toBe("1210000");
 });
 
 test("Rentang dapat dilanjutkan dengan keyboard dan urutan tanggal terbalik", async ({
@@ -205,35 +203,9 @@ for (const theme of ["light", "dark"] as const) {
         .locator(".missions-area")
         .getByRole("button", { name: /Lihat semua/ });
       await missions.click();
-      await dialog
-        .getByRole("button", { name: "Lihat cerita mingguan" })
-        .click();
-      await expect(dialog).toHaveAccessibleName("Cerita mingguan");
-      await expect(dialog.locator(".dialog-demo")).toContainText(
-        "7 Nov 2026 – 13 Nov 2026",
-      );
-      await expect(dialog.locator(".story-summary .money")).toHaveText(
-        "Rp1.210.000",
-      );
-      await expect(dialog.locator(".story-categories > li")).toHaveCount(4);
-      expect(
-        (
-          await new AxeBuilder({ page })
-            .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
-            .analyze()
-        ).violations,
-      ).toEqual([]);
-      await page.screenshot({
-        path: `test-results/weekly-story-${width}-${theme}.png`,
-      });
-      await dialog
-        .getByRole("button", { name: "Kembali", exact: true })
-        .click();
       await expect(dialog).toHaveAccessibleName("Misi kamu");
-      await expect(
-        dialog.getByRole("button", { name: "Lihat cerita mingguan" }),
-      ).toBeFocused();
-      await expect(dialog).toContainText("Belum direview");
+      await expect(dialog).toContainText("1 dari 1 misi selesai");
+      await expect(dialog.getByText(/mingguan/i)).toHaveCount(0);
       await page.keyboard.press("Escape");
       await expect(missions).toBeFocused();
       const add = page

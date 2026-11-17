@@ -1,8 +1,6 @@
 'use client';
 
 import { useHomeData } from './use-home-data';
-import { WeeklyReviewAction } from '@/components/gamification/weekly-review-action';
-import { ServerMissions } from '@/components/gamification/server-missions';
 import { useServerSummary } from "@/features/reports/use-server-summary";
 import { LocalDataStatus } from "@/components/shared/local-data-status";
 
@@ -27,14 +25,13 @@ import { AppNavigation } from '@/components/shared/app-navigation';
 import { ThemeToggle } from '@/components/shared/theme-toggle';
 import { PeriodPicker } from '@/components/finance/period-picker';
 import { QuickAddMethods } from '@/components/finance/quick-add-methods';
-import { monthKey, selectPeriod, selectWeeklyStory } from './select-month';
+import { monthKey, selectPeriod } from './select-month';
 import type { PeriodSelection } from '@/lib/format/period';
 import { useModalStack } from '@/components/shared/use-modal-stack';
 import {
   ExpenseDetail,
   ExpenseDetailActions,
 } from '@/components/finance/expense-detail';
-import { WeeklyStory } from '@/components/finance/weekly-story';
 import { FeaturePreview } from '@/components/shared/feature-preview';
 import { Dialog } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -63,8 +60,7 @@ type Panel =
   | { kind: 'category'; category: Category }
   | { kind: 'expense'; expense: Expense }
   | { kind: 'transactions' }
-  | { kind: 'missions' }
-  | { kind: 'weekly' };
+  | { kind: 'missions' };
 export function HomeDashboard() {
   const data=useHomeData();
   const session=useExpenseSession();
@@ -85,7 +81,6 @@ export function HomeDashboard() {
   const summary=useServerSummary(selection);
   const computed=selectPeriod(selection,expenses);
   const snapshot={...computed,totalIdr:summary?.data?.amount_idr ?? computed.totalIdr,count:summary?.data?.count ?? computed.count};
-  const weekly = selectWeeklyStory(expenses, session.remoteMode ? session.game?.today_local_date ?? data.asOf : data.asOf, session.remoteMode);
   const {
     panel,
     open: setPanel,
@@ -109,23 +104,21 @@ export function HomeDashboard() {
   const panelTitle =
     panel?.kind === 'add'
       ? 'Catat pengeluaran baru'
-      : panel?.kind === 'weekly'
-        ? 'Cerita mingguan'
-        : panel?.kind === 'profile'
-          ? 'Profil'
-          : panel?.kind === 'install'
-            ? 'Download Cashly'
-            : panel?.kind === 'period'
-              ? 'Pilih periode pengeluaran'
-              : panel?.kind === 'upcoming'
-                ? panel.label
-                : panel?.kind === 'category'
-                  ? panel.category.label
-                  : panel?.kind === 'expense'
-                    ? 'Detail pengeluaran'
-                    : panel?.kind === 'missions'
-                      ? 'Misi kamu'
-                      : 'Transaksi periode ini';
+      : panel?.kind === 'profile'
+        ? 'Profil'
+        : panel?.kind === 'install'
+          ? 'Download Cashly'
+          : panel?.kind === 'period'
+            ? 'Pilih periode pengeluaran'
+            : panel?.kind === 'upcoming'
+              ? panel.label
+              : panel?.kind === 'category'
+                ? panel.category.label
+                : panel?.kind === 'expense'
+                  ? 'Detail pengeluaran'
+                  : panel?.kind === 'missions'
+                    ? 'Misi kamu'
+                    : 'Transaksi periode ini';
   return (
     <>
       <a href="#main-content" className="skip-link">
@@ -161,7 +154,7 @@ export function HomeDashboard() {
             </div>
             <span className="pill xp-pill">
               <Zap size={15} />
-              Lvl {data.level} · {data.xp} XP
+              Hero level {data.level}
             </span>
           </div>
           <div className="home-grid">
@@ -223,7 +216,7 @@ export function HomeDashboard() {
                 )}
               </p>
               <p className="caption mascot-disclaimer">
-                Bertumbuh lewat streak, bukan XP.
+                Bertumbuh mengikuti streak berjalan.
               </p>
             </section>
             <div className="streak-area">
@@ -233,24 +226,19 @@ export function HomeDashboard() {
                 calendar={data.calendar}
                 todayCheckedIn={session.remoteMode ? session.game?.today_checked_in ?? false : true}
                 todayDate={session.game?.today_local_date}
-                recoveryDate={session.game?.recovery?.protected_local_date}
-                onUseFreeze={session.game?.recovery ? ()=>{
-                  const day=session.game!.recovery!.protected_local_date;
-                  if(window.confirm(`Pakai 1 Freeze untuk ${day}?`)) void session.gameAction("freeze",day);
-                } : undefined}
+                recovery={session.game?.recovery ? { dates:session.game.recovery.protected_local_dates,
+                  required:session.game.recovery.required,canRestore:session.game.recovery.can_restore,
+                  result:session.game.recovery.streak_after_recovery } : undefined}
+                onUseFreeze={session.game?.recovery ? ()=>session.gameAction("freeze",session.game!.recovery!.protected_local_dates) : undefined}
                 pending={session.mutationPending}
                 onCheckIn={session.remoteMode && session.game ? ()=>void session.gameAction("review") : undefined}
                 onNoSpend={session.remoteMode && session.game && !session.expenses.some(e=>new Intl.DateTimeFormat("en-CA",{timeZone:session.game?.timezone ?? "Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(e.occurredAt))===session.game?.today_local_date) ? ()=>void session.gameAction("no-spend") : undefined}
               />
             </div>
-            {session.remoteMode && <section className="missions-area" aria-label="Misi">
-              <h2 className="section-title">Misi</h2>
-              <ServerMissions onOpen={()=>setPanel({kind:'weekly'})} />
-            </section>}
             {!session.remoteMode && <section className="missions-area">
               <div className="section-heading section-title">
                 <h2>
-                  Misi hari ini <span className="count-badge">1/2</span>
+                  Misi hari ini <span className="count-badge">1/1</span>
                 </h2>
                 <button
                   className="text-button"
@@ -263,11 +251,6 @@ export function HomeDashboard() {
                 <MissionCard
                   title="Catat pengeluaran hari ini"
                   completed
-                  onSelect={() => setPanel({ kind: 'missions' })}
-                />
-                <MissionCard
-                  title="Review cerita mingguan"
-                  completed={false}
                   onSelect={() => setPanel({ kind: 'missions' })}
                 />
               </div>
@@ -353,7 +336,7 @@ export function HomeDashboard() {
             footer={
               panel.kind === 'category' ? <Button data-modal-focus-key="category-add" onClick={() => push({ kind: 'add' })}><Plus size={17} />Catat pengeluaran</Button> : panel.kind === 'install' ? (
                 <Button onClick={back}>Kembali ke Profil</Button>
-              ) : panel.kind === 'weekly' && session.remoteMode ? <WeeklyReviewAction hasExpenses={weekly.count>0} /> : panel.kind === 'expense' ? (
+              ) : panel.kind === 'expense' ? (
                 <ExpenseDetailActions onDone={close} />
               ) : undefined
             }
@@ -371,9 +354,7 @@ export function HomeDashboard() {
                 <span className="pill dialog-demo">
                   {panel.kind === 'missions'
                     ? data.period
-                    : panel.kind === 'weekly'
-                      ? weekly.period
-                      : snapshot.period}
+                    : snapshot.period}
                 </span>
               )}
             {panel.kind === 'add' && (
@@ -442,17 +423,8 @@ export function HomeDashboard() {
                 }
               />
             )}
-            {panel.kind === 'missions' && session.remoteMode && <ServerMissions onOpen={()=>push({kind:'weekly'})} />}
             {panel.kind === 'missions' && !session.remoteMode && (
-              <MissionBoard onOpenReview={() => push({ kind: 'weekly' })} />
-            )}
-            {panel.kind === 'weekly' && (
-              <WeeklyStory
-                totalIdr={weekly.totalIdr}
-                count={weekly.count}
-                categories={weekly.categories}
-                periodLabel={weekly.monthLabel}
-              />
+              <MissionBoard />
             )}
           </Dialog>
         )}

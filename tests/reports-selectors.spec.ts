@@ -14,7 +14,6 @@ test("Rincian cetak mencakup transaksi periode sekali saja, urut dan subtotal se
   const snapshot = selectReports(
     source,
     { kind: "range", start: "2026-11-09", end: "2026-11-15" },
-    "2026-11-15",
   );
   const groups = reportTransactionGroups(snapshot);
   const rows = groups.flatMap((group) => group.expenses);
@@ -39,13 +38,13 @@ test("Rincian cetak mencakup transaksi periode sekali saja, urut dan subtotal se
   expect(source).toEqual([...activityExpenses].reverse());
   expect(
     reportTransactionGroups(
-      selectReports(source, { kind: "month", month: "2026-10" }, "2026-11-15"),
+      selectReports(source, { kind: "month", month: "2026-10" }),
     ),
   ).toEqual([]);
 });
 
 test("Laporan menghitung total, rata-rata kalender dan distribusi tanpa pembanding palsu", () => {
-  const result = selectReports(activityExpenses, month, "2026-11-15");
+  const result = selectReports(activityExpenses, month);
   expect(result.totalIdr).toBe("1248500");
   expect(result.count).toBe(6);
   expect(result.days).toBe(30);
@@ -66,9 +65,6 @@ test("Laporan menghitung total, rata-rata kalender dan distribusi tanpa pembandi
       .reduce((sum, point) => sum + BigInt(point.totalIdr), BigInt(0))
       .toString(),
   ).toBe(result.totalIdr);
-  expect(result.story.start).toBe("2026-11-09");
-  expect(result.story.end).toBe("2026-11-15");
-  expect(result.story.count).toBe(4);
   expect(reportText(result, month)).toContain("Rp1.248.500 · 6 transaksi");
 });
 test("Pembanding rentang sama panjang, pergantian tahun, WIB dan tahun kabisat", () => {
@@ -84,7 +80,6 @@ test("Pembanding rentang sama panjang, pergantian tahun, WIB dan tahun kabisat",
   const result = selectReports(
     data,
     { kind: "range", start: "2026-11-01", end: "2026-11-01" },
-    "2026-11-15",
   );
   expect(result.totalIdr).toBe("28000");
   expect(result.averageIdr).toBe("28000");
@@ -94,12 +89,11 @@ test("Persentase pembanding aktual, rentang kosong dan nominal besar tetap presi
   const week = selectReports(
     activityExpenses,
     { kind: "range", start: "2026-11-09", end: "2026-11-15" },
-    "2026-11-15",
   );
   expect(week.comparison.totalIdr).toBe("100000");
   expect(week.comparison.percent).toBe(1010);
   expect(week.comparison.direction).toBe("up");
-  const empty = selectReports([], month, "2026-11-15");
+  const empty = selectReports([], month);
   expect(empty.averageIdr).toBe("0");
   expect(empty.ranked).toEqual([]);
   expect(empty.trend.peak).toBeNull();
@@ -110,7 +104,6 @@ test("Persentase pembanding aktual, rentang kosong dan nominal besar tetap presi
       { ...activityExpenses[1], amountIdr: "2" },
     ],
     month,
-    "2026-11-15",
   );
   expect(huge.totalIdr).toBe("1000000000000000000001");
   expect(huge.ranked[0].percent).toBe(100);
@@ -123,7 +116,6 @@ test("Tren panjang tetap terbatas, interval tidak tumpang tindih dan tidak kehil
     const result = selectReports(
       activityExpenses,
       { kind: "range", start, end },
-      "2026-11-15",
     );
     expect(result.trend.unit).toBe(unit);
     expect(result.trend.points.length).toBeLessThanOrEqual(13);
@@ -136,30 +128,14 @@ test("Tren panjang tetap terbatas, interval tidak tumpang tindih dan tidak kehil
     ).toBe(result.totalIdr);
   }
 });
-test("Cerita minggu berubah ketika catatan terkait diedit", () => {
-  const before = selectReports(activityExpenses, month, "2026-11-15");
+test("Total laporan berubah ketika catatan terkait diedit", () => {
+  const before = selectReports(activityExpenses, month);
   const after = selectReports(
     activityExpenses.map((expense, index) =>
       index ? expense : { ...expense, amountIdr: "35000" },
     ),
     month,
-    "2026-11-15",
   );
-  expect(before.story.key).not.toBe(after.story.key);
+  expect(before.totalIdr).not.toBe(after.totalIdr);
   expect(after.totalIdr).toBe("1255500");
-  expect(after.story.totalIdr).toBe("1117000");
-});
-
-
-test("Remote weekly review uses the current Monday-based week even for a historical report filter", () => {
-  const current=selectReports(activityExpenses,{kind:"month",month:"2026-10"},"2026-11-13",true);
-  expect(current.totalIdr).toBe("0");
-  expect(current.story.start).toBe("2026-11-09");
-  expect(current.story.end).toBe("2026-11-13");
-  expect(current.story.count).toBe(4);
-  expect(current.story.totalIdr).toBe("1110000");
-  const nextWeek=selectReports(activityExpenses,month,"2026-11-16",true);
-  expect(nextWeek.story.start).toBe("2026-11-16");
-  expect(nextWeek.story.count).toBe(0);
-  expect(selectReports(activityExpenses,{kind:"month",month:"2026-10"},"2026-11-13").story.count).toBe(0);
 });

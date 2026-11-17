@@ -4,13 +4,13 @@ import { useExpenseSession } from "@/features/expenses/expense-session";
 
 export function useHomeData() {
   const session=useExpenseSession();
-  if (!session.remoteMode) return homeFixture;
+  if (!session.remoteMode) { const level=1+[30,100,150,200].filter(day=>homeFixture.streak>=day).length; return {...homeFixture,level,xp:0,mascotStage:level,maxMascotStageUnlocked:level}; }
   const game=session.game;
   return {...homeFixture, asOf:new Date().toISOString(),
-    level:game?.level ?? 1, xp:game?.total_xp ?? 0, streak:game?.current_streak ?? 0,
-    mascotStage:game?.max_mascot_stage_unlocked ?? 0,
-    maxMascotStageUnlocked:game?.max_mascot_stage_unlocked ?? 0,
-    freezeBalance:game?.freeze_balance ?? 0,
+    level:game?.hero_level ?? 1, xp:0, streak:game?.current_streak ?? 0,
+    mascotStage:game?.hero_level ?? 1,
+    maxMascotStageUnlocked:game?.hero_level ?? 1,
+    freezeBalance:game?.protection_remaining ?? 0,
     calendar:(game?.calendar ?? []).map(day=>({date:day.date,
       day:new Intl.DateTimeFormat("id",{weekday:"short"}).format(new Date(day.date+"T12:00:00+07:00")),
       status:day.status})),

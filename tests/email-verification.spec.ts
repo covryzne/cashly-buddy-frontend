@@ -15,7 +15,7 @@ test("signup OTP, resend cooldown, invalid code, verification and explicit login
   await page.getByLabel("Kata sandi", { exact: true }).fill("Test-Pass123!");
   await page.getByLabel("Konfirmasi kata sandi", { exact: true }).fill("Test-Pass123!");
   await page.getByRole("button", { name: "Buat akun", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Verifikasi email" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Verifikasi email", exact: true })).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.locator(".otp-input-card .otp-digit")).toHaveCount(6);
   const paste = page.getByRole("button", { name: "Tempel OTP", exact: true });

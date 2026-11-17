@@ -1,19 +1,14 @@
 "use client";
 
 import { useServerSummary } from "@/features/reports/use-server-summary";
-import { WeeklyReviewAction } from "@/components/gamification/weekly-review-action";
 import { LocalDataStatus } from "@/components/shared/local-data-status";
-import { useOnline } from "@/lib/pwa/connectivity";
 
-import Image from "next/image";
 import { useRef, useState } from "react";
 import {
   ArrowRight,
   BookOpen,
   CalendarDays,
   ChartNoAxesColumn,
-  Check,
-  CheckCircle2,
   Copy,
   Download,
   Info,
@@ -21,7 +16,6 @@ import {
   Printer,
   ReceiptText,
   Share2,
-  Sparkles,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
@@ -44,7 +38,6 @@ import {
   ExpenseDetail,
   ExpenseDetailActions,
 } from "@/components/finance/expense-detail";
-import { WeeklyStory } from "@/components/finance/weekly-story";
 import { ReportExportPreview } from "@/components/finance/report-export-preview";
 import { ReportPrintDetails } from "@/components/finance/report-print-details";
 import { useExpenseSession } from "@/features/expenses/expense-session";
@@ -67,7 +60,7 @@ import {
 
 type Panel =
   | AppActionPanel
-  | { kind: "period" | "story" | "export" }
+  | { kind: "period" | "export" }
   | { kind: "category"; code: string | null }
   | { kind: "trend"; start: string; end: string }
   | { kind: "detail"; id: string };
@@ -79,7 +72,6 @@ const units = {
 };
 
 export function ReportsDashboard() {
-  const online = useOnline();
   const session = useExpenseSession();
   const today = useCalendarDay(homeFixture.asOf);
   const currentMonth: PeriodSelection = {
@@ -89,7 +81,7 @@ export function ReportsDashboard() {
   const [override, setOverride] = useState<PeriodSelection | null>(null);
   const period = override ?? currentMonth;
   const summary=useServerSummary(period);
-  const computed=selectReports(session.expenses,period,today,session.remoteMode);
+  const computed=selectReports(session.expenses,period);
   const snapshot={...computed,totalIdr:summary?.data?.amount_idr ?? computed.totalIdr,count:summary?.data?.count ?? computed.count};
   const [category, setCategory] = useState<string | null>(null);
   const selectedCategory = category;
@@ -102,8 +94,6 @@ export function ReportsDashboard() {
   const point = snapshot.trend.points.find(
     (entry) => entry.start === selectedTrend,
   );
-  const [reviewedKey, setReviewedKey] = useState<string | null>(null);
-  const reviewed = session.remoteMode ? Boolean(session.game?.missions.find(m=>m.code==="weekly")?.completed) : reviewedKey === snapshot.story.key;
   const [exportFeedback, setExportFeedback] = useState("");
   const [exportTextVisible, setExportTextVisible] = useState(false);
   const exportText = useRef<HTMLTextAreaElement>(null);
@@ -165,17 +155,15 @@ export function ReportsDashboard() {
   const modalTitle =
     panel?.kind === "period"
       ? "Pilih periode laporan"
-      : panel?.kind === "story"
-        ? "Cerita uang mingguan"
-        : panel?.kind === "export"
-          ? "Ekspor ringkasan"
-          : panel?.kind === "detail"
-            ? "Detail pengeluaran"
-            : panel?.kind === "category"
-              ? panel.code === null
-                ? "Semua transaksi"
-                : "Rincian kategori"
-              : "Rincian tren";
+      : panel?.kind === "export"
+        ? "Ekspor ringkasan"
+        : panel?.kind === "detail"
+          ? "Detail pengeluaran"
+          : panel?.kind === "category"
+            ? panel.code === null
+              ? "Semua transaksi"
+              : "Rincian kategori"
+            : "Rincian tren";
 
   return (
     <>
@@ -330,55 +318,6 @@ export function ReportsDashboard() {
               />
             </section>
             <section
-              className="report-card report-story-card"
-              aria-labelledby="report-story-title"
-            >
-              <div className="report-card-heading">
-                <Sparkles size={19} />
-                <h3 id="report-story-title">Cerita Uang Mingguan</h3>
-                {reviewed && (
-                  <CheckCircle2 size={17} aria-label="Review selesai" />
-                )}
-              </div>
-              <div className="report-story-content">
-                <Image
-                  src="/mascot/mochi-crown-transparent.webp"
-                  alt="Mochi"
-                  width={52}
-                  height={52}
-                />
-                <div>
-                  <span>
-                    {rangeLabel(snapshot.story.start, snapshot.story.end)}
-                  </span>
-                  <p>
-                    {snapshot.story.count ? (
-                      <>
-                        Ada <strong>{snapshot.story.count} pengeluaran</strong>{" "}
-                        dengan total{" "}
-                        <MoneyDisplay amountIdr={snapshot.story.totalIdr} />.
-                        Yuk, lihat kembali cerita kecil di balik catatanmu.
-                      </>
-                    ) : (
-                      "Belum ada catatan dalam minggu ini. Cerita pengeluaranmu akan muncul di sini."
-                    )}
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => open({ kind: "story" })}
-                disabled={!snapshot.story.count}
-              >
-                Buka Money Story lengkap <ArrowRight size={16} />
-              </Button>
-              {reviewed && (
-                <p className="report-reviewed" role="status">
-                  <CheckCircle2 size={14} /> Minggu ini sudah kamu tinjau.
-                </p>
-              )}
-            </section>
-            <section
               className="report-card report-trend"
               aria-labelledby="report-trend-title"
             >
@@ -453,18 +392,7 @@ export function ReportsDashboard() {
                 : "report-dialog"
           }
           footer={
-            panel.kind === "story" && session.remoteMode ? <WeeklyReviewAction hasExpenses={snapshot.story.count>0} /> : panel.kind === "story" ? (
-              <Button
-                disabled={!online || reviewed || !snapshot.story.count}
-                onClick={async () => {
-                  setReviewedKey(snapshot.story.key);
-                  close();
-                }}
-              >
-                <Check size={17} />
-                {reviewed ? "Sudah ditinjau" : "Selesai review"}
-              </Button>
-            ) : panel.kind === "detail" ? (
+            panel.kind === "detail" ? (
               <ExpenseDetailActions onDone={close} />
             ) : panel.kind === "export" ? (
               <div className="report-export-actions">
@@ -487,14 +415,6 @@ export function ReportsDashboard() {
                 choosePeriod(value);
                 close();
               }}
-            />
-          )}
-          {panel.kind === "story" && (
-            <WeeklyStory
-              totalIdr={snapshot.story.totalIdr}
-              count={snapshot.story.count}
-              categories={snapshot.story.categories}
-              periodLabel={rangeLabel(snapshot.story.start, snapshot.story.end)}
             />
           )}
           {(panel.kind === "category" || panel.kind === "trend") && (

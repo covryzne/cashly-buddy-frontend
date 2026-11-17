@@ -30,7 +30,7 @@ type ExpenseSession = {
   game: GameOverview | null;
   runtime: AuthAccount["runtime"];
   syncError: string;
-  gameAction: (kind: "review" | "no-spend" | "weekly" | "freeze", day?: string) => Promise<boolean>;
+  gameAction: (kind: "review" | "no-spend" | "freeze", day?: string[]) => Promise<boolean>;
   mutationPending: boolean;
   createExpense: (draft: ReceiptDraft) => Promise<boolean>;
   remoteMode: boolean;
@@ -186,10 +186,10 @@ export function ExpenseSessionProvider({ children, remote }: { children: ReactNo
     if (remote) return performRemote("expenses","POST",expensePayload(draft));
     return value.recordDrafts([{id:crypto.randomUUID(),draft,source:"dashboard"}]);
   }
-  async function gameAction(kind: "review" | "no-spend" | "weekly" | "freeze", day?: string) {
+  async function gameAction(kind: "review" | "no-spend" | "freeze", day?: string[]) {
     if (!remote) return false;
-    const path=kind==="weekly" ? "reports/weekly-story/complete" : kind==="freeze" ? "gamification/streak/freeze" : `gamification/checkins/${kind}`;
-    return performRemote(path,"POST",kind==="freeze" ? {protected_local_date:day} : undefined);
+    const path=kind==="freeze" ? "gamification/streak/freeze" : `gamification/checkins/${kind}`;
+    return performRemote(path,"POST",kind==="freeze" ? {protected_local_dates:day} : undefined);
   }
   const value: ExpenseSession = {
     expenses, chatSession, setChatSession, resetSession, updatedAt, storageError, persisted,

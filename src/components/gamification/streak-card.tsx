@@ -2,6 +2,8 @@
 import { Flame, Shield, Check, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useOnline } from "@/lib/pwa/connectivity";
+import { useState } from "react";
+import { Dialog } from "@/components/ui/dialog";
 
 export function StreakCard({
   streak,
@@ -12,7 +14,7 @@ export function StreakCard({
   pending = false,
   onCheckIn,
   onNoSpend,
-  recoveryDate,
+  recovery,
   onUseFreeze,
 }: {
   streak: number;
@@ -23,10 +25,12 @@ export function StreakCard({
   pending?: boolean;
   onCheckIn?: () => void;
   onNoSpend?: () => void;
-  recoveryDate?: string;
-  onUseFreeze?: () => void;
+  recovery?: {dates:string[];required:number;canRestore:boolean;result:number};
+  onUseFreeze?: () => Promise<boolean>;
 }) {
   const online=useOnline();
+  const [confirming,setConfirming]=useState(false);
+  const [restoreError,setRestoreError]=useState("");
   return (
     <section className="card streak-card" aria-labelledby="streak-title">
       <div className="section-heading">
@@ -44,7 +48,7 @@ export function StreakCard({
           <li
             key={day.date}
             aria-current={day.date===todayDate ? "date" : undefined}
-            aria-label={`${day.date}: ${day.status === "upcoming" ? "belum tiba" : day.status === "missed" ? "belum check-in" : day.status === "protected" ? "dilindungi Freeze" : "check-in aktif"}`}
+            aria-label={`${day.date}: ${day.status === "upcoming" ? "belum tiba" : day.status === "missed" ? "belum check-in" : day.status === "protected" ? "hari terproteksi" : "check-in aktif"}`}
           >
             <span>{day.day}</span>
             {day.date===todayDate && onCheckIn ? <button
@@ -71,11 +75,15 @@ export function StreakCard({
         <Check size={14} />
         {todayCheckedIn ? "Kamu sudah check-in. Sampai jumpa besok!" : "Ketuk api hari ini untuk check-in."}
       </p>
-      <p className="caption streak-note"><Shield size={13} aria-hidden="true" />{freezeBalance} Freeze tersedia</p>
-      {recoveryDate && onUseFreeze && <div className="streak-recovery">
-        <p>Pulihkan tanggal {recoveryDate} dengan 1 Freeze.</p>
-        <Button variant="secondary" disabled={pending || !freezeBalance} onClick={onUseFreeze}>Pakai 1 Freeze</Button>
+      <p className="caption streak-note"><Shield size={13} aria-hidden="true" />{freezeBalance}/5 proteksi bulan ini</p>
+      {recovery && onUseFreeze && <div className="streak-recovery">
+        <p>Perlu pemulihan: {recovery.required} hari terlewat.{!recovery.canRestore && " Jatah bulan ini tidak cukup."}</p>
+        <Button variant="secondary" disabled={pending || !recovery.canRestore || !online} onClick={()=>{setRestoreError("");setConfirming(true);}}>Pulihkan &amp; check-in</Button>
       </div>}
+      {confirming && recovery && onUseFreeze && <Dialog title="Pulihkan streak?" onClose={()=>{if(!pending)setConfirming(false);}} footer={<><Button variant="secondary" disabled={pending} onClick={()=>setConfirming(false)}>Batal</Button><Button disabled={pending||!online} onClick={async()=>{if(await onUseFreeze())setConfirming(false);else setRestoreError("Pemulihan belum berhasil. Periksa status terbaru dan coba lagi.");}}>{pending ? "Memulihkan..." : "Pulihkan & check-in"}</Button></>}>
+        <p>Pakai {recovery.required} dari {freezeBalance} jatah tersisa untuk tanggal {recovery.dates.join(", ")}. Streak setelah check-in hari ini: <strong>{recovery.result} hari</strong>.</p>
+        <p>Hari ini hanya dihitung sekali. Sisa proteksi tidak dibawa ke bulan berikutnya.</p>{restoreError&&<p role="alert">{restoreError}</p>}
+      </Dialog>}
     </section>
   );
 }

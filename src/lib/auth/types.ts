@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const accountSchema = z.object({
   account_id: z.string().uuid(), display_name: z.string(), email: z.string(),
+  username: z.string(), password_login_enabled: z.boolean(), google_connected: z.boolean(),
   runtime: z.object({environment:z.enum(["dev","staging","prod"]),database_kind:z.enum(["local","hosted"])}).nullable().optional(),
   timezone: z.string(), theme_preference: z.string(), joined_at: z.string(), sample_data: z.boolean(),
 });

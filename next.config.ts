@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   // Tailwind uses postcss.config.mjs; Next handles CSS imports natively.
   cacheComponents: true,
   partialPrefetching: true,
+  // Keep static build workers bounded on local machines running Docker + the API.
+  experimental: { cpus: 2 },
   async headers() {
     return [
       { source: "/auth/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },

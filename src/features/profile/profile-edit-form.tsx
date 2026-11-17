@@ -21,7 +21,6 @@ export function ProfileEditForm({ draft, onChange, errors, formId, onSubmit }: {
     </div>
     <div className="profile-form-field"><label htmlFor="profile-email">Email</label>
       <Input id="profile-email" value={account.email} type="email" disabled/>
-      <small>Ubah email melalui menu Akun.</small>
     </div>
   </form>;
 }

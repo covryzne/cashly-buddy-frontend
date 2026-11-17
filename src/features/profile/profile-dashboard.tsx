@@ -1,13 +1,13 @@
-"use client";
-import { AppLoader } from "@/components/shared/app-loader";
+'use client';
+import { AppLoader } from '@/components/shared/app-loader';
 
-import { LocalDataStatus } from "@/components/shared/local-data-status";
+import { LocalDataStatus } from '@/components/shared/local-data-status';
 
-import { useId, useState } from "react";
-import { useOnline } from "@/lib/pwa/connectivity";
-import { useHomeData } from "@/features/home/use-home-data";
-import { useExpenseSession } from "@/features/expenses/expense-session";
-import { logoutGoogle } from "@/features/auth/session-boundary";
+import { useId, useState } from 'react';
+import { useOnline } from '@/lib/pwa/connectivity';
+import { useHomeData } from '@/features/home/use-home-data';
+import { useExpenseSession } from '@/features/expenses/expense-session';
+import { logoutGoogle } from '@/features/auth/session-boundary';
 import {
   BellRing,
   Check,
@@ -29,61 +29,67 @@ import {
   Sun,
   Wallet,
   Zap,
-} from "lucide-react";
-import { AppNavigation } from "@/components/shared/app-navigation";
-import { AppPageHeader } from "@/components/shared/app-page-header";
+} from 'lucide-react';
+import { AppNavigation } from '@/components/shared/app-navigation';
+import { AppPageHeader } from '@/components/shared/app-page-header';
 import {
   AppActionDialogs,
   isAppAction,
   type AppActionPanel,
-} from "@/components/shared/app-action-dialogs";
-import { AccountSecurityPanel } from "./account-security-panel";
-import { SettingsRow } from "@/components/shared/settings-row";
-import { InstallAppEntry } from "@/components/shared/install-app";
-import { useModalStack } from "@/components/shared/use-modal-stack";
-import { EvolutionCarousel } from "@/components/gamification/evolution-carousel";
-import { MoneyDisplay } from "@/components/finance/money-display";
-import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
-import { formatDate } from "@/lib/format/datetime";
-import { themeLabels, useTheme, type Theme } from "@/lib/theme/use-theme";
+} from '@/components/shared/app-action-dialogs';
+import { AccountSecurityPanel } from './account-security-panel';
+import { SettingsRow } from '@/components/shared/settings-row';
+import { InstallAppEntry } from '@/components/shared/install-app';
+import { useModalStack } from '@/components/shared/use-modal-stack';
+import { EvolutionCarousel } from '@/components/gamification/evolution-carousel';
+import { MoneyDisplay } from '@/components/finance/money-display';
+import { Button } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/dialog';
+import { formatDate } from '@/lib/format/datetime';
+import { themeLabels, useTheme, type Theme } from '@/lib/theme/use-theme';
 import {
   evolutionStages,
   profileSchema,
   type ProfileDraft,
-} from "./profile-model";
-import { useProfileSession } from "./profile-session";
-import { ProfileEditForm } from "./profile-edit-form";
-import { EvolutionGuide } from "./evolution-guide";
+} from './profile-model';
+import { useProfileSession } from './profile-session';
+import { ProfileEditForm } from './profile-edit-form';
+import { EvolutionGuide } from './evolution-guide';
 import {
   WhatsappConnectIntro,
   WhatsappOtpForm,
   WhatsappExampleConnected,
-} from "./whatsapp-connect";
-import { whatsappExample } from "@/mocks/fixtures/whatsapp";
+} from './whatsapp-connect';
+import { whatsappExample } from '@/mocks/fixtures/whatsapp';
 
 type InfoPanel =
-  "theme" | "timezone" | "currency" | "reminder" | "privacy" | "help" | "hero";
+  | 'theme'
+  | 'timezone'
+  | 'currency'
+  | 'reminder'
+  | 'privacy'
+  | 'help'
+  | 'hero';
 type Panel =
   | AppActionPanel
-  | { kind: "edit" | "logout" }
-  | { kind: "info"; topic: InfoPanel }
-  | { kind: "guide"; stage?: number }
-  | { kind: "whatsapp"; step: "intro" | "otp" };
+  | { kind: 'edit' | 'logout' }
+  | { kind: 'info'; topic: InfoPanel }
+  | { kind: 'guide'; stage?: number }
+  | { kind: 'whatsapp'; step: 'intro' | 'otp' };
 const infoTitles: Record<InfoPanel, string> = {
-  theme: "Tampilan Cashly",
-  timezone: "Zona waktu habit",
-  currency: "Mata uang & format",
-  reminder: "Pengingat catat harian",
-  privacy: "Privasi & keamanan",
-  help: "Pusat bantuan",
-  hero: "Level hero",
+  theme: 'Tampilan Cashly',
+  timezone: 'Zona waktu habit',
+  currency: 'Mata uang & format',
+  reminder: 'Pengingat catat harian',
+  privacy: 'Privasi & keamanan',
+  help: 'Pusat bantuan',
+  hero: 'Level hero',
 };
 
 export function ProfileDashboard() {
-  const gameData=useHomeData();
+  const gameData = useHomeData();
   const online = useOnline();
-  const [logoutError, setLogoutError] = useState("");
+  const [logoutError, setLogoutError] = useState('');
   const session = useExpenseSession();
   const {
     profile,
@@ -97,32 +103,32 @@ export function ProfileDashboard() {
   const [draft, setDraft] = useState<ProfileDraft>(profile);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [photoBusy, setPhotoBusy] = useState(false);
-  const [feedback, setFeedback] = useState("");
-  const [guideTab, setGuideTab] = useState<"evolution" | "freeze">("evolution");
+  const [feedback, setFeedback] = useState('');
+  const [guideTab, setGuideTab] = useState<'evolution' | 'freeze'>('evolution');
   const formId = useId();
   const [whatsappChallenge, setWhatsappChallenge] = useState<{
-    source: "chat" | "example";
+    source: 'chat' | 'example';
     expiresAt: number;
-  }>({ source: "example", expiresAt: 0 });
-  function startWhatsapp(source: "chat" | "example") {
+  }>({ source: 'example', expiresAt: 0 });
+  function startWhatsapp(source: 'chat' | 'example') {
     setWhatsappChallenge({
       source,
       expiresAt: Date.now() + whatsappExample.ttlMs,
     });
-    push({ kind: "whatsapp", step: "otp" });
+    push({ kind: 'whatsapp', step: 'otp' });
   }
   const nextStage = evolutionStages.find(
     (stage) => stage.stage > gameData.maxMascotStageUnlocked,
   );
-  function openGuide(tab: "evolution" | "freeze", stage?: number) {
+  function openGuide(tab: 'evolution' | 'freeze', stage?: number) {
     setGuideTab(tab);
-    open({ kind: "guide", stage });
+    open({ kind: 'guide', stage });
   }
   function editProfile() {
     setDraft(profile);
     setErrors({});
     setPhotoBusy(false);
-    open({ kind: "edit" });
+    open({ kind: 'edit' });
   }
   async function submitProfile() {
     if (photoBusy || !navigator.onLine) return;
@@ -130,7 +136,7 @@ export function ProfileDashboard() {
     if (!result.success) {
       const next: Record<string, string> = {};
       for (const error of result.error.issues)
-        next[error.path.join(".")] ??= error.message;
+        next[error.path.join('.')] ??= error.message;
       setErrors(next);
       requestAnimationFrame(() =>
         document.getElementById(`profile-${Object.keys(next)[0]}`)?.focus(),
@@ -138,30 +144,30 @@ export function ProfileDashboard() {
       return;
     }
     setPhotoBusy(true);
-    const saved=await saveProfile(result.data);
+    const saved = await saveProfile(result.data);
     setPhotoBusy(false);
     if (!saved) return;
-    setFeedback("Profilmu sudah diperbarui.");
+    setFeedback('Profilmu sudah diperbarui.');
     close();
   }
   const title =
-    panel?.kind === "whatsapp"
+    panel?.kind === 'whatsapp'
       ? whatsappExampleLinked
-        ? "WhatsApp contoh terhubung"
-        : panel.step === "otp"
-          ? "Masukkan kode OTP"
-          : "Hubungkan WhatsApp"
-      : panel?.kind === "edit"
-        ? "Ubah profil"
-        : panel?.kind === "guide"
+        ? 'WhatsApp contoh terhubung'
+        : panel.step === 'otp'
+          ? 'Masukkan kode OTP'
+          : 'Hubungkan WhatsApp'
+      : panel?.kind === 'edit'
+        ? 'Ubah profil'
+        : panel?.kind === 'guide'
           ? panel.stage
             ? `Mochi level ${panel.stage}`
-            : "Evolusi Mochi & Freeze"
-          : panel?.kind === "logout"
-            ? "Keluar dari Cashly?"
-            : panel?.kind === "info"
+            : 'Evolusi Mochi & Freeze'
+          : panel?.kind === 'logout'
+            ? 'Keluar dari Cashly?'
+            : panel?.kind === 'info'
               ? infoTitles[panel.topic]
-              : "";
+              : '';
   return (
     <>
       <a className="skip-link" href="#profile-main">
@@ -169,7 +175,7 @@ export function ProfileDashboard() {
       </a>
       <AppNavigation
         activePage="profile"
-        onAdd={() => open({ kind: "add" })}
+        onAdd={() => open({ kind: 'add' })}
         onUpcoming={() => {}}
       />
       <div className="app-shell profile-page">
@@ -192,10 +198,10 @@ export function ProfileDashboard() {
                 <h2>{profile.name}</h2>
                 <p>@{profile.username}</p>
                 <small>
-                  Bergabung{" "}
+                  Bergabung{' '}
                   {formatDate(profileAccount.joinedAt, {
-                    month: "short",
-                    year: "numeric",
+                    month: 'short',
+                    year: 'numeric',
                   })}
                 </small>
               </div>
@@ -218,14 +224,14 @@ export function ProfileDashboard() {
               <div className="profile-section-heading">
                 <h2 id="profile-companion-title">
                   <Sparkles size={18} />
-                  Teman Mochi & Gamifikasi
+                  Jaga Streak with Mochi!
                 </h2>
                 <span>{evolutionStages.length} level hero</span>
                 <button
                   type="button"
                   className="icon-button"
                   aria-label="Panduan Mochi"
-                  onClick={() => openGuide("evolution")}
+                  onClick={() => openGuide('evolution')}
                 >
                   <Info size={17} />
                 </button>
@@ -235,14 +241,12 @@ export function ProfileDashboard() {
                   currentStage={gameData.mascotStage}
                   maxUnlocked={gameData.maxMascotStageUnlocked}
                   streak={gameData.streak}
-                  onDetails={(stage) => openGuide("evolution", stage)}
+                  onDetails={(stage) => openGuide('evolution', stage)}
                 />
                 {nextStage ? (
                   <div className="profile-evolution-progress">
                     <div>
-                      <span>
-                        Menuju hero level {nextStage.stage} · {nextStage.name}
-                      </span>
+                      <span>Menuju Mochi level {nextStage.stage}</span>
                       <strong>
                         {gameData.streak}/{nextStage.days} hari
                       </strong>
@@ -252,10 +256,7 @@ export function ProfileDashboard() {
                       aria-label="Menuju evolusi berikutnya"
                       aria-valuemin={0}
                       aria-valuemax={nextStage.days}
-                      aria-valuenow={Math.min(
-                        gameData.streak,
-                        nextStage.days,
-                      )}
+                      aria-valuenow={Math.min(gameData.streak, nextStage.days)}
                     >
                       <i
                         style={{
@@ -272,7 +273,7 @@ export function ProfileDashboard() {
                 <button
                   type="button"
                   className="profile-stat-card"
-                  onClick={() => open({ kind: "info", topic: "hero" })}
+                  onClick={() => open({ kind: 'info', topic: 'hero' })}
                 >
                   <span>
                     Level hero <Zap size={17} />
@@ -288,7 +289,7 @@ export function ProfileDashboard() {
                 <button
                   type="button"
                   className="profile-stat-card"
-                  onClick={() => openGuide("freeze")}
+                  onClick={() => openGuide('freeze')}
                 >
                   <span>
                     Proteksi bulanan <ShieldCheck size={17} />
@@ -304,7 +305,6 @@ export function ProfileDashboard() {
               </div>
             </section>
             <div className="profile-settings-column">
-              <AccountSecurityPanel />
               <section
                 className="profile-settings-section"
                 aria-labelledby="profile-preferences-title"
@@ -316,28 +316,28 @@ export function ProfileDashboard() {
                     title="Tampilan aplikasi"
                     description="Pilih tema yang nyaman untukmu"
                     value={themeLabels[theme]}
-                    onClick={() => open({ kind: "info", topic: "theme" })}
+                    onClick={() => open({ kind: 'info', topic: 'theme' })}
                   />
                   <SettingsRow
                     icon={Clock3}
                     title="Zona waktu habit"
                     description="Batas hari mengikuti pukul 00.00 WIB"
                     value="WIB"
-                    onClick={() => open({ kind: "info", topic: "timezone" })}
+                    onClick={() => open({ kind: 'info', topic: 'timezone' })}
                   />
                   <SettingsRow
                     icon={BellRing}
                     title="Pengingat catat harian"
                     description="Pengingat kecil untuk kebiasaanmu"
                     value="Segera hadir"
-                    onClick={() => open({ kind: "info", topic: "reminder" })}
+                    onClick={() => open({ kind: 'info', topic: 'reminder' })}
                   />
                   <SettingsRow
                     icon={Wallet}
                     title="Mata uang & format"
                     description="Rupiah Indonesia"
                     value="IDR"
-                    onClick={() => open({ kind: "info", topic: "currency" })}
+                    onClick={() => open({ kind: 'info', topic: 'currency' })}
                   />
                 </div>
               </section>
@@ -352,9 +352,16 @@ export function ProfileDashboard() {
                     title="Catat via WhatsApp"
                     description="Catat pengeluaran langsung dari percakapanmu."
                     value={
-                      whatsappExampleLinked ? "Contoh terhubung" : "Hubungkan"
+                      whatsappExampleLinked ? 'Contoh terhubung' : 'Hubungkan'
                     }
-                    onClick={() => open({ kind: "whatsapp", step: "intro" })}
+                    onClick={() => open({ kind: 'whatsapp', step: 'intro' })}
+                  />
+                </div>
+                <div className="profile-install-card">
+                  <InstallAppEntry
+                    layout="settings"
+                    showStatus
+                    onOpen={() => open({ kind: 'install' })}
                   />
                 </div>
               </section>
@@ -374,30 +381,17 @@ export function ProfileDashboard() {
                     icon={ShieldCheck}
                     title="Privasi & keamanan"
                     description="Kenali cara Cashly memakai datamu"
-                    onClick={() => open({ kind: "info", topic: "privacy" })}
+                    onClick={() => open({ kind: 'info', topic: 'privacy' })}
                   />
                   <SettingsRow
                     icon={CircleHelp}
                     title="Pusat bantuan"
                     description="Jawaban untuk langkah kecilmu"
-                    onClick={() => open({ kind: "info", topic: "help" })}
+                    onClick={() => open({ kind: 'info', topic: 'help' })}
                   />
                 </div>
               </section>
-              <div className="profile-install-card">
-                <InstallAppEntry
-                  showStatus
-                  onOpen={() => open({ kind: "install" })}
-                />
-              </div>
-              <Button
-                variant="ghost"
-                className="profile-logout"
-                onClick={() => open({ kind: "logout" })}
-              >
-                <LogOut size={17} />
-                Keluar dari akun
-              </Button>
+              <AccountSecurityPanel onLogout={() => open({ kind: 'logout' })} />
               <footer className="profile-footer">
                 Cashly · Langkah kecil, cerita baik.
                 <span>Dibuat untuk menemani kebiasaanmu.</span>
@@ -421,24 +415,35 @@ export function ProfileDashboard() {
           onClose={close}
           onBack={canGoBack ? back : undefined}
           variant={
-            panel.kind === "edit" ||
-            panel.kind === "guide" ||
-            panel.kind === "whatsapp"
-              ? "sheet"
-              : "default"
+            panel.kind === 'edit' ||
+            panel.kind === 'guide' ||
+            panel.kind === 'whatsapp'
+              ? 'sheet'
+              : 'default'
           }
-          className={`profile-dialog ${panel.kind === "edit" ? "profile-edit-dialog" : ""} ${panel.kind === "whatsapp" ? "whatsapp-connect-dialog" : ""}`}
+          className={`profile-dialog ${panel.kind === 'edit' ? 'profile-edit-dialog' : ''} ${panel.kind === 'whatsapp' ? 'whatsapp-connect-dialog' : ''}`}
           footer={
-            panel.kind === "edit" ? (
+            panel.kind === 'edit' ? (
               <div className="profile-dialog-actions">
                 <Button variant="secondary" onClick={close}>
                   Batal
                 </Button>
-                <Button form={formId} type="submit" disabled={photoBusy || !online}>
-                  {photoBusy ? <AppLoader inline /> : <><Check size={17} />Simpan profil</>}
+                <Button
+                  form={formId}
+                  type="submit"
+                  disabled={photoBusy || !online}
+                >
+                  {photoBusy ? (
+                    <AppLoader inline />
+                  ) : (
+                    <>
+                      <Check size={17} />
+                      Simpan profil
+                    </>
+                  )}
                 </Button>
               </div>
-            ) : panel.kind === "logout" ? (
+            ) : panel.kind === 'logout' ? (
               <div className="profile-dialog-actions">
                 <Button variant="secondary" onClick={close}>
                   Tetap di sini
@@ -449,9 +454,11 @@ export function ProfileDashboard() {
                     try {
                       if (session.remoteMode) await logoutGoogle();
                       await session.resetSession();
-                      window.location.replace("/login");
+                      window.location.replace('/login');
                     } catch {
-                      setLogoutError("Sesi belum berhasil ditutup. Periksa koneksi lalu coba keluar lagi.");
+                      setLogoutError(
+                        'Sesi belum berhasil ditutup. Periksa koneksi lalu coba keluar lagi.',
+                      );
                     }
                   }}
                 >
@@ -462,15 +469,20 @@ export function ProfileDashboard() {
             ) : undefined
           }
         >
-          {panel.kind === "whatsapp" &&
-            (!online ? <p role="status">Penautan dan verifikasi WhatsApp memerlukan koneksi internet. WhatsApp tetap opsional untuk menggunakan Cashly.</p> : whatsappExampleLinked ? (
+          {panel.kind === 'whatsapp' &&
+            (!online ? (
+              <p role="status">
+                Penautan dan verifikasi WhatsApp memerlukan koneksi internet.
+                WhatsApp tetap opsional untuk menggunakan Cashly.
+              </p>
+            ) : whatsappExampleLinked ? (
               <WhatsappExampleConnected
                 onReset={() => {
                   setWhatsappExampleLinked(false);
                   close();
                 }}
               />
-            ) : panel.step === "intro" ? (
+            ) : panel.step === 'intro' ? (
               <WhatsappConnectIntro onStart={startWhatsapp} />
             ) : (
               <WhatsappOtpForm
@@ -490,26 +502,31 @@ export function ProfileDashboard() {
                 }}
               />
             ))}
-          {panel.kind === "edit" && (
-            <><p hidden={online} role="status">Hubungkan internet untuk menyimpan perubahan profil.</p><ProfileEditForm
-              draft={draft}
-              onChange={(value) => {
-                setDraft(value);
-                setErrors({});
-              }}
-              errors={errors}
-              formId={formId}
-              onSubmit={submitProfile}
-            /></>
+          {panel.kind === 'edit' && (
+            <>
+              <p hidden={online} role="status">
+                Hubungkan internet untuk menyimpan perubahan profil.
+              </p>
+              <ProfileEditForm
+                draft={draft}
+                onChange={(value) => {
+                  setDraft(value);
+                  setErrors({});
+                }}
+                errors={errors}
+                formId={formId}
+                onSubmit={submitProfile}
+              />
+            </>
           )}
-          {panel.kind === "guide" && (
+          {panel.kind === 'guide' && (
             <EvolutionGuide
               tab={guideTab}
               onTab={setGuideTab}
               selectedStage={panel.stage}
             />
           )}
-          {panel.kind === "logout" && (
+          {panel.kind === 'logout' && (
             <div className="profile-info-content">
               <span className="profile-info-icon">
                 <LogOut size={29} />
@@ -522,18 +539,18 @@ export function ProfileDashboard() {
               </p>
             </div>
           )}
-          {panel.kind === "info" && (
+          {panel.kind === 'info' && (
             <div className="profile-info-content">
-              {panel.topic === "theme" && (
+              {panel.topic === 'theme' && (
                 <>
                   <p>Pilih tampilan yang paling nyaman untukmu.</p>
                   <fieldset className="profile-theme-options">
                     <legend className="sr-only">Tema aplikasi</legend>
-                    {(["system", "light", "dark"] as Theme[]).map((value) => {
+                    {(['system', 'light', 'dark'] as Theme[]).map((value) => {
                       const Icon =
-                        value === "system"
+                        value === 'system'
                           ? Monitor
-                          : value === "light"
+                          : value === 'light'
                             ? Sun
                             : Moon;
                       return (
@@ -552,7 +569,7 @@ export function ProfileDashboard() {
                   </fieldset>
                 </>
               )}
-              {panel.topic === "timezone" && (
+              {panel.topic === 'timezone' && (
                 <>
                   <span className="profile-info-icon">
                     <Globe size={29} />
@@ -565,7 +582,7 @@ export function ProfileDashboard() {
                   <p>Zona waktu belum dapat diubah di sini.</p>
                 </>
               )}
-              {panel.topic === "currency" && (
+              {panel.topic === 'currency' && (
                 <>
                   <span className="profile-info-icon">
                     <Wallet size={29} />
@@ -581,7 +598,7 @@ export function ProfileDashboard() {
                   </div>
                 </>
               )}
-              {panel.topic === "reminder" && (
+              {panel.topic === 'reminder' && (
                 <>
                   <span className="profile-info-icon">
                     <BellRing size={29} />
@@ -594,33 +611,32 @@ export function ProfileDashboard() {
                   </p>
                 </>
               )}
-              {panel.topic === "hero" && (
+              {panel.topic === 'hero' && (
                 <>
                   <span className="profile-info-icon">
                     <Zap size={29} />
                   </span>
-                  <h3>
-                    Hero level {gameData.level}
-                  </h3>
+                  <h3>Hero level {gameData.level}</h3>
                   <p>
                     Level hero mengikuti streak: 0, 30, 100, 150 dan 200 hari.
                   </p>
                   <p>
-                    Jika streak putus dan tidak dipulihkan, hero kembali ke level 1.
+                    Jika streak putus dan tidak dipulihkan, hero kembali ke
+                    level 1.
                   </p>
                   <Button
                     variant="secondary"
                     data-modal-focus-key="xp-evolution"
                     onClick={() => {
-                      setGuideTab("evolution");
-                      push({ kind: "guide" });
+                      setGuideTab('evolution');
+                      push({ kind: 'guide' });
                     }}
                   >
                     Lihat tahapan evolusi <Sparkles size={16} />
                   </Button>
                 </>
               )}
-              {panel.topic === "privacy" && (
+              {panel.topic === 'privacy' && (
                 <>
                   <span className="profile-info-icon">
                     <ShieldCheck size={29} />
@@ -628,7 +644,9 @@ export function ProfileDashboard() {
                   <h3>Kenali apa yang disimpan.</h3>
                   <ul className="profile-info-list">
                     <li>
-                      Nama dan username disimpan pada akunmu melalui API. Email dikelola Supabase Auth.</li>
+                      Nama dan username disimpan pada akunmu melalui API. Email
+                      dikelola Supabase Auth.
+                    </li>
                     <li>
                       Foto profil, foto struk, dan rekaman suara tidak diunggah
                       melalui alur yang tersedia saat ini.
@@ -644,25 +662,25 @@ export function ProfileDashboard() {
                   </ul>
                 </>
               )}
-              {panel.topic === "help" && (
+              {panel.topic === 'help' && (
                 <div className="profile-faq">
                   <p>Beberapa jawaban untuk menemani langkah pertamamu.</p>
                   {[
                     [
-                      "Bagaimana cara mencatat pengeluaran?",
-                      "Tekan tombol +, lalu pilih scan struk, voice note, atau chat manual. Tinjau rincian sebelum melanjutkan.",
+                      'Bagaimana cara mencatat pengeluaran?',
+                      'Tekan tombol +, lalu pilih scan struk, voice note, atau chat manual. Tinjau rincian sebelum melanjutkan.',
                     ],
                     [
-                      "Bagaimana memasang Cashly di Home Screen?",
-                      "Buka panduan Install pada halaman Profil. Di iPhone, gunakan Safari dan menu Bagikan → Tambahkan ke Layar Utama.",
+                      'Bagaimana memasang Cashly di Home Screen?',
+                      'Buka panduan Install pada halaman Profil. Di iPhone, gunakan Safari dan menu Bagikan → Tambahkan ke Layar Utama.',
                     ],
                     [
-                      "Kenapa izin kamera atau mikrofon ditolak?",
-                      "Periksa izin situs pada pengaturan browser, lalu izinkan kamera atau mikrofon untuk Cashly dan coba kembali.",
+                      'Kenapa izin kamera atau mikrofon ditolak?',
+                      'Periksa izin situs pada pengaturan browser, lalu izinkan kamera atau mikrofon untuk Cashly dan coba kembali.',
                     ],
                     [
-                      "Apakah menyapa Mochi menambah streak?",
-                      "Menyapa Mochi adalah interaksi kecil untuk menemanimu. Streak berasal dari aktivitas yang memenuhi syarat, bukan membuka halaman atau menyapa Mochi.",
+                      'Apakah menyapa Mochi menambah streak?',
+                      'Menyapa Mochi adalah interaksi kecil untuk menemanimu. Streak berasal dari aktivitas yang memenuhi syarat, bukan membuka halaman atau menyapa Mochi.',
                     ],
                   ].map(([question, answer]) => (
                     <details key={question}>

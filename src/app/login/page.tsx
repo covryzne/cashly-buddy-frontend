@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AuthShell } from "@/features/auth/auth-shell";
+import { AccountDeletedNotice } from "@/features/auth/account-deleted-notice";
 import { LoginForm } from "@/features/auth/login-form";
 import { Suspense } from "react";
 import { AppLoader } from "@/components/shared/app-loader";
@@ -8,7 +9,7 @@ import { providerConfig } from "@/lib/auth/config";
 
 export const metadata: Metadata = { title: "Masuk ? Cashly" };
 
-export default function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; account?: string }> }) {
   return (
     <AuthShell mode="login">
       <Suspense fallback={<AppLoader />}><LoginContent searchParams={searchParams} /></Suspense>
@@ -16,9 +17,9 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ er
   );
 }
 
-async function LoginContent({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+async function LoginContent({ searchParams }: { searchParams: Promise<{ error?: string; account?: string }> }) {
   await connection();
-  const { error } = await searchParams;
+  const { error, account } = await searchParams;
   const config = await providerConfig().catch(() => null);
-  return <LoginForm error={error} googleEnabled={config?.googleEnabled} />;
+  return <>{account==="deleted" && <AccountDeletedNotice />}<LoginForm error={error} googleEnabled={config?.googleEnabled} /></>;
 }

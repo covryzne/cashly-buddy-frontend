@@ -233,7 +233,7 @@ export function ExpenseSessionProvider({ children, remote }: { children: ReactNo
   const unavailable = isApp && ready && !updatedAt;
   return <Context.Provider value={value}>
     {mutationError && <Dialog title="Permintaan belum selesai" onClose={() => setMutationError("")}><p role="alert">{mutationError}</p></Dialog>}
-    {isApp && !ready ? <main className="local-data-empty" aria-busy="true"><AppLoader /></main>
+    {isApp && !ready ? <main className="app-loading-screen" aria-busy="true"><AppLoader /></main>
       : unavailable ? <main className="local-data-empty">
         <h1>Data belum tersedia di perangkat</h1>
         <p>{storageError ? "Penyimpanan lokal tidak tersedia atau tidak dapat dibaca." : "Belum ada salinan data lokal. Ini bukan berarti riwayat pengeluaranmu kosong."}</p>

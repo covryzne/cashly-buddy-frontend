@@ -35,58 +35,71 @@ for (const width of [360, 390, 430, 768, 1280, 1440]) {
   }
 }
 
-test("Pemulihan memvalidasi email, membersihkan input dan kembali tanpa mengirim email", async ({
-  page,
-}) => {
-  const mutations: string[] = [];
-  page.on("request", (request) => {
-    if (request.method() !== "GET") mutations.push(request.url());
-  });
+test("email recovery link, invalid proof and explicit login", async ({page,request,context})=>{
+  await request.get("http://127.0.0.1:34568/__test/link-mode?case=same");
   await page.goto("/login");
-  await page
-    .getByRole("link", { name: "Lupa kata sandi?", exact: true })
-    .click();
-  const form = page.locator(".forgot-password-form");
-  const email = form.getByLabel("Email", { exact: true });
-  await page.getByRole("button", { name: "Simulasikan kirim tautan" }).click();
-  await expect(email).toBeFocused();
-  await expect(
-    page.getByText("Masukkan alamat email yang valid."),
-  ).toBeVisible();
-  await email.fill("bukan-email");
-  await page.getByRole("button", { name: "Simulasikan kirim tautan" }).click();
-  await expect(email).toHaveAttribute("aria-invalid", "true");
-  await page.getByRole("button", { name: "Isi data contoh" }).click();
-  await expect(email).toHaveAttribute("aria-invalid", "false");
-  await page.getByRole("button", { name: "Simulasikan kirim tautan" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Form pemulihan sudah siap." }),
-  ).toBeFocused();
-  await expect(
-    page.getByText(
-      "Email pemulihan belum dikirim dan kata sandi belum diubah.",
-      { exact: false },
-    ),
-  ).toBeVisible();
-  const result = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
-    .analyze();
-  expect(result.violations).toEqual([]);
-  await page.getByRole("button", { name: "Gunakan email lain" }).click();
-  await expect(email).toHaveValue("");
-  await expect(email).toBeFocused();
-  await page.getByRole("button", { name: "Isi data contoh" }).click();
-  await page.getByRole("button", { name: "Simulasikan kirim tautan" }).click();
-  await page
-    .getByRole("link", { name: "Kembali ke masuk", exact: true })
-    .click();
-  await expect(page).toHaveURL(/\/login$/);
-  expect(mutations).toEqual([]);
-  expect(
-    await page.evaluate(() => ({
-      cookies: document.cookie,
-      local: Object.keys(localStorage),
-      session: Object.keys(sessionStorage),
-    })),
-  ).toEqual({ cookies: "", local: [], session: [] });
+  await page.getByRole("link",{name:"Lupa kata sandi?",exact:true}).click();
+  await page.getByRole("button",{name:"Kirim tautan reset",exact:true}).click();
+  await expect(page.locator(".forgot-password-form").getByRole("alert")).toContainText("email yang valid");
+  await page.locator(".forgot-password-form:visible").getByLabel("Email",{exact:true}).fill("oauth-test@example.invalid");
+  await page.getByRole("button",{name:"Kirim tautan reset",exact:true}).click();
+  await expect(page.getByRole("button",{name:/Kirim ulang dalam/})).toBeDisabled();
+  await expect(page.locator(".forgot-password-form")).toContainText("tautan untuk mengatur kata sandi");
+  expect((await request.post("/auth/password/reset/verify",{headers:{Origin:"https://evil.invalid"},data:{password:"Reset-Pass123!"}})).status()).toBe(403);
+  expect((await request.post("/auth/password/reset/verify",{headers:{Origin:"http://127.0.0.1:34567"},data:{password:"Reset-Pass123!"}})).status()).toBe(409);
+  await page.goto("/reset-password");
+  await expect(page.getByText("Tautan tidak tersedia atau sudah berakhir.",{exact:true})).toBeVisible();
+  await page.goto(`/auth/password/callback?token_hash=${"z".repeat(64)}&email=oauth-test%40example.invalid`);
+  await page.getByLabel("Kata sandi baru",{exact:true}).fill("Reset-Pass123!");
+  await page.getByLabel("Konfirmasi kata sandi",{exact:true}).fill("Reset-Pass123!");
+  await page.getByRole("button",{name:"Simpan kata sandi baru",exact:true}).click();
+  await expect(page.locator(".password-reset-form").getByRole("alert")).toContainText("Tautan tidak valid");
+  await page.goto(`/auth/password/callback?token_hash=${"a".repeat(64)}&email=oauth-test%40example.invalid`);
+  await expect(page).toHaveURL(/\/reset-password$/);
+  expect((await context.cookies()).filter(c=>c.name.startsWith("sb-") && c.value)).toHaveLength(0);
+  await page.getByLabel("Kata sandi baru",{exact:true}).fill("Local-Test123!");
+  await page.getByLabel("Konfirmasi kata sandi",{exact:true}).fill("Local-Test123!");
+  await page.getByRole("button",{name:"Simpan kata sandi baru",exact:true}).click();
+  await expect(page.locator(".password-reset-form").getByRole("alert")).toContainText("harus berbeda");
+  const ready=(await context.cookies()).find(c=>c.name==="cashly-password-recovery");
+  expect(ready?.httpOnly).toBeTruthy();
+  const deadline=ready!.expires;
+  await page.getByRole("button",{name:"Simpan kata sandi baru",exact:true}).click();
+  await expect(page.locator(".password-reset-form").getByRole("alert")).toContainText("harus berbeda");
+  expect((await context.cookies()).find(c=>c.name==="cashly-password-recovery")?.expires).toBe(deadline);
+  await page.goto(`/auth/password/callback?token_hash=${"a".repeat(64)}&email=oauth-test%40example.invalid`);
+  expect((await context.cookies()).find(c=>c.name==="cashly-password-recovery")?.expires).toBe(deadline);
+  expect((await context.cookies()).find(c=>c.name==="cashly-password-link")).toBeUndefined();
+  await page.getByLabel("Kata sandi baru",{exact:true}).fill("Reset-Pass123!");
+  await page.getByLabel("Konfirmasi kata sandi",{exact:true}).fill("Reset-Pass123!");
+  await page.getByRole("button",{name:"Simpan kata sandi baru",exact:true}).click();
+  await expect(page.getByRole("dialog",{name:"Kata sandi berhasil disimpan"})).toBeVisible();
+  expect((await context.cookies()).filter(c=>c.name.startsWith("sb-") && c.value)).toHaveLength(0);
+  expect((await context.cookies()).find(c=>c.name==="cashly-password-recovery")).toBeUndefined();
+  expect((await context.request.post("/auth/password/reset/verify",{headers:{Origin:"http://127.0.0.1:34567"},data:{password:"Other-Pass123!"}})).status()).toBe(409);
+  await page.getByRole("button",{name:"Ke halaman login",exact:true}).click();
+  await page.locator(".login-form:visible").getByLabel("Email",{exact:true}).fill("oauth-test@example.invalid");
+  await page.locator(".login-form:visible").getByLabel("Kata sandi",{exact:true}).fill("Reset-Pass123!");
+  await page.getByRole("button",{name:"Masuk",exact:true}).click();
+  await expect(page).toHaveURL(/\/beranda/);
+  await page.goto(`/auth/password/callback?token_hash=${"a".repeat(64)}&email=oauth-test%40example.invalid`);
+  await expect(page.getByText("Tautan tidak tersedia atau sudah berakhir.",{exact:true})).toBeVisible();
+  await request.get("http://127.0.0.1:34568/__test/otp?enabled=false");
+});
+
+for(const action of ["cancel","expire"] as const) test(`password recovery ${action} is terminal`,async({page,request,context})=>{
+  await request.get("http://127.0.0.1:34568/__test/link-mode?case=same");
+  await page.goto(`/auth/password/callback?token_hash=${"a".repeat(64)}&email=oauth-test%40example.invalid`);
+  await page.getByLabel("Kata sandi baru",{exact:true}).fill("Local-Test123!");
+  await page.getByLabel("Konfirmasi kata sandi",{exact:true}).fill("Local-Test123!");
+  await page.getByRole("button",{name:"Simpan kata sandi baru",exact:true}).click();
+  await expect(page.locator(".password-reset-form").getByRole("alert")).toContainText("harus berbeda");
+  if(action==="expire") {
+    await page.clock.install();await page.clock.fastForward(301000);
+    await expect(page.getByText("Sesi pemulihan sudah berakhir. Minta tautan baru.",{exact:true})).toBeVisible();
+    await expect(page.getByRole("button",{name:"Simpan kata sandi baru",exact:true})).toBeDisabled();
+  }
+  await page.getByRole("button",{name:"Batal",exact:true}).click();
+  await expect(page).toHaveURL(/\/login/);
+  expect((await context.cookies()).find(c=>c.name==="cashly-password-recovery")).toBeUndefined();
 });

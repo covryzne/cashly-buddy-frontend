@@ -13,6 +13,7 @@ import {
   Smartphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SettingsRow } from '@/components/shared/settings-row';
 import { Dialog } from '@/components/ui/dialog';
 import { useInstallEnvironment } from '@/lib/pwa/install-environment';
 
@@ -139,15 +140,30 @@ export function InstallAppEntry({
   className = '',
   showStatus = false,
   compact = false,
+  layout = 'default',
 }: {
   onOpen?: () => void;
   className?: string;
   showStatus?: boolean;
   compact?: boolean;
+  layout?: 'default' | 'settings';
 }) {
   const environment = useInstallEnvironment();
   const [open, setOpen] = useState(false);
   if (environment === 'unknown') return null;
+  if (layout === 'settings') {
+    const installed = environment === 'standalone' || environment === 'installed';
+    return <>
+      <SettingsRow
+        icon={installed ? CircleCheck : ArrowDownToLine}
+        title="Instal aplikasi"
+        description={installed ? 'Cashly sudah ditambahkan ke perangkatmu.' : 'Akses lebih cepat dari layar utama perangkatmu.'}
+        value={installed ? 'Terpasang' : 'Instal'}
+        onClick={() => (onOpen ? onOpen() : setOpen(true))}
+      />
+      {open && <Dialog title="Download Cashly" variant="sheet" className="install-dialog" onClose={() => setOpen(false)}><InstallGuide /></Dialog>}
+    </>;
+  }
   if (environment === 'standalone' || environment === 'installed')
     return showStatus ? (
       <p className="install-status" role="status">

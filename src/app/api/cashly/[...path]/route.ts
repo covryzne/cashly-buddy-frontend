@@ -7,13 +7,18 @@ async function handle(request: Request, context: {params: Promise<{path:string[]
     if (request.method !== "GET" && !sameOrigin(request))
       return Response.json({error:{message:"Permintaan tidak diizinkan."}},{status:403,headers});
     const path = (await context.params).path.join("/");
-    const allowed = /^(expenses(?:\/[0-9a-f-]{36}(?:\/restore)?)?|categories|me\/(?:preferences|profile|security\/(?:email|password)\/(?:request|verify))|gamification\/(overview|missions|streak\/calendar|streak\/freeze|checkins\/(no-spend|review))|reports\/(summary|trend|weekly-story|weekly-story\/complete))$/;
+    const allowed = /^(expenses(?:\/[0-9a-f-]{36}(?:\/restore)?)?|categories|me\/(?:preferences|profile|security\/(?:password\/(?:change|setup\/request)|google(?:\/disconnect)?))|gamification\/(overview|missions|streak\/calendar|streak\/freeze|checkins\/(no-spend|review))|reports\/(summary|trend|weekly-story|weekly-story\/complete))$/;
     if (!allowed.test(path)) return Response.json({error:{message:"Endpoint tidak tersedia."}},{status:404,headers});
     const session = await verifiedSession(true);
     if (!session) return Response.json({error:{message:"Silakan login kembali."}},{status:401,headers});
-    const body = request.method === "GET" ? undefined : await request.text();
+    let body = request.method === "GET" ? undefined : await request.text();
     if (body && new TextEncoder().encode(body).length>65536)
       return Response.json({error:{message:"Permintaan terlalu besar."}},{status:413,headers});
+    if(request.method === "POST" && path === "me/security/password/setup/request") {
+      const input=JSON.parse(body ?? "{}");
+      if(typeof input!=="object" || input===null || Array.isArray(input) || Object.keys(input).length > 0) return Response.json({error:{message:"Permintaan tidak valid."}},{status:422,headers});
+      body=JSON.stringify({...input,redirect_to:`${authConfig().site}/auth/password/callback`});
+    }
     const upstream = await fetch(`${authConfig().api}/api/v1/${path}${new URL(request.url).search}`, {
       method: request.method, headers: {Authorization:`Bearer ${session.token}`,"Content-Type":"application/json",
         "Idempotency-Key":request.headers.get("Idempotency-Key") ?? ""},

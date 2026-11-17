@@ -6,6 +6,7 @@ const email = "local-qa@example.invalid";
 const password = "Local-Test123!";
 
 test("local signup, account bootstrap, logout and password login without Google or mail", async ({ page, context, request }) => {
+  await request.get("http://127.0.0.1:34568/__test/otp?enabled=false");
   await page.goto("/login");
   await expect(page.getByRole("button", { name: "Lanjutkan dengan Google" })).toHaveCount(0);
   await expect(page.locator(".password-guide:visible")).toHaveCount(0);

@@ -11,7 +11,7 @@ export function AuthShell({
   mode,
   children,
 }: {
-  mode: "login" | "register" | "forgot-password";
+  mode: "login" | "register" | "forgot-password" | "reset-password";
   children: ReactNode;
 }) {
   const copy = {
@@ -31,8 +31,9 @@ export function AuthShell({
       form: "pemulihan",
       kicker: "Tenang, Mochi bantu temani",
       title: "Lupa kata sandi?",
-      description: "Masukkan email untuk mencoba alur pemulihan akunmu.",
+      description: "Kami akan mengirim tautan untuk mengatur ulang kata sandimu.",
     },
+    "reset-password": {form:"kata sandi baru",kicker:"Keamanan akun",title:"Atur kata sandi",description:"Buat kata sandi untuk akun Cashly yang sama."},
   }[mode];
   return (
     <div className="auth-page">

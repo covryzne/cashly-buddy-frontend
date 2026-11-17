@@ -357,6 +357,10 @@
   background: var(--surface);
   border: 1px solid var(--border);
 }
+.account-google-trigger { display: flex; align-items: center; gap: 11px; width: 100%; padding: 0; border: 0; border-radius: 8px; background: none; color: inherit; text-align: left; }
+.account-google-trigger:focus-visible { outline: 2px solid var(--primary); outline-offset: 5px; }
+.google-connection-details { display: grid; gap: 16px; }
+.google-connection-details p { margin: 0; overflow-wrap: anywhere; }
 .account-google-action {
   display: flex;
   flex-shrink: 0;
@@ -388,20 +392,17 @@
   color: var(--success);
 }
 .profile-install-card {
-  padding: 16px;
+  padding: 0 12px;
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: 22px;
   background: var(--surface);
-  margin-bottom: 18px;
-}
-.profile-install-card .install-entry {
-  margin: 0;
+  box-shadow: var(--card-shadow);
 }
 .profile-logout {
   width: 100%;
-  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
-  color: var(--danger);
-  border: 1px solid color-mix(in srgb, var(--danger) 20%, var(--border));
+  background: var(--surface);
+  color: var(--foreground);
+  border: 1px solid var(--border);
   font-size: 13px;
 }
 .profile-footer {
@@ -872,3 +873,10 @@
     align-items: start;
   }
 }
+
+.account-actions { display: grid; gap: 12px; margin-top: 16px; }
+.account-actions .account-delete-trigger { width: 100%; background: var(--danger); color: var(--background); border-color: var(--danger); transition: opacity .15s ease, transform .15s ease; }
+.account-actions .account-delete-trigger:hover { background: color-mix(in srgb,var(--danger) 90%,var(--foreground)); }
+.profile-settings-section .profile-install-card { margin-top: 12px; margin-bottom: 0; }
+.account-delete-confirm { background: var(--danger); color: var(--background); transition: opacity .15s ease, transform .15s ease; }
+.account-delete-confirm:hover { background: color-mix(in srgb,var(--danger) 90%,var(--foreground)); }

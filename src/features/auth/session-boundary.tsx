@@ -6,7 +6,7 @@ export function AuthSessionBoundary({ children, accountId }: { children: ReactNo
     document.documentElement.dataset.cashlyAuthReady = "true";
     const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("cashly-auth") : null;
     const leave = () => window.location.replace("/login");
-    if (channel) channel.onmessage = event => { if (event.data === "logout") leave(); };
+    if (channel) channel.onmessage = event => { if (event.data === "logout") leave(); else if(event.data === "account_deleted") window.location.replace("/login?account=deleted"); };
     const storage = (event: StorageEvent) => { if (event.key === "cashly-auth-logout") leave(); };
     window.addEventListener("storage", storage);
     let checking=false;

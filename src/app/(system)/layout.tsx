@@ -30,7 +30,7 @@ async function loadData() {
 }
 
 export default function SystemLayout({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<main className="local-data-empty"><AppLoader /></main>}><SystemContent>{children}</SystemContent></Suspense>;
+  return <Suspense fallback={<main className="app-loading-screen"><AppLoader /></main>}><SystemContent>{children}</SystemContent></Suspense>;
 }
 
 async function SystemContent({ children }: { children: React.ReactNode }) {

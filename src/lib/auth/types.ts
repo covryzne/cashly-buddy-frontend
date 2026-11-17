@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const googleConnectionSchema = z.object({
+  connected: z.boolean(), google_email: z.string().nullable(),
+  password_login_enabled: z.boolean(), can_disconnect: z.boolean(),
+});
+
 export const accountSchema = z.object({
   account_id: z.string().uuid(), display_name: z.string(), email: z.string(),
   username: z.string(), password_login_enabled: z.boolean(), google_connected: z.boolean(),

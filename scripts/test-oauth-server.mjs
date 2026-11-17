@@ -18,7 +18,8 @@ const account = { account_id: accountId, display_name: "OAuth Tester", username:
 const today = new Intl.DateTimeFormat("en-CA", {timeZone:"Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
 const monday = new Date(today+"T00:00:00Z"); monday.setUTCDate(monday.getUTCDate() - (monday.getUTCDay()+6)%7);
 const game = {hero_level:1,current_streak:0,longest_streak:0,protection_remaining:5,protection_month:today.slice(0,7)+"-01",streak_status:"active",today_checked_in:false,today_local_date:today,timezone:"Asia/Jakarta",recovery:null,calendar:Array.from({length:7},(_,n)=>({date:new Date(monday.getTime()+n*86400000).toISOString().slice(0,10),status:"missed"})),missions:[]};
-let security = null;
+let usedLinks = new Set();
+let recoveryGrant=null;
 let challenge, revoked = false, backendDown = false;
 const calls = [];
 function session() {
@@ -35,6 +36,7 @@ const server = createServer(async (req, res) => {
   if (url.pathname === "/__test/backend-down") { backendDown = url.searchParams.get("enabled") === "true"; return send(200, {}); }
   if (url.pathname === "/__test/resend-down") { resendDown = url.searchParams.get("enabled") === "true"; return send(200, {}); }
   if (url.pathname === "/__test/profile-mode") {
+    usedLinks.clear();recoveryGrant=null;
     account.password_login_enabled=false; account.google_connected=true; password=""; revoked=false;
     user.id=userId;user.email="oauth-test@example.invalid";account.email=user.email;
     user.identities=[{provider:"google",user_id:userId,identity_id:"google-test",identity_data:{email:user.email,email_verified:true}}];
@@ -43,6 +45,7 @@ const server = createServer(async (req, res) => {
     return send(200,{});
   }
   if (url.pathname === "/__test/link-mode") {
+    usedLinks.clear();recoveryGrant=null;
     linkCase=url.searchParams.get("case")??"same";
     user.id=userId;user.email="oauth-test@example.invalid";account.email=user.email;
     user.identities=[{provider:"email",user_id:userId,identity_id:"email-test"}];
@@ -70,6 +73,21 @@ const server = createServer(async (req, res) => {
     return send(200,{});
   }
   if (url.pathname === "/api/v1/auth/configuration") return send(200, { supabase_url: upstream, publishable_key: "synthetic-publishable-key", local: emailMode });
+  if(url.pathname.startsWith("/api/v1/auth/password/reset/")) {
+    let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
+    if(url.pathname.endsWith('/request'))return send(202,{data:{status:"verification_required",session:null}});
+    if(url.pathname.endsWith('/start')) {
+      if(body.email!==user.email || body.token_hash!=="a".repeat(64) || usedLinks.has(body.token_hash))return send(400,{error:{message:"Tautan tidak valid atau kedaluwarsa."}});
+      usedLinks.add(body.token_hash);
+      recoveryGrant={recovery_id:"40000000-0000-4000-8000-000000000001",recovery_token:"synthetic-recovery-only",email:user.email,expires_at:new Date(Date.now()+300000).toISOString(),consumed:false};
+      return send(200,{data:{status:"recovery_ready",...recoveryGrant}});
+    }
+    if(!recoveryGrant || recoveryGrant.consumed || Date.parse(recoveryGrant.expires_at)<=Date.now() || body.recovery_id!==recoveryGrant.recovery_id || body.recovery_token!==recoveryGrant.recovery_token)return send(409,{error:{message:"Sesi pemulihan sudah berakhir. Minta tautan baru."}});
+    if(url.pathname.endsWith('/cancel')) {recoveryGrant.consumed=true;return send(200,{data:{status:"recovery_cancelled"}});}
+    if(body.password===password)return send(422,{error:{code:"PASSWORD_UNCHANGED",message:"Kata sandi baru harus berbeda dari sebelumnya."}});
+    recoveryGrant.consumed=true;password=body.password;account.password_login_enabled=true;revoked=true;
+    return send(200,{data:{status:"password_reset"}});
+  }
   if (url.pathname === "/api/v1/auth/email/resend") return resendDown ? send(503, {}) : send(202, { data: { status: "verification_required", session: null } });
   if (url.pathname === "/api/v1/auth/email/verify") {
     let raw = ""; for await (const chunk of req) raw += chunk;
@@ -126,24 +144,34 @@ const server = createServer(async (req, res) => {
     if (backendDown) return send(503, {});
     if (!req.headers.authorization?.startsWith("Bearer ") || revoked) return send(401, {});
     if (["/api/v1/auth/bootstrap", "/api/v1/me"].includes(url.pathname)) return send(200, { data: account });
+    if(url.pathname==="/api/v1/me/account" && req.method==="DELETE") {
+      let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
+      if(body.confirmation!=="HAPUS AKUN") return send(422,{error:{message:"Ketik HAPUS AKUN."}});
+      if(account.password_login_enabled && body.current_password!==password) return send(400,{error:{message:"Kata sandi saat ini tidak sesuai."}});
+      revoked=true;password="";
+      return send(200,{data:{status:"account_deleted"}});
+    }
+    if(url.pathname==="/api/v1/me/security/google"||url.pathname==="/api/v1/me/security/google/disconnect") {
+      if(req.method==="POST") {
+        if(!account.password_login_enabled)return send(409,{error:{message:"Buat kata sandi Cashly sebelum melepas Google."}});
+        account.google_connected=false;user.identities=user.identities.filter(identity=>identity.provider!=="google");
+      }
+      return send(200,{data:{connected:account.google_connected,google_email:account.google_connected?user.email:null,password_login_enabled:account.password_login_enabled,can_disconnect:account.google_connected&&account.password_login_enabled}});
+    }
     if (url.pathname === "/api/v1/me/profile") {
       let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
       if(body.username.toLowerCase()==="taken.name")return send(409,{error:{message:"Username sudah digunakan. Pilih yang lain."}});
       account.username=body.username.toLowerCase();account.display_name=body.display_name;
       return send(200,{data:account});
     }
-    if(url.pathname.match(/^\/api\/v1\/me\/security\/(email|password)\/(request|verify)$/)) {
+    if(["/api/v1/me/security/password/setup/request","/api/v1/me/security/password/change"].includes(url.pathname)) {
       let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
-      const mode=url.pathname.includes('/email/') ? 'email':'password';
-      if(url.pathname.endsWith('/request')) {
-        if(mode==='email'&&body.email==='taken@example.invalid')return send(409,{error:{code:"EMAIL_ALREADY_REGISTERED",message:"Email sudah terdaftar pada akun lain. Gunakan email yang berbeda."}});
-        security={challenge_id:"50000000-0000-4000-8000-000000000001",expires_at:new Date(Date.now()+300000).toISOString(),current_email:account.email,new_email:body.email??null};
-        return send(202,{data:{status:"verification_required",...security}});
+      if(url.pathname.endsWith("password/change")) {
+        if(!account.password_login_enabled || body.current_password!==password)return send(400,{error:{message:"Kata sandi saat ini tidak sesuai."}});
+        if(body.password===password)return send(422,{error:{message:"Kata sandi baru harus berbeda."}});
+        password=body.password;return send(200,{data:{status:"password_changed"}});
       }
-      if(mode==='password'&&body.token==='123456') {password=body.password;account.password_login_enabled=true;return send(200,{data:{status:"password_changed"}});}
-      if(mode==='email'&&body.address==='current'&&body.token==='111111')return send(200,{data:{status:"confirmation_pending",confirmed_current:true,confirmed_new:false}});
-      if(mode==='email'&&body.address==='new'&&body.token==='222222') {account.email=security.new_email;user.email=account.email;return send(200,{data:{status:"email_changed"}});}
-      return send(400,{error:{message:"Kode tidak valid."}});
+      usedLinks.clear();recoveryGrant=null;return send(202,{data:{status:"link_sent"}});
     }
     if(url.pathname==='/api/v1/gamification/streak/freeze') {
       Object.assign(game,{current_streak:31,protection_remaining:3,today_checked_in:true,recovery:null,streak_status:"active"});

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AuthShell } from "@/features/auth/auth-shell";
-import { RegisterForm } from "@/features/auth/register-form";
+import { GoogleSignInButton } from "@/features/auth/google-sign-in-button";
+import { providerConfig } from "@/lib/auth/config";
 import { PasswordAuthForm } from "@/features/auth/password-auth-form";
 import { Suspense } from "react";
 import { connection } from "next/server";
@@ -17,5 +18,13 @@ export default function RegisterPage() {
 
 async function RegisterContent() {
   await connection();
-  return process.env.CASHLY_ENV === "dev" ? <PasswordAuthForm mode="register" /> : <RegisterForm />;
+  const config = await providerConfig().catch(() => null);
+  return <>
+    {config?.googleEnabled && <>
+      <p className="login-google-intro">Cepat pakai akun Google kamu</p>
+      <GoogleSignInButton />
+      <div className="auth-divider"><span>atau pakai email</span></div>
+    </>}
+    <PasswordAuthForm mode="register" />
+  </>;
 }

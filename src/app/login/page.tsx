@@ -3,6 +3,7 @@ import { AuthShell } from "@/features/auth/auth-shell";
 import { LoginForm } from "@/features/auth/login-form";
 import { Suspense } from "react";
 import { connection } from "next/server";
+import { providerConfig } from "@/lib/auth/config";
 
 export const metadata: Metadata = { title: "Masuk ? Cashly" };
 
@@ -17,5 +18,6 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<{ er
 async function LoginContent({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   await connection();
   const { error } = await searchParams;
-  return <LoginForm error={error} localEmail={process.env.CASHLY_ENV === "dev"} />;
+  const config = await providerConfig().catch(() => null);
+  return <LoginForm error={error} googleEnabled={config?.googleEnabled} />;
 }

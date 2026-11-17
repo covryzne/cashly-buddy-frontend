@@ -34,10 +34,10 @@ for (const width of [320, 360, 390, 430, 768, 1280, 1440]) {
   }
 }
 
-test("Login exposes Google only while email auth is deferred", async ({ page }) => {
+test("Login offers Google and email without a demo bypass", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole("button", { name: "Lanjutkan dengan Google" })).toBeVisible();
-  await expect(page.getByLabel("Kata sandi", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Kata sandi", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Masuk ke demo" })).toHaveCount(0);
 });

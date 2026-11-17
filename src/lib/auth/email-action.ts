@@ -30,6 +30,10 @@ export async function emailAction(request: Request, mode: "login" | "register") 
       signal: AbortSignal.timeout(20000),
     });
     if (!response.ok) {
+      if (mode === "login" && response.status === 403) {
+        const error = await response.json().catch(() => null);
+        if (error?.error?.code === "EMAIL_NOT_VERIFIED") return Response.json({ status: "verification_required" }, { status: 202, headers });
+      }
       if (response.status === 429) return fail("Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.", 429);
       if (response.status >= 500) return fail("Layanan autentikasi backend belum tersedia. Coba lagi.", 503);
       return fail(mode === "login" ? "Email atau kata sandi tidak sesuai." : "Akun belum dapat dibuat. Periksa isian atau masuk jika sudah terdaftar.", response.status);

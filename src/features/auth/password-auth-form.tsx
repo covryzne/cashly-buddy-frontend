@@ -12,6 +12,7 @@ import { AuthPasswordField } from "./auth-password-field";
 import { loginSchema } from "./login-schema";
 import { registerSchema } from "./register-schema";
 import { passwordRules } from "./password-policy";
+import { EmailVerificationForm } from "./email-verification-form";
 
 const subscribe = () => () => {};
 
@@ -25,7 +26,8 @@ export function PasswordAuthForm({ mode }: { mode: "login" | "register" }) {
   const [values, setValues] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
-  const [created, setCreated] = useState<"registered" | "verification_required" | null>(null);
+  const [verification, setVerification] = useState<{ email: string; issuedAt: number | null } | null>(null);
+  const [created, setCreated] = useState<"registered" | "verified" | null>(null);
   const disabled = pending || !hydrated;
   const finishRegistration = () => {
     setCreated(null);
@@ -56,7 +58,12 @@ export function PasswordAuthForm({ mode }: { mode: "login" | "register" }) {
       });
       const result = await response.json();
       if (!response.ok) { setErrors({ form: result.error ?? "Proses masuk belum berhasil. Coba lagi." }); return; }
-      if (register && (result.status === "registered" || result.status === "verification_required")) {
+      if (result.status === "verification_required") {
+        setVerification({ email: values.email.trim(), issuedAt: register ? Date.now() : null });
+        setValues({ name: "", email: "", password: "", confirmPassword: "" });
+        return;
+      }
+      if (register && result.status === "registered") {
         setValues({ name: "", email: "", password: "", confirmPassword: "" });
         setCreated(result.status);
         return;
@@ -66,6 +73,7 @@ export function PasswordAuthForm({ mode }: { mode: "login" | "register" }) {
     } catch { setErrors({ form: "Tidak dapat menghubungi layanan login lokal. Periksa koneksi dan coba lagi." }); }
     finally { setPending(false); }
   }
+  if (verification) return <EmailVerificationForm email={verification.email} issuedAt={verification.issuedAt} onVerified={() => { setVerification(null); setCreated("verified"); }} onBack={() => setVerification(null)} />;
   return <>
     <form ref={form} className="login-form" method="post" action={`/auth/email/${mode}`} onSubmit={submit} noValidate aria-busy={pending}>
       {register && <div className="form-field"><label htmlFor={`${fieldPrefix}-name`}>Nama panggilan</label><div className="input-wrap"><UserRound size={19} aria-hidden="true" /><Input id={`${fieldPrefix}-name`} name="name" placeholder="Masukkan nama panggilanmu" autoComplete="nickname" value={values.name} onChange={event => change("name", event.target.value)} disabled={disabled} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? `${fieldPrefix}-name-error` : undefined} /></div>{errors.name && <p id={`${fieldPrefix}-name-error`} className="field-error">{errors.name}</p>}</div>}
@@ -81,9 +89,9 @@ export function PasswordAuthForm({ mode }: { mode: "login" | "register" }) {
       <Button type="submit" className="auth-full-button" disabled={!online || disabled}>{pending ? "Memproses..." : register ? "Buat akun" : "Masuk"}</Button>
     </form>
     <p className="login-register">{register ? "Sudah punya akun? " : "Belum punya akun? "}<Link className="text-button" href={register ? "/login" : "/register"}>{register ? "Masuk" : "Buat akun"}</Link></p>
-    {created && <Dialog title="Akun berhasil dibuat" onClose={finishRegistration} showCloseButton={false} className="auth-success-dialog" footer={<Button autoFocus className="auth-full-button" onClick={finishRegistration}>Ke halaman login</Button>}>
+    {created && <Dialog title={created === "verified" ? "Akun telah terverifikasi" : "Akun berhasil dibuat"} onClose={finishRegistration} showCloseButton={false} className="auth-success-dialog" footer={<Button autoFocus className="auth-full-button" onClick={finishRegistration}>Ke halaman login</Button>}>
       <CircleCheck className="auth-success-icon" size={44} aria-hidden="true" />
-      <p>{created === "verification_required" ? "Periksa email untuk memverifikasi akunmu, lalu masuk ke Cashly." : "Akunmu sudah siap. Silakan masuk menggunakan email dan kata sandi yang baru dibuat."}</p>
+      <p>{created === "verified" ? "Emailmu berhasil diverifikasi. Silakan masuk ke Cashly menggunakan email dan kata sandimu." : "Akunmu sudah siap. Silakan masuk menggunakan email dan kata sandi yang baru dibuat."}</p>
     </Dialog>}
   </>;
 }

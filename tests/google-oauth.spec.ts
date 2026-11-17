@@ -11,7 +11,7 @@ test("protected pages, Google PKCE callback, account reads and logout without SM
   expect((await request.post("/auth/email/login", { headers: { Origin: "http://127.0.0.1:34567" }, data: { email: "test@example.invalid", password: "Test-Pass123!" } })).status()).toBe(401);
   await page.getByRole("button", { name: "Lanjutkan dengan Google" }).click();
   await expect(page).toHaveURL(/\/beranda/, { timeout: 30000 });
-  await expect(page.getByText("Data contoh dari database development.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Online" })).toBeVisible();
   await expect(page.getByText("OAuth Tester", { exact: false }).first()).toBeVisible();
   const cookies = (await context.cookies()).filter(cookie => cookie.name.startsWith("sb-"));
   expect(cookies.length).toBeGreaterThan(0);

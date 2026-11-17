@@ -28,7 +28,7 @@ export async function providerConfig() {
   if (typeof data.publishable_key !== "string" || !data.publishable_key) {
     throw new Error("Publishable key backend belum tersedia.");
   }
-  return { ...config, supabase: origin(data.supabase_url, "Supabase backend"), key: data.publishable_key };
+  return { ...config, supabase: origin(data.supabase_url, "Supabase backend"), key: data.publishable_key, googleEnabled: data.local === false };
 }
 
 export function sameOrigin(request: Request): boolean {

@@ -8,6 +8,8 @@ const site = "http://127.0.0.1:34567";
 const upstream = "http://127.0.0.1:34568";
 const emailMode = process.env.CASHLY_TEST_EMAIL === "true";
 let password = "";
+let otpMode = false, confirmed = true;
+let resendDown = false;
 const userId = "10000000-0000-4000-8000-000000000001";
 const accountId = "20000000-0000-4000-8000-000000000001";
 const user = { id: userId, aud: "authenticated", role: "authenticated", email: "oauth-test@example.invalid", email_confirmed_at: "2026-11-16T00:00:00Z", created_at: "2026-11-16T00:00:00Z", app_metadata: { provider: "google", providers: ["google"] }, user_metadata: { full_name: "OAuth Tester" }, identities: [{ provider: "google", user_id: userId }] };
@@ -24,9 +26,19 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url, upstream);
   const send = (status, body) => { res.writeHead(status, { "Content-Type": "application/json" }); res.end(JSON.stringify(body)); };
   if (url.pathname === "/__test/state") return send(200, { calls, revoked });
+  if (url.pathname === "/__test/otp") { otpMode = url.searchParams.get("enabled") !== "false"; confirmed = !otpMode; password = ""; calls.length = 0; return send(200, {}); }
   if (url.pathname === "/__test/backend-down") { backendDown = url.searchParams.get("enabled") === "true"; return send(200, {}); }
+  if (url.pathname === "/__test/resend-down") { resendDown = url.searchParams.get("enabled") === "true"; return send(200, {}); }
   calls.push(url.pathname); // Paths only; never log code, verifier, credentials or bodies.
-  if (url.pathname === "/api/v1/auth/configuration") return send(200, { supabase_url: upstream, publishable_key: "synthetic-publishable-key", local: true });
+  if (url.pathname === "/api/v1/auth/configuration") return send(200, { supabase_url: upstream, publishable_key: "synthetic-publishable-key", local: emailMode });
+  if (url.pathname === "/api/v1/auth/email/resend") return resendDown ? send(503, {}) : send(202, { data: { status: "verification_required", session: null } });
+  if (url.pathname === "/api/v1/auth/email/verify") {
+    let raw = ""; for await (const chunk of req) raw += chunk;
+    const body = JSON.parse(raw);
+    if (body.token !== "123456") return send(400, { error: { code: "EMAIL_OTP_INVALID" } });
+    confirmed = true;
+    return send(200, { data: { status: "registered", session: null } });
+  }
   if (["/api/v1/auth/register", "/api/v1/auth/login"].includes(url.pathname)) {
     let raw = ""; for await (const chunk of req) raw += chunk;
     const body = JSON.parse(raw);
@@ -37,8 +49,10 @@ const server = createServer(async (req, res) => {
     } else if (body.email !== user.email || body.password !== password) return send(401, { error: { code: "INVALID_CREDENTIALS" } });
     if (url.pathname.endsWith("/register")) {
       revoked = true;
+      if (otpMode) return send(202, { data: { status: "verification_required", session: null } });
       return send(201, { data: { status: "registered", account, session: null } });
     }
+    if (!confirmed) return send(403, { error: { code: "EMAIL_NOT_VERIFIED" } });
     revoked = false;
     return send(200, { data: { status: backendDown ? "account_pending" : "authenticated", account: backendDown ? null : account, session: session() } });
   }

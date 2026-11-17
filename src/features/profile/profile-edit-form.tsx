@@ -27,7 +27,7 @@ export function ProfileEditForm({
   onBusyChange: (busy: boolean) => void;
   onPhoto: (photo: string) => void;
 }) {
-  const { account: profileAccount } = useProfileSession();
+  const { account: profileAccount, remoteMode, saveError } = useProfileSession();
   const fileInput = useRef<HTMLInputElement>(null);
   const reader = useRef<FileReader | null>(null);
   const generation = useRef(0);
@@ -88,6 +88,8 @@ export function ProfileEditForm({
         onSubmit();
       }}
     >
+      {saveError && <p role="alert">{saveError}</p>}
+      {remoteMode && <p className="profile-field-hint">Nama dapat disimpan. Foto, username dan bio belum dapat diubah.</p>}
       <div className="profile-edit-avatar">
         <ProfileAvatar profile={draft} size={94} />
         <span>
@@ -98,14 +100,14 @@ export function ProfileEditForm({
         <Button
           variant="secondary"
           onClick={() => fileInput.current?.click()}
-          disabled={reading}
+          disabled={reading || remoteMode}
         >
           <ImagePlus size={15} />
           Galeri
         </Button>
         <Button
           variant="secondary"
-          disabled={reading}
+          disabled={reading || remoteMode}
           onClick={() => {
             setPhotoError("");
             onChange({ ...draft, avatar: "mochi", photo: null });
@@ -116,7 +118,7 @@ export function ProfileEditForm({
         </Button>
         <Button
           variant="ghost"
-          disabled={reading}
+          disabled={reading || remoteMode}
           onClick={() => {
             setPhotoError("");
             onChange({ ...draft, avatar: "initials", photo: null });
@@ -129,6 +131,7 @@ export function ProfileEditForm({
       <input
         ref={fileInput}
         type="file"
+        disabled={remoteMode}
         className="sr-only"
         accept="image/jpeg,image/png,image/webp"
         aria-label="Pilih foto profil"
@@ -155,7 +158,7 @@ export function ProfileEditForm({
         <Input
           {...fieldProps("name")}
           value={draft.name}
-          maxLength={50}
+          maxLength={40}
           autoComplete="name"
           required
           onChange={(event) => onChange({ ...draft, name: event.target.value })}
@@ -172,6 +175,7 @@ export function ProfileEditForm({
           <span aria-hidden="true">@</span>
           <Input
             {...fieldProps("username")}
+            disabled={remoteMode}
             value={draft.username}
             maxLength={24}
             autoComplete="username"
@@ -206,6 +210,7 @@ export function ProfileEditForm({
         </label>
         <textarea
           {...fieldProps("bio")}
+          disabled={remoteMode}
           value={draft.bio}
           rows={3}
           maxLength={80}
@@ -225,6 +230,7 @@ export function ProfileEditForm({
         </span>
         <input
           type="checkbox"
+          disabled={remoteMode}
           checked={draft.friendlyGreeting}
           onChange={(event) =>
             onChange({ ...draft, friendlyGreeting: event.target.checked })

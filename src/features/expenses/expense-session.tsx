@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, Fragment, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, Fragment, useContext, useEffect, useCallback, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { activityExpenses, type ActivityExpense } from "@/mocks/fixtures/activity";
 import { receiptAmounts, receiptSchema, type ReceiptDraft } from "@/features/scan/receipt-schema";
@@ -9,6 +9,9 @@ import { clearSnapshot, readSnapshot, writeSnapshot } from "@/lib/pwa/local-snap
 import { useOnline } from "@/lib/pwa/connectivity";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { apiRequest, expensePayload, gameSchema, mapExpense, type GameOverview } from "@/lib/finance";
+import type { AuthAccount } from "@/lib/auth/types";
+import { apiExpensesSchema } from "@/lib/auth/types";
 import type { ChatBatchSnapshot } from "./chat-batch";
 
 export const localAppRoutes = ["/", "/beranda", "/aktivitas", "/laporan", "/profil", "/offline"];
@@ -16,14 +19,20 @@ type ExpenseSession = {
   expenses: ActivityExpense[];
   chatSession: ChatBatchSnapshot | null;
   setChatSession: (snapshot: ChatBatchSnapshot) => void;
-  updateExpense: (id: string, draft: ReceiptDraft) => void;
-  removeExpense: (id: string) => void;
-  restoreExpense: (expense: ActivityExpense) => void;
-  recordDrafts: (records: { id: string; draft: ReceiptDraft; source: ActivityExpense["source"] }[]) => void;
+  updateExpense: (id: string, draft: ReceiptDraft) => Promise<boolean>;
+  removeExpense: (id: string) => Promise<boolean>;
+  restoreExpense: (expense: ActivityExpense) => Promise<boolean>;
+  recordDrafts: (records: { id: string; draft: ReceiptDraft; source: ActivityExpense["source"] }[]) => Promise<boolean>;
   resetSession: () => Promise<void>;
   updatedAt: string | null;
   storageError: boolean;
   persisted: boolean;
+  game: GameOverview | null;
+  runtime: AuthAccount["runtime"];
+  syncError: string;
+  gameAction: (kind: "review" | "no-spend" | "weekly" | "freeze", day?: string) => Promise<boolean>;
+  mutationPending: boolean;
+  createExpense: (draft: ReceiptDraft) => Promise<boolean>;
   remoteMode: boolean;
   sampleData: boolean;
   hasMore: boolean;
@@ -31,13 +40,21 @@ type ExpenseSession = {
 const Context = createContext<ExpenseSession | null>(null);
 
 /** Single fictional demo namespace. No real login, API or reward authority. */
-export function ExpenseSessionProvider({ children, remote }: { children: ReactNode; remote?: { expenses: ActivityExpense[]; sampleData: boolean; hasMore: boolean } }) {
+export function ExpenseSessionProvider({ children, remote }: { children: ReactNode; remote?: { expenses: ActivityExpense[]; sampleData: boolean; hasMore: boolean; game?: GameOverview | null; runtime?: AuthAccount["runtime"] } }) {
   const pathname = usePathname();
   const isApp = localAppRoutes.includes(pathname);
   const online = useOnline();
   const [sessionEpoch, setSessionEpoch] = useState(0);
   const [expenses, setExpenses] = useState<ActivityExpense[]>(remote?.expenses ?? []);
-  const [mutationNotice, setMutationNotice] = useState(false);
+  const [mutationError, setMutationError] = useState("");
+  const [syncError,setSyncError]=useState("");
+  const refreshing=useRef(false);
+  const remoteRequestVersion=useRef(0);
+  const previousPath=useRef(pathname);
+  const [mutationPending, setMutationPending] = useState(false);
+  const [game, setGame] = useState<GameOverview | null>(remote?.game ?? null);
+  const inFlight = useRef(false);
+  const retryKeys = useRef(new Map<string,string>());
   const [chatSession, setChatSession] = useState<ChatBatchSnapshot | null>(null);
   const [ready, setReady] = useState(Boolean(remote));
   const [updatedAt, setUpdatedAt] = useState<string | null>(remote ? new Date().toISOString() : null);
@@ -96,7 +113,7 @@ export function ExpenseSessionProvider({ children, remote }: { children: ReactNo
   }, [isApp, pathname, ready]);
 
   function commit(next: ActivityExpense[]) {
-    if (remote) { setMutationNotice(true); return; }
+    if (remote) return;
     if (!navigator.onLine || !updatedAt) return;
     const now = new Date().toISOString();
     const version = generation.current;
@@ -120,19 +137,83 @@ export function ExpenseSessionProvider({ children, remote }: { children: ReactNo
     channel.current?.postMessage("logout");
   }
 
+  const refreshRemote = useCallback(async () => {
+    const epoch=generation.current;
+    const requestVersion=++remoteRequestVersion.current;
+    let page = apiExpensesSchema.parse(await apiRequest("expenses"));
+    const rows = [...page.data];
+    while (page.has_more && page.next_cursor) {
+      page = apiExpensesSchema.parse(await apiRequest(`expenses?cursor=${encodeURIComponent(page.next_cursor)}`));
+      rows.push(...page.data);
+    }
+    const updatedGame = gameSchema.parse((await apiRequest("gamification/overview")).data);
+    if(generation.current!==epoch || remoteRequestVersion.current!==requestVersion) return;
+    setExpenses(rows.map(mapExpense)); setGame(updatedGame); setUpdatedAt(new Date().toISOString());
+    setSyncError("");
+  },[]);
+  useEffect(()=>{
+    if(!remote) return;
+    const revalidate=()=>{
+      if(inFlight.current || refreshing.current || !navigator.onLine) return;
+      refreshing.current=true;
+      void refreshRemote().catch(()=>setSyncError("Data belum diperbarui. Periksa koneksi dan coba kembali."))
+        .finally(()=>{refreshing.current=false;});
+    };
+    window.addEventListener("cashly-session-validated",revalidate);
+    return ()=>window.removeEventListener("cashly-session-validated",revalidate);
+  },[remote,refreshRemote]);
+  useEffect(()=>{
+    const changed=previousPath.current!==pathname;
+    previousPath.current=pathname;
+    if(!changed || !remote || !navigator.onLine || inFlight.current || refreshing.current) return;
+    refreshing.current=true;
+    void refreshRemote().catch(()=>setSyncError("Data belum diperbarui. Periksa koneksi dan coba kembali."))
+      .finally(()=>{refreshing.current=false;});
+  },[pathname,remote,refreshRemote]);
+  async function performRemote(path: string, method: string, body?: unknown) {
+    if (!navigator.onLine || inFlight.current) return false;
+    inFlight.current=true; setMutationPending(true); setMutationError("");
+    const requestKey=JSON.stringify([path,method,body]);
+    const key=retryKeys.current.get(requestKey) ?? crypto.randomUUID();
+    retryKeys.current.set(requestKey,key);
+    try {
+      await apiRequest(path,method,body,key);
+      await refreshRemote(); retryKeys.current.delete(requestKey); return true;
+    } catch(error) {setMutationError(error instanceof Error ? error.message : "Data belum tersimpan."); return false;}
+    finally {inFlight.current=false;setMutationPending(false);}
+  }
+  async function createExpense(draft: ReceiptDraft) {
+    if (remote) return performRemote("expenses","POST",expensePayload(draft));
+    return value.recordDrafts([{id:crypto.randomUUID(),draft,source:"dashboard"}]);
+  }
+  async function gameAction(kind: "review" | "no-spend" | "weekly" | "freeze", day?: string) {
+    if (!remote) return false;
+    const path=kind==="weekly" ? "reports/weekly-story/complete" : kind==="freeze" ? "gamification/streak/freeze" : `gamification/checkins/${kind}`;
+    return performRemote(path,"POST",kind==="freeze" ? {protected_local_date:day} : undefined);
+  }
   const value: ExpenseSession = {
     expenses, chatSession, setChatSession, resetSession, updatedAt, storageError, persisted,
+    game, gameAction, mutationPending, createExpense, runtime:remote?.runtime, syncError,
     remoteMode: Boolean(remote), sampleData: remote?.sampleData ?? false, hasMore: remote?.hasMore ?? false,
-    updateExpense: (id, draft) => commit(expenses.map(expense => expense.id === id ? {
+    updateExpense: async (id, draft) => {
+      if (remote) return performRemote(`expenses/${id}`,"PATCH",expensePayload(draft,expenses.find(e=>e.id===id)?.version));
+      commit(expenses.map(expense => expense.id === id ? {
       ...expense, draft, merchant: draft.merchant || draft.items[0].name,
       description: draft.items.map(item => item.name).join(", "),
       categoryCode: draft.categoryCode, paymentMethod: draft.paymentMethod,
       occurredAt: wibDateTime(draft.occurredDate, draft.occurredTime),
       amountIdr: receiptAmounts(draft).total.toString(),
-    } : expense)),
-    removeExpense: id => commit(expenses.filter(expense => expense.id !== id)),
-    restoreExpense: expense => commit(expenses.some(entry => entry.id === expense.id) ? expenses : [...expenses, expense]),
-    recordDrafts: records => {
+    } : expense)); return true; },
+    removeExpense: async id => {
+      if (remote) return performRemote(`expenses/${id}?version=${expenses.find(e=>e.id===id)?.version ?? 1}`,"DELETE");
+      commit(expenses.filter(expense=>expense.id!==id));return true;
+    },
+    restoreExpense: async expense => {
+      if (remote) return performRemote(`expenses/${expense.id}/restore`,"POST");
+      commit(expenses.some(entry=>entry.id===expense.id) ? expenses : [...expenses,expense]);return true;
+    },
+    recordDrafts: async records => {
+      if (remote) {setMutationError("Gunakan Form manual di menu Aktivitas. Pemrosesan OCR, suara dan chat belum dihubungkan.");return false;}
       const additions: ActivityExpense[] = records.map(({ id, draft, source }) => {
         const valid = receiptSchema.parse(draft);
         return {
@@ -145,12 +226,12 @@ export function ExpenseSessionProvider({ children, remote }: { children: ReactNo
         };
       });
       const ids = new Set(additions.map(record => record.id));
-      commit([...expenses.filter(record => !ids.has(record.id)), ...additions]);
+      commit([...expenses.filter(record => !ids.has(record.id)), ...additions]); return true;
     },
   };
   const unavailable = isApp && ready && !updatedAt;
   return <Context.Provider value={value}>
-    {mutationNotice && <Dialog title="Data belum diubah" onClose={() => setMutationNotice(false)}><p>Data dari server tersedia untuk dibaca. Penyimpanan dan perubahan pengeluaran akan dihubungkan pada tahap berikutnya.</p></Dialog>}
+    {mutationError && <Dialog title="Permintaan belum selesai" onClose={() => setMutationError("")}><p role="alert">{mutationError}</p></Dialog>}
     {isApp && !ready ? <main className="local-data-empty" aria-busy="true"><p role="status">Menyiapkan data Cashly…</p></main>
       : unavailable ? <main className="local-data-empty">
         <h1>Data belum tersedia di perangkat</h1>

@@ -291,7 +291,7 @@ function ScanReceiptFlowContent({
       if (alive.current && requestId === job.current.version) setBusy(false);
     }
   };
-  const submit = () => {
+  const submit = async () => {
     const result = receiptSchema.safeParse(draft);
     if (!result.success) {
       const next: Record<string, string> = {};
@@ -304,7 +304,7 @@ function ScanReceiptFlowContent({
       return;
     }
     setConfirmed(result.data);
-    recordDrafts([{ id: recordId.current, draft: result.data, source: "receipt" }]);
+    if (!await recordDrafts([{ id: recordId.current, draft: result.data, source: "receipt" }])) return;
     setErrors({});
     go("success");
   };

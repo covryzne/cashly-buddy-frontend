@@ -32,7 +32,7 @@ export async function verifiedSession(writable = false) {
   return session ? { supabase, user, token: session.access_token } : null;
 }
 
-export async function backend(path: "/auth/bootstrap" | "/me" | "/expenses", token: string, method = "GET") {
+export async function backend(path: string, token: string, method = "GET") {
   return fetch(`${authConfig().api}/api/v1${path}`, {
     method, headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
     signal: AbortSignal.timeout(15000), redirect: "error",

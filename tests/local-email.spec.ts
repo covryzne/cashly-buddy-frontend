@@ -20,8 +20,9 @@ test("local signup, account bootstrap, logout and password login without Google 
   await page.locator(".login-form:visible").getByLabel("Kata sandi", { exact: true }).fill(password);
   await page.locator(".login-form:visible").getByLabel("Konfirmasi kata sandi", { exact: true }).fill("different-password");
   await page.getByRole("button", { name: "Buat akun", exact: true }).click();
-  await expect(page.getByText("Konfirmasi kata sandi belum cocok.")).toBeVisible();
+  await expect(page.getByText("Kata sandi belum cocok", { exact: true })).toBeVisible();
   await page.locator(".login-form:visible").getByLabel("Konfirmasi kata sandi", { exact: true }).fill(password);
+  await expect(page.getByText("Kata sandi cocok", { exact: true })).toBeVisible();
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze()).violations).toEqual([]);
   await page.getByRole("button", { name: "Buat akun", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Akun berhasil dibuat" });
@@ -96,6 +97,45 @@ test("password composition validates before network requests", async ({ page }) 
   expect(requests).toBe(0);
   await page.locator(".login-form:visible").getByLabel("Kata sandi", { exact: true }).fill("StrongPass123!");
   await expect(page.locator(".password-requirements li[data-met=true]")).toHaveCount(5);
+  const confirmation = page.locator(".login-form:visible").getByLabel("Konfirmasi kata sandi", { exact: true });
+  await confirmation.fill("StrongPass123!");
+  await expect(page.getByText("Kata sandi cocok", { exact: true })).toBeVisible();
+  await expect(confirmation).toHaveAttribute("aria-invalid", "false");
+  await page.locator(".login-form:visible").getByLabel("Kata sandi", { exact: true }).fill("StrongPass124!");
+  await expect(page.getByText("Kata sandi belum cocok", { exact: true })).toBeVisible();
+  await expect(confirmation).toHaveAttribute("aria-invalid", "true");
+  await confirmation.fill("");
+  await expect(page.locator(".password-match-feedback:visible")).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   await page.locator(".auth-form-card").screenshot({ path: "test-results/register-validation-mobile.png" });
+});
+
+
+test("returning to a tab validates the session without reloading the document", async ({ page }) => {
+  await page.goto("/login");
+  const form=page.locator(".login-form:visible");
+  await form.getByLabel("Email",{exact:true}).fill(email);
+  await form.getByLabel("Kata sandi",{exact:true}).fill(password);
+  await page.getByRole("button",{name:"Masuk",exact:true}).click();
+  await expect(page).toHaveURL(/\/beranda/);
+  await expect(page.locator("html")).toHaveAttribute("data-cashly-auth-ready","true");
+  await page.evaluate(()=>{Object.assign(window,{cashlyDocumentProbe:"keep-this-document"});});
+  const checked=page.waitForResponse(response=>response.url().endsWith("/auth/session"));
+  await page.evaluate(()=>window.dispatchEvent(new Event("focus")));
+  expect((await checked).status()).toBe(200);
+  expect(await page.evaluate(()=>Reflect.get(window,"cashlyDocumentProbe"))).toBe("keep-this-document");
+  await page.getByRole("link",{name:"Aktivitas",exact:true}).click();
+  await expect(page).toHaveURL(/\/aktivitas/);
+  expect(await page.evaluate(()=>Reflect.get(window,"cashlyDocumentProbe"))).toBe("keep-this-document");
+  // Temporary validation failure must not log out an otherwise active account.
+  await page.route("**/auth/session",route=>route.fulfill({status:503,contentType:"application/json",body:"{}"}));
+  const unavailable=page.waitForResponse(response=>response.url().endsWith("/auth/session"));
+  await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent("pageshow",{persisted:true})));
+  expect((await unavailable).status()).toBe(503);
+  expect(await page.evaluate(()=>Reflect.get(window,"cashlyDocumentProbe"))).toBe("keep-this-document");
+  await expect(page).toHaveURL(/\/aktivitas/);
+  // An actually expired/revoked session still returns to login.
+  await page.route("**/auth/session",route=>route.fulfill({status:401,contentType:"application/json",body:"{}"}));
+  await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent("pageshow",{persisted:true})));
+  await expect(page).toHaveURL(/\/login/);
 });

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, type ReactNode } from "react";
 
-export function AuthSessionBoundary({ children }: { children: ReactNode }) {
+export function AuthSessionBoundary({ children, accountId }: { children: ReactNode; accountId: string }) {
   useEffect(() => {
     document.documentElement.dataset.cashlyAuthReady = "true";
     const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("cashly-auth") : null;
@@ -9,16 +9,41 @@ export function AuthSessionBoundary({ children }: { children: ReactNode }) {
     if (channel) channel.onmessage = event => { if (event.data === "logout") leave(); };
     const storage = (event: StorageEvent) => { if (event.key === "cashly-auth-logout") leave(); };
     window.addEventListener("storage", storage);
-    const validate = () => { if (document.visibilityState === "visible") window.location.reload(); };
-    const pageshow = (event: PageTransitionEvent) => { if (event.persisted) window.location.reload(); };
-    document.addEventListener("visibilitychange", validate);
-    window.addEventListener("pageshow", pageshow);
+    let checking=false;
+    let lastChecked=0;
+    let disposed=false;
+    const controller=new AbortController();
+    async function validate(force=false) {
+      if(checking || !navigator.onLine || document.visibilityState!=="visible" || (!force && Date.now()-lastChecked<30000)) return;
+      checking=true; lastChecked=Date.now();
+      try {
+        const response=await fetch("/auth/session",{cache:"no-store",signal:controller.signal});
+        if(disposed) return;
+        if(response.status===401 || response.status===403) {leave();return;}
+        if(response.status===409) {window.location.replace("/auth/complete");return;}
+        if(!response.ok) {lastChecked=0;return;}
+        const result=await response.json();
+        if(disposed) return;
+        if(result.account_id!==accountId) {window.location.replace("/auth/complete");return;}
+        window.dispatchEvent(new Event("cashly-session-validated"));
+      } catch {lastChecked=0;}
+      finally {checking=false;}
+    }
+    const visible=()=>{void validate();};
+    const pageshow=(event:PageTransitionEvent)=>{if(event.persisted) void validate(true);};
+    const reconnect=()=>{void validate(true);};
+    document.addEventListener("visibilitychange",visible);
+    window.addEventListener("focus",visible);
+    window.addEventListener("pageshow",pageshow);
+    window.addEventListener("online",reconnect);
     return () => {
+      disposed=true;controller.abort();
       delete document.documentElement.dataset.cashlyAuthReady;
       channel?.close(); window.removeEventListener("storage", storage);
-      document.removeEventListener("visibilitychange", validate); window.removeEventListener("pageshow", pageshow);
+      document.removeEventListener("visibilitychange",visible); window.removeEventListener("focus",visible);
+      window.removeEventListener("pageshow",pageshow);window.removeEventListener("online",reconnect);
     };
-  }, []);
+  }, [accountId]);
   return children;
 }
 

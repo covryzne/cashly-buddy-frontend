@@ -1,11 +1,14 @@
 'use client';
 
+import { useHomeData } from './use-home-data';
+import { WeeklyReviewAction } from '@/components/gamification/weekly-review-action';
+import { ServerMissions } from '@/components/gamification/server-missions';
+import { useServerSummary } from "@/features/reports/use-server-summary";
 import { LocalDataStatus } from "@/components/shared/local-data-status";
 
 import { useState, useSyncExternalStore } from 'react';
 import { Sparkles, Zap, Hand, ArrowUpRight, Plus } from 'lucide-react';
 import {
-  homeFixture as data,
   type Category,
   type Expense,
 } from '@/mocks/fixtures/home';
@@ -63,6 +66,8 @@ type Panel =
   | { kind: 'missions' }
   | { kind: 'weekly' };
 export function HomeDashboard() {
+  const data=useHomeData();
+  const session=useExpenseSession();
   const { profile } = useProfileSession();
   const { expenses, chatSession, setChatSession } = useExpenseSession();
   const currentMonth = useSyncExternalStore(
@@ -77,8 +82,10 @@ export function HomeDashboard() {
     kind: 'month',
     month: currentMonth,
   };
-  const snapshot = selectPeriod(selection, expenses);
-  const weekly = selectWeeklyStory(expenses);
+  const summary=useServerSummary(selection);
+  const computed=selectPeriod(selection,expenses);
+  const snapshot={...computed,totalIdr:summary?.data?.amount_idr ?? computed.totalIdr,count:summary?.data?.count ?? computed.count};
+  const weekly = selectWeeklyStory(expenses, session.remoteMode ? session.game?.today_local_date ?? data.asOf : data.asOf, session.remoteMode);
   const {
     panel,
     open: setPanel,
@@ -134,6 +141,7 @@ export function HomeDashboard() {
         </div>
         <main id="main-content" className="dashboard">
           <LocalDataStatus />
+          {summary?.error && <p role="alert">{summary.error}</p>}
           <div className="greeting-row">
             <div>
               <p className="desktop-eyebrow">
@@ -184,10 +192,10 @@ export function HomeDashboard() {
                   />
                   <span className="mascot-label">
                     <Sparkles size={13} />
-                    Level {data.mascotStage}
+                    {data.mascotStage ? `Tahap ${data.mascotStage}` : "Pendamping awal"}
                   </span>
                 </div>
-                {snapshot.categories.map((category, index) => (
+                {snapshot.categories.slice(0,4).map((category, index) => (
                   <button
                     key={category.code}
                     className={`floating-category float-${index}`}
@@ -223,9 +231,23 @@ export function HomeDashboard() {
                 streak={data.streak}
                 freezeBalance={data.freezeBalance}
                 calendar={data.calendar}
+                todayCheckedIn={session.remoteMode ? session.game?.today_checked_in ?? false : true}
+                todayDate={session.game?.today_local_date}
+                recoveryDate={session.game?.recovery?.protected_local_date}
+                onUseFreeze={session.game?.recovery ? ()=>{
+                  const day=session.game!.recovery!.protected_local_date;
+                  if(window.confirm(`Pakai 1 Freeze untuk ${day}?`)) void session.gameAction("freeze",day);
+                } : undefined}
+                pending={session.mutationPending}
+                onCheckIn={session.remoteMode && session.game ? ()=>void session.gameAction("review") : undefined}
+                onNoSpend={session.remoteMode && session.game && !session.expenses.some(e=>new Intl.DateTimeFormat("en-CA",{timeZone:session.game?.timezone ?? "Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(e.occurredAt))===session.game?.today_local_date) ? ()=>void session.gameAction("no-spend") : undefined}
               />
             </div>
-            <section className="missions-area">
+            {session.remoteMode && <section className="missions-area" aria-label="Misi">
+              <h2 className="section-title">Misi</h2>
+              <ServerMissions onOpen={()=>setPanel({kind:'weekly'})} />
+            </section>}
+            {!session.remoteMode && <section className="missions-area">
               <div className="section-heading section-title">
                 <h2>
                   Misi hari ini <span className="count-badge">1/2</span>
@@ -249,7 +271,7 @@ export function HomeDashboard() {
                   onSelect={() => setPanel({ kind: 'missions' })}
                 />
               </div>
-            </section>
+            </section>}
             <section className="transactions-area">
               <div className="section-heading section-title">
                 <h2>Transaksi terbaru</h2>
@@ -331,7 +353,7 @@ export function HomeDashboard() {
             footer={
               panel.kind === 'category' ? <Button data-modal-focus-key="category-add" onClick={() => push({ kind: 'add' })}><Plus size={17} />Catat pengeluaran</Button> : panel.kind === 'install' ? (
                 <Button onClick={back}>Kembali ke Profil</Button>
-              ) : panel.kind === 'expense' ? (
+              ) : panel.kind === 'weekly' && session.remoteMode ? <WeeklyReviewAction hasExpenses={weekly.count>0} /> : panel.kind === 'expense' ? (
                 <ExpenseDetailActions onDone={close} />
               ) : undefined
             }
@@ -420,7 +442,8 @@ export function HomeDashboard() {
                 }
               />
             )}
-            {panel.kind === 'missions' && (
+            {panel.kind === 'missions' && session.remoteMode && <ServerMissions onOpen={()=>push({kind:'weekly'})} />}
+            {panel.kind === 'missions' && !session.remoteMode && (
               <MissionBoard onOpenReview={() => push({ kind: 'weekly' })} />
             )}
             {panel.kind === 'weekly' && (
@@ -428,6 +451,7 @@ export function HomeDashboard() {
                 totalIdr={weekly.totalIdr}
                 count={weekly.count}
                 categories={weekly.categories}
+                periodLabel={weekly.monthLabel}
               />
             )}
           </Dialog>

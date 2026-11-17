@@ -2515,3 +2515,38 @@ svg {
     );
   }
 }
+
+/* Server-backed environment and weekly habit states. */
+.environment-indicator {display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;color:var(--muted);font-size:11px;}
+.environment-indicator > span {padding:4px 9px;border-radius:999px;background:var(--primary-soft);color:var(--primary-text);font-weight:700;}
+.environment-indicator[data-environment="staging"] > span {background:var(--butter);color:var(--warning);}
+.environment-indicator small {font-size:inherit;}
+.checkin-status {white-space:nowrap;color:var(--muted);background:var(--subtle);}
+.checkin-status[data-checked-in="true"] {color:var(--success);background:var(--mint);}
+.day-marker.is-dim {color:var(--muted);background:var(--subtle);}
+.day-marker.is-dim svg {opacity:.35;}
+.day-marker.is-active {color:var(--streak);background:var(--butter);box-shadow:0 0 10px color-mix(in srgb,var(--streak) 15%,transparent);}
+.day-marker.is-protected {color:var(--primary-text);background:var(--primary-soft);}
+.day-marker.is-current {outline:2px solid var(--primary);outline-offset:3px;}
+.streak-checkin-actions {display:flex;flex-direction:column;gap:8px;margin:16px 0 12px;}
+
+.weekly-mission-link {display:flex;align-items:center;gap:10px;width:100%;padding:12px 0;border:0;border-bottom:1px solid var(--border);background:transparent;color:var(--foreground);text-align:left;cursor:pointer;}
+.weekly-mission-link strong {font-size:13px;font-weight:600;}
+.weekly-mission-link > span {display:inline-flex;align-items:center;gap:5px;margin-left:auto;font-size:12px;color:var(--muted);}
+.weekly-reviewed-status {display:flex;align-items:center;justify-content:center;gap:7px;margin:0;color:var(--success);font-size:13px;}
+.streak-recovery {padding-top:12px;border-top:1px solid var(--border);}
+.streak-recovery p {font-size:12px;line-height:1.6;color:var(--muted);}
+
+.day-marker-button {border:0;padding:0;cursor:pointer;font:inherit;}
+.day-marker-button:disabled {opacity:1;cursor:default;}
+.day-marker-button:not(:disabled):hover {background:var(--butter);color:var(--streak);}
+.day-marker-button:not(:disabled):hover svg {opacity:1;}
+.day-marker-button:focus-visible {outline:3px solid var(--primary);outline-offset:4px;}
+.checkin-spinner {animation:checkin-spin .8s linear infinite;}
+@keyframes checkin-spin {to {transform:rotate(360deg);}}
+@media(prefers-reduced-motion:reduce) {.checkin-spinner {animation:none;}}
+.weekly-review-controls {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:100%;text-align:center;}
+.weekly-review-controls .caption {margin:0;font-size:11px;line-height:1.5;color:var(--muted);}
+.weekly-review-controls .button {width:auto;min-height:38px;padding:8px 16px;border-radius:12px;font-size:13px;line-height:1.4;}
+
+.streak-checkin-actions .button {width:auto;align-self:center;min-height:32px;padding:6px 10px;font-size:12px;}

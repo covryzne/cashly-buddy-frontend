@@ -5,18 +5,27 @@ import { accountSchema, apiExpensesSchema } from "@/lib/auth/types";
 import { ExpenseSessionProvider } from "@/features/expenses/expense-session";
 import { ProfileSessionProvider } from "@/features/profile/profile-session";
 import { AuthSessionBoundary } from "@/features/auth/session-boundary";
-import type { ActivityExpense } from "@/mocks/fixtures/activity";
+import { mapExpense, gameSchema } from "@/lib/finance";
 
 async function loadData() {
   const session = await verifiedSession();
   if (!session) return null;
-  const [me, expenses] = await Promise.all([
-    backend("/me", session.token), backend("/expenses", session.token),
+  const [me, expenses, gameResponse] = await Promise.all([
+    backend("/me", session.token), backend("/expenses", session.token), backend("/gamification/overview", session.token),
   ]);
   if (!me.ok || !expenses.ok) return null;
   const account = accountSchema.parse((await me.json()).data);
   const result = apiExpensesSchema.parse(await expenses.json());
-  return { account, result };
+  while (result.has_more && result.next_cursor) {
+    const response = await backend(`/expenses?cursor=${encodeURIComponent(result.next_cursor)}`, session.token);
+    if (!response.ok) throw new Error("Expense page unavailable");
+    const page = apiExpensesSchema.parse(await response.json());
+    result.data.push(...page.data);
+    result.has_more = page.has_more;
+    result.next_cursor = page.next_cursor;
+  }
+  const game = gameResponse.ok ? gameSchema.parse((await gameResponse.json()).data) : null;
+  return { account, result, game };
 }
 
 export default function SystemLayout({ children }: { children: React.ReactNode }) {
@@ -26,18 +35,9 @@ export default function SystemLayout({ children }: { children: React.ReactNode }
 async function SystemContent({ children }: { children: React.ReactNode }) {
   const data = await loadData().catch(() => null);
   if (!data) redirect("/auth/complete");
-  const payments: Record<string, string> = {
-    qris: "QRIS", cash: "Tunai", bank_transfer: "Transfer bank", debit_card: "Kartu debit",
-    credit_card: "Kartu kredit", e_wallet: "Dompet digital", unknown: "Lainnya",
-  };
-  const expenses: ActivityExpense[] = data.result.data.map(row => ({
-    id: row.id, merchant: row.merchant, description: row.description,
-    categoryCode: row.category_code, amountIdr: row.amount_idr, occurredAt: row.occurred_at,
-    paymentMethod: payments[row.payment_method] ?? row.payment_method,
-    source: row.source === "receipt" ? "receipt" : row.source === "voice" ? "voice" : "chat", tags: [],
-  }));
-  return <AuthSessionBoundary key={data.account.account_id}>
-    <ExpenseSessionProvider remote={{ expenses, sampleData: data.account.sample_data, hasMore: data.result.has_more }}>
+  const expenses = data.result.data.map(mapExpense);
+  return <AuthSessionBoundary key={data.account.account_id} accountId={data.account.account_id}>
+    <ExpenseSessionProvider remote={{ expenses, sampleData: data.account.sample_data, hasMore: data.result.has_more, game: data.game, runtime: data.account.runtime }}>
       <ProfileSessionProvider account={data.account}>{children}</ProfileSessionProvider>
     </ExpenseSessionProvider>
   </AuthSessionBoundary>;

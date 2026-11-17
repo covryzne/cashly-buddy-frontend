@@ -96,6 +96,7 @@ export function selectReports(
   expenses: readonly Expense[],
   period: PeriodSelection,
   today: string,
+  currentWeekStory = false,
 ) {
   const snapshot = selectPeriod(period, expenses);
   const bounds = periodBounds(period);
@@ -142,12 +143,12 @@ export function selectReports(
     null,
   );
   const storyEnd =
-    today >= bounds.start && today < bounds.end ? today : bounds.end;
+    currentWeekStory ? today : today >= bounds.start && today < bounds.end ? today : bounds.end;
   const storyStart =
-    addDays(storyEnd, -6) < bounds.start ? bounds.start : addDays(storyEnd, -6);
+    currentWeekStory ? weekStart(today) : addDays(storyEnd, -6) < bounds.start ? bounds.start : addDays(storyEnd, -6);
   const story = selectPeriod(
     { kind: "range", start: storyStart, end: storyEnd },
-    snapshot.expenses,
+    currentWeekStory ? expenses : snapshot.expenses,
   );
   // Reopening a review after changes must show the changed snapshot as unreviewed.
   const storyKey = JSON.stringify([

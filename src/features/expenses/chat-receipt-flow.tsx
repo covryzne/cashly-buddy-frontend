@@ -247,7 +247,7 @@ export function ChatReceiptFlow({
     pending.current = { text, result };
     setStep("processing");
   }
-  function submit() {
+  async function submit() {
     const result = receiptSchema.safeParse(draft);
     if (!result.success) {
       const next: Record<string, string> = {};
@@ -266,7 +266,7 @@ export function ChatReceiptFlow({
       confirmedAt: new Date().toISOString(),
       messages: messages.map((message) => ({ ...message })),
     });
-    recordDrafts([{ id: recordId.current, draft: result.data, source }]);
+    if (!await recordDrafts([{ id: recordId.current, draft: result.data, source }])) return;
     setErrors({});
     setStep("success");
   }

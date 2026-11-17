@@ -149,3 +149,17 @@ test("Cerita minggu berubah ketika catatan terkait diedit", () => {
   expect(after.totalIdr).toBe("1255500");
   expect(after.story.totalIdr).toBe("1117000");
 });
+
+
+test("Remote weekly review uses the current Monday-based week even for a historical report filter", () => {
+  const current=selectReports(activityExpenses,{kind:"month",month:"2026-10"},"2026-11-13",true);
+  expect(current.totalIdr).toBe("0");
+  expect(current.story.start).toBe("2026-11-09");
+  expect(current.story.end).toBe("2026-11-13");
+  expect(current.story.count).toBe(4);
+  expect(current.story.totalIdr).toBe("1110000");
+  const nextWeek=selectReports(activityExpenses,month,"2026-11-16",true);
+  expect(nextWeek.story.start).toBe("2026-11-16");
+  expect(nextWeek.story.count).toBe(0);
+  expect(selectReports(activityExpenses,{kind:"month",month:"2026-10"},"2026-11-13").story.count).toBe(0);
+});

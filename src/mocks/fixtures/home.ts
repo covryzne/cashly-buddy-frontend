@@ -58,6 +58,11 @@ export const homeFixture = {
       amountIdr: "138500",
       tone: "butter",
     },
+    {code:"groceries",label:"Belanja Kebutuhan",icon:"food",amountIdr:"0",tone:"mint"},
+    {code:"shopping",label:"Belanja Lainnya",icon:"entertainment",amountIdr:"0",tone:"peach"},
+    {code:"health",label:"Kesehatan",icon:"bills",amountIdr:"0",tone:"mint"},
+    {code:"education",label:"Pendidikan",icon:"bills",amountIdr:"0",tone:"lavender"},
+    {code:"other",label:"Lainnya",icon:"entertainment",amountIdr:"0",tone:"butter"},
   ] satisfies Category[],
   expenses: [
     {

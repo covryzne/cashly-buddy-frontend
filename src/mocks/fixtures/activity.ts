@@ -1,11 +1,12 @@
 import { homeFixture, type Expense } from "./home";
 import type { ReceiptDraft } from "@/features/scan/receipt-schema";
 
-export type ExpenseSource = "receipt" | "voice" | "chat";
+export type ExpenseSource = "receipt" | "voice" | "chat" | "dashboard";
 export type ActivityExpense = Expense & {
   source: ExpenseSource;
   tags: string[];
   draft?: ReceiptDraft;
+  version?: number;
 };
 
 // Fictional metadata layered on the same six Home records; never API history.
@@ -21,6 +22,7 @@ export const activityExpenses: ActivityExpense[] = homeFixture.expenses.map(
   (expense, index) => ({ ...expense, ...metadata[index] }),
 );
 export const expenseSourceLabels: Record<ExpenseSource, string> = {
+  dashboard: "Form manual",
   receipt: "Struk",
   voice: "Suara",
   chat: "Chat manual",

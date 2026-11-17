@@ -1,5 +1,7 @@
 "use client";
 
+import { useServerSummary } from "@/features/reports/use-server-summary";
+import { WeeklyReviewAction } from "@/components/gamification/weekly-review-action";
 import { LocalDataStatus } from "@/components/shared/local-data-status";
 import { useOnline } from "@/lib/pwa/connectivity";
 
@@ -86,7 +88,9 @@ export function ReportsDashboard() {
   };
   const [override, setOverride] = useState<PeriodSelection | null>(null);
   const period = override ?? currentMonth;
-  const snapshot = selectReports(session.expenses, period, today);
+  const summary=useServerSummary(period);
+  const computed=selectReports(session.expenses,period,today,session.remoteMode);
+  const snapshot={...computed,totalIdr:summary?.data?.amount_idr ?? computed.totalIdr,count:summary?.data?.count ?? computed.count};
   const [category, setCategory] = useState<string | null>(null);
   const selectedCategory = category;
   const [trend, setTrend] = useState<string | null>(null);
@@ -99,7 +103,7 @@ export function ReportsDashboard() {
     (entry) => entry.start === selectedTrend,
   );
   const [reviewedKey, setReviewedKey] = useState<string | null>(null);
-  const reviewed = reviewedKey === snapshot.story.key;
+  const reviewed = session.remoteMode ? Boolean(session.game?.missions.find(m=>m.code==="weekly")?.completed) : reviewedKey === snapshot.story.key;
   const [exportFeedback, setExportFeedback] = useState("");
   const [exportTextVisible, setExportTextVisible] = useState(false);
   const exportText = useRef<HTMLTextAreaElement>(null);
@@ -191,6 +195,7 @@ export function ReportsDashboard() {
         />
         <main id="reports-main" className="reports-main">
           <LocalDataStatus />
+          {summary?.error && <p role="alert">{summary.error}</p>}
           <div className="report-heading">
             <div>
               <p>Analisis finansial</p>
@@ -448,10 +453,10 @@ export function ReportsDashboard() {
                 : "report-dialog"
           }
           footer={
-            panel.kind === "story" ? (
+            panel.kind === "story" && session.remoteMode ? <WeeklyReviewAction hasExpenses={snapshot.story.count>0} /> : panel.kind === "story" ? (
               <Button
                 disabled={!online || reviewed || !snapshot.story.count}
-                onClick={() => {
+                onClick={async () => {
                   setReviewedKey(snapshot.story.key);
                   close();
                 }}

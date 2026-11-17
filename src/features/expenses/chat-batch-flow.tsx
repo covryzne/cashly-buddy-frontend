@@ -246,7 +246,7 @@ function ChatBatchFlowContent({
     setIssues({});
     setStep("review");
   }
-  function confirm() {
+  async function confirm() {
     if (step !== "review" || !entries.length) return;
     const next: Record<string, string> = {};
     const validated = entries.map((entry) => {
@@ -275,7 +275,7 @@ function ChatBatchFlowContent({
       messages: messages.map((message) => ({ ...message })),
       confirmedAt: new Date().toISOString(),
     });
-    recordDrafts(validated.flatMap(entry => entry.draft ? [{ id: entry.id, draft: entry.draft, source: "chat" as const }] : []));
+    if (!await recordDrafts(validated.flatMap(entry => entry.draft ? [{ id: entry.id, draft: entry.draft, source: "chat" as const }] : []))) return;
     setStep("success");
   }
   function reset() {

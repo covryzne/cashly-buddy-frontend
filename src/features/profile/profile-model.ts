@@ -4,8 +4,8 @@ export const profileSchema = z
     name: z
       .string()
       .trim()
-      .min(1, "Isi nama lengkapmu.")
-      .max(50, "Nama maksimal 50 karakter."),
+      .min(2, "Nama minimal 2 karakter.")
+      .max(40, "Nama maksimal 40 karakter."),
     username: z
       .string()
       .trim()

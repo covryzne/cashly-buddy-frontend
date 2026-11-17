@@ -3,7 +3,7 @@
 import { LocalDataStatus } from "@/components/shared/local-data-status";
 
 import Image from "next/image";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   CalendarDays,
   Check,
@@ -39,6 +39,7 @@ import {
   ExpenseDetailActions,
 } from "@/components/finance/expense-detail";
 import { ReceiptReview } from "@/components/finance/receipt-review";
+import { ManualExpenseForm } from "@/features/expenses/manual-expense-form";
 import { QuickAddMethods } from "@/components/finance/quick-add-methods";
 import { ScanReceiptFlow } from "@/features/scan/scan-receipt-flow";
 import { ChatBatchFlow } from "@/features/expenses/chat-batch-flow";
@@ -75,6 +76,7 @@ import {
 } from "./select-activity";
 
 type Panel =
+  | { kind: "manual" }
   | { kind: "filters" }
   | { kind: "period"; fromFilter?: boolean }
   | { kind: "day" }
@@ -133,6 +135,7 @@ export function ActivityDashboard() {
   const [editDraft, setEditDraft] = useState<ReceiptDraft | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [deleted, setDeleted] = useState<ActivityExpense | null>(null);
+  useEffect(()=>{ if(!deleted) return; const timer=setTimeout(()=>setDeleted(null),30000); return ()=>clearTimeout(timer); },[deleted]);
   const [announcement, setAnnouncement] = useState("");
   const { panel, open, push, close, back, canGoBack } = useModalStack<Panel>();
   const search = useRef<HTMLInputElement>(null);
@@ -206,7 +209,7 @@ export function ActivityDashboard() {
     setErrors({});
     push({ kind: "edit", id: active.id });
   }
-  function saveEdit() {
+  async function saveEdit() {
     if (!navigator.onLine || !active || !editDraft) return;
     const result = receiptSchema.safeParse(editDraft);
     if (!result.success) {
@@ -219,22 +222,22 @@ export function ActivityDashboard() {
       );
       return;
     }
-    session.updateExpense(active.id, result.data);
+    if (!await session.updateExpense(active.id, result.data)) return;
     setAnnouncement("Pengeluaran diperbarui.");
     back();
   }
-  function removeExpense() {
+  async function removeExpense() {
     if (!navigator.onLine || !active) return;
+    if (!await session.removeExpense(active.id)) return;
     setDeleted(active);
-    session.removeExpense(active.id);
     setAnnouncement("");
     close();
     requestAnimationFrame(() => undo.current?.focus({ preventScroll: true }));
   }
-  function restoreExpense() {
+  async function restoreExpense() {
     if (!navigator.onLine || !deleted) return;
     const id = deleted.id;
-    session.restoreExpense(deleted);
+    if (!await session.restoreExpense(deleted)) return;
     setDeleted(null);
     setAnnouncement("Pengeluaran dikembalikan.");
     requestAnimationFrame(() =>
@@ -275,7 +278,7 @@ export function ActivityDashboard() {
           {deleted && (
             <div className="activity-undo" role="status">
               <span>Pengeluaran dihapus.</span>
-              <Button variant="ghost" ref={undo} disabled={!online} onClick={restoreExpense}>
+              <Button variant="ghost" ref={undo} disabled={!online || session.mutationPending} onClick={restoreExpense}>
                 <Undo2 size={15} />
                 Urungkan
               </Button>
@@ -573,7 +576,8 @@ export function ActivityDashboard() {
           onChat={() => push({ kind: "chat" })}
         />
       )}
-      {panel &&
+      {panel?.kind === "manual" && <ManualExpenseForm onClose={close} />}
+      {panel && panel.kind !== "manual" &&
         panel.kind !== "scan" &&
         panel.kind !== "chat" &&
         panel.kind !== "voice" && (
@@ -632,7 +636,7 @@ export function ActivityDashboard() {
                 />
               ) : panel.kind === "edit" ? (
                 <div className="scan-review-actions">
-                  <Button type="submit" form={formId} disabled={!online}>
+                  <Button type="submit" form={formId} disabled={!online || session.mutationPending}>
                     <Check size={18} />
                     Simpan perubahan
                   </Button>
@@ -644,7 +648,7 @@ export function ActivityDashboard() {
                   </Button>
                   <Button
                     className="activity-confirm-delete"
-                    disabled={!online}
+                    disabled={!online || session.mutationPending}
                     onClick={removeExpense}
                   >
                     <Trash2 size={17} />

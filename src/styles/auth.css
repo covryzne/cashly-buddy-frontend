@@ -635,3 +635,6 @@
 .password-requirements li[data-met="true"] svg { opacity: 1; }
 .auth-success-icon { color: var(--primary); margin-bottom: 12px; }
 .auth-success-dialog p { line-height: 1.65; }
+.password-match-feedback { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 12px; line-height: 1.5; color: var(--danger); }
+.password-match-feedback[data-matched="true"] { color: var(--success); }
+.password-match-feedback svg { flex-shrink: 0; }

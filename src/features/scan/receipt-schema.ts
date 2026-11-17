@@ -19,6 +19,8 @@ export const paymentMethods = [
   "Kartu debit",
   "Transfer bank",
   "Dompet digital",
+  "Kartu kredit",
+  "Lainnya",
 ];
 export const receiptSchema = z
   .object({
@@ -66,6 +68,9 @@ export const receiptSchema = z
   })
   .superRefine((draft, context) => {
     const amounts = receiptAmounts(draft);
+    if (amounts.total > BigInt("999999999999")) context.addIssue({
+      code:"custom",path:["items"],message:"Total maksimal 999.999.999.999 rupiah."
+    });
     if (amounts.total <= BigInt(0))
       context.addIssue({
         code: "custom",

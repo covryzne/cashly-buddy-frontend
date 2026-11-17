@@ -16,7 +16,7 @@ const snapshotSchema = z.object({
     amountIdr: z.string().regex(/^[1-9]\d{0,14}$/),
     occurredAt: z.string().datetime({ offset: true }),
     paymentMethod: z.string(),
-    source: z.enum(["receipt", "voice", "chat"]),
+    source: z.enum(["receipt", "voice", "chat", "dashboard"]),
     tags: z.array(z.string()),
     draft: receiptSchema.optional(),
   })).max(2000).refine(expenses => new Set(expenses.map(expense => expense.id)).size === expenses.length),

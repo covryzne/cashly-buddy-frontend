@@ -9,7 +9,7 @@ import { prepareAssetCache } from "@/lib/assets/cache";
 export function LocalDataStatus() {
   const online = useOnline();
   const offlineDocument = useContext(OfflineDocumentContext);
-  const { updatedAt, storageError, remoteMode, sampleData, hasMore } = useExpenseSession();
+  const { updatedAt, storageError, remoteMode, hasMore, runtime, syncError } = useExpenseSession();
 
   useEffect(() => {
     let active = true;
@@ -35,7 +35,12 @@ export function LocalDataStatus() {
     : null;
 
   return <>
-    {remoteMode && <p className="offline-banner">{sampleData ? "Data contoh dari database development." : "Data akun dari server."} Pengeluaran tersedia untuk dibaca; perubahan pengeluaran dan profil belum disimpan ke server.{hasMore ? " Menampilkan 100 transaksi terbaru." : ""} Progres Mochi dan fitur lain masih pratinjau.</p>}
+    {remoteMode && runtime && runtime.environment!=="prod" && <p className="environment-indicator" data-environment={runtime.environment}>
+      <span>{runtime.environment==="dev" ? "Development" : "Staging"}</span>
+      <small>{runtime.database_kind==="local" ? "Database lokal" : `Database ${runtime.environment==="staging" ? "staging" : "development"}`}</small>
+    </p>}
+    {hasMore && <p className="caption">Masih ada transaksi lain yang belum dimuat.</p>}
+    {syncError && <p className="caption" role="status">{syncError}</p>}
     <section className="local-data-status" data-state={online ? "online" : "offline"}
       aria-label="Status koneksi" role="status">
       {online ? <Wifi size={15} aria-hidden="true" /> : <WifiOff size={15} aria-hidden="true" />}

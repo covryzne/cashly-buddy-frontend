@@ -4,6 +4,7 @@ import { LocalDataStatus } from "@/components/shared/local-data-status";
 
 import { useId, useState } from "react";
 import { useOnline } from "@/lib/pwa/connectivity";
+import { useHomeData } from "@/features/home/use-home-data";
 import { useExpenseSession } from "@/features/expenses/expense-session";
 import { logoutGoogle } from "@/features/auth/session-boundary";
 import {
@@ -43,7 +44,6 @@ import { EvolutionCarousel } from "@/components/gamification/evolution-carousel"
 import { MoneyDisplay } from "@/components/finance/money-display";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { homeFixture } from "@/mocks/fixtures/home";
 import { formatDate } from "@/lib/format/datetime";
 import { themeLabels, useTheme, type Theme } from "@/lib/theme/use-theme";
 import {
@@ -80,6 +80,7 @@ const infoTitles: Record<InfoPanel, string> = {
 };
 
 export function ProfileDashboard() {
+  const gameData=useHomeData();
   const online = useOnline();
   const [logoutError, setLogoutError] = useState("");
   const session = useExpenseSession();
@@ -110,7 +111,7 @@ export function ProfileDashboard() {
     push({ kind: "whatsapp", step: "otp" });
   }
   const nextStage = evolutionStages.find(
-    (stage) => stage.stage > homeFixture.maxMascotStageUnlocked,
+    (stage) => stage.stage > gameData.maxMascotStageUnlocked,
   );
   function openGuide(tab: "evolution" | "freeze", stage?: number) {
     setGuideTab(tab);
@@ -122,7 +123,7 @@ export function ProfileDashboard() {
     setPhotoBusy(false);
     open({ kind: "edit" });
   }
-  function submitProfile() {
+  async function submitProfile() {
     if (photoBusy || !navigator.onLine) return;
     const result = profileSchema.safeParse(draft);
     if (!result.success) {
@@ -135,7 +136,7 @@ export function ProfileDashboard() {
       );
       return;
     }
-    saveProfile(result.data);
+    if (!await saveProfile(result.data)) return;
     setFeedback("Profilmu sudah diperbarui.");
     close();
   }
@@ -228,10 +229,10 @@ export function ProfileDashboard() {
               </div>
               <div className="profile-mochi-card">
                 <EvolutionCarousel
-                  currentStage={homeFixture.mascotStage}
-                  maxUnlocked={homeFixture.maxMascotStageUnlocked}
-                  xp={homeFixture.xp}
-                  streak={homeFixture.streak}
+                  currentStage={gameData.mascotStage}
+                  maxUnlocked={gameData.maxMascotStageUnlocked}
+                  xp={gameData.xp}
+                  streak={gameData.streak}
                   onDetails={(stage) => openGuide("evolution", stage)}
                 />
                 {nextStage ? (
@@ -241,7 +242,7 @@ export function ProfileDashboard() {
                         Menuju hero level {nextStage.stage} · {nextStage.name}
                       </span>
                       <strong>
-                        {homeFixture.streak}/{nextStage.days} hari
+                        {gameData.streak}/{nextStage.days} hari
                       </strong>
                     </div>
                     <div
@@ -250,13 +251,13 @@ export function ProfileDashboard() {
                       aria-valuemin={0}
                       aria-valuemax={nextStage.days}
                       aria-valuenow={Math.min(
-                        homeFixture.streak,
+                        gameData.streak,
                         nextStage.days,
                       )}
                     >
                       <i
                         style={{
-                          width: `${Math.min((homeFixture.streak / nextStage.days) * 100, 100)}%`,
+                          width: `${Math.min((gameData.streak / nextStage.days) * 100, 100)}%`,
                         }}
                       />
                     </div>
@@ -275,9 +276,9 @@ export function ProfileDashboard() {
                     XP & Level <Zap size={17} />
                   </span>
                   <strong>
-                    {homeFixture.xp} <small>XP</small>
+                    {gameData.xp} <small>XP</small>
                   </strong>
-                  <p>Level {homeFixture.level} · Perjalananmu sendiri.</p>
+                  <p>Level {gameData.level} · Perjalananmu sendiri.</p>
                   <small>
                     Kenali XP dan level <Info size={12} />
                   </small>
@@ -291,7 +292,7 @@ export function ProfileDashboard() {
                     Streak Freeze <ShieldCheck size={17} />
                   </span>
                   <strong>
-                    {homeFixture.freezeBalance} <small>tersedia</small>
+                    {gameData.freezeBalance} <small>tersedia</small>
                   </strong>
                   <p>Perlindungan streak dengan konfirmasi manual.</p>
                   <small>
@@ -601,7 +602,7 @@ export function ProfileDashboard() {
                     <Zap size={29} />
                   </span>
                   <h3>
-                    Level {homeFixture.level} · {homeFixture.xp} XP
+                    Level {gameData.level} · {gameData.xp} XP
                   </h3>
                   <p>
                     XP berasal dari aktivitas yang memenuhi syarat. Level XP

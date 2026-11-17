@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Eye, EyeOff, LockKeyhole } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, CircleCheck, CircleX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { autofillHydrationProps } from "./browser-autofill";
 
@@ -16,6 +16,7 @@ export function AuthPasswordField({
   name,
   autoComplete = "off",
   descriptionId,
+  feedback,
 }: {
   id: string;
   label: string;
@@ -27,6 +28,7 @@ export function AuthPasswordField({
   name?: string;
   autoComplete?: "off" | "current-password" | "new-password";
   descriptionId?: string;
+  feedback?: { matches: boolean; text: string };
 }) {
   const [visible, setVisible] = useState(false);
   const isConfirmation = id.endsWith("confirm-password");
@@ -49,8 +51,8 @@ export function AuthPasswordField({
           }
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          aria-invalid={Boolean(error)}
-          aria-describedby={[descriptionId, error ? `${id}-error` : undefined].filter(Boolean).join(" ") || undefined}
+          aria-invalid={Boolean(error) || feedback?.matches === false}
+          aria-describedby={[descriptionId, error ? `${id}-error` : undefined, feedback ? `${id}-feedback` : undefined].filter(Boolean).join(" ") || undefined}
           required
           disabled={disabled}
         />
@@ -70,6 +72,10 @@ export function AuthPasswordField({
           {error}
         </p>
       )}
+      {feedback && <p id={`${id}-feedback`} className="password-match-feedback" data-matched={feedback.matches ? "true" : "false"} role="status" aria-live="polite">
+        {feedback.matches ? <CircleCheck size={14} aria-hidden="true" /> : <CircleX size={14} aria-hidden="true" />}
+        <span>{feedback.text}</span>
+      </p>}
     </div>
   );
 }

@@ -46,9 +46,11 @@ export function ReceiptAnalysis({
   example,
   source = "photo",
   pending = false,
+  pendingLabel,
 }: {
   example: boolean;
   pending?: boolean;
+  pendingLabel?: string;
   source?: "photo" | "chat" | "voice";
 }) {
   const fromChat = source !== "photo";
@@ -171,7 +173,7 @@ export function ReceiptAnalysis({
           </div>
         </div>
         <p className="analysis-live" role="status" aria-live="polite">
-          {pending ? "Mochi sedang membaca foto, tunggu ya" : activeStages[stage].title}…
+          {pending ? (pendingLabel ?? "Mochi sedang membaca foto, tunggu ya") : activeStages[stage].title}…
         </p>
         {!pending && <ol
           className="analysis-stages"

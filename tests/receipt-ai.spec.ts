@@ -82,6 +82,16 @@ test("invalid gallery file does not call extraction", async ({ page, request }) 
   expect((await (await request.get(`${origin}/__test/chat-state`)).json()).extractions).toBe(0);
 });
 
+test("disconnect and reconnect preserve the selected photo and caption", async ({ page, context }) => {
+  await upload(page);
+  await page.getByRole("textbox", { name: "Keterangan foto (opsional)" }).fill("Servis motor, bayar QRIS");
+  await context.setOffline(true);
+  await expect(page.getByRole("dialog", { name: "Perlu koneksi internet" })).toBeVisible();
+  await context.setOffline(false);
+  await expect(page.getByRole("textbox", { name: "Keterangan foto (opsional)" })).toHaveValue("Servis motor, bayar QRIS");
+  await expect(page.getByAltText("Foto pengeluaran yang akan dianalisis")).toBeVisible();
+});
+
 test("camera capture sends a JPEG and stops the camera before analysis", async ({ page }) => {
   // Exercise the actual video -> canvas -> JPEG path with a deterministic video stream.
   await page.evaluate(() => {

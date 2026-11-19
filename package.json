@@ -21,6 +21,8 @@
     "test:e2e": "playwright test",
     "test:offline": "node scripts/run-offline-tests.mjs",
     "test:chat:model": "playwright test --config=playwright.chat-model.config.ts",
+    "test:multimodal": "node scripts/run-multimodal-tests.mjs",
+    "test:voice:ai": "playwright test --config=playwright.voice-ai.config.ts",
     "test:receipt:ai": "playwright test --config=playwright.receipt.config.ts",
     "test:chat:ai": "playwright test --config=playwright.chat-ai.config.ts",
     "test:oauth": "playwright test --config=playwright.oauth.config.ts",

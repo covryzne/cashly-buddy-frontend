@@ -350,14 +350,14 @@ export function ExpenseSessionProvider({ children, remote, offlineSnapshot = fal
     },
     recordDrafts: async records => {
       if (remote) {
-        if (records.some(record => record.source !== "chat" && record.source !== "receipt")) {
-          setMutationError("Pemrosesan suara belum dihubungkan."); return false;
+        if (records.some(record => !["chat", "receipt", "voice"].includes(record.source))) {
+          setMutationError("Sumber pencatatan belum didukung."); return false;
         }
         if (!online || !navigator.onLine || inFlight.current || !records.length) return false;
         inFlight.current = true; setMutationPending(true); setMutationError("");
         try {
           const body = { records: records.map(record => ({
-            id: record.id, ...(record.source === "receipt" ? { source: "receipt" } : {}), expense: expensePayload(receiptSchema.parse(record.draft)),
+            id: record.id, ...(record.source !== "chat" ? { source: record.source } : {}), expense: expensePayload(receiptSchema.parse(record.draft)),
           })) };
           // Stable across a close/reopen or uncertain HTTP response. Changed payloads conflict.
           const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(

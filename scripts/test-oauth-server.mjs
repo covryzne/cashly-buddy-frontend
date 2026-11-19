@@ -7,6 +7,8 @@ import { chatTestApi } from "./chat-test-api.mjs";
 const require = createRequire(import.meta.url);
 const site = "http://127.0.0.1:34567";
 const upstream = "http://127.0.0.1:34568";
+const liveApi = process.env.CASHLY_TEST_REAL_API;
+if (liveApi && !["127.0.0.1", "localhost"].includes(new URL(liveApi).hostname)) throw new Error("Live verification backend must be loopback");
 const emailMode = process.env.CASHLY_TEST_EMAIL === "true";
 let password = "";
 let otpMode = false, confirmed = true;
@@ -62,6 +64,19 @@ const server = createServer(async (req, res) => {
     return send(200,{});
   }
   calls.push(url.pathname); // Paths only; never log code, verifier, credentials or bodies.
+  if (liveApi && /^\/api\/v1\/(?:chat\/|receipts\/|voice\/|expenses(?:$|\/)|reports\/|gamification\/|categories|me(?:$|\/)|auth\/bootstrap)/.test(url.pathname)) {
+    try {
+      const chunks = []; for await (const chunk of req) chunks.push(chunk);
+      const response = await fetch(liveApi + url.pathname + url.search, {
+        method: req.method, headers: { "Content-Type": "application/json", "Authorization": req.headers.authorization ?? "",
+          "Idempotency-Key": req.headers["idempotency-key"] ?? "", "X-Request-ID": req.headers["x-request-id"] ?? "" },
+        body: ["GET", "HEAD"].includes(req.method) ? undefined : Buffer.concat(chunks), signal: AbortSignal.timeout(50000),
+      });
+      res.writeHead(response.status, { "Content-Type": "application/json", "Server-Timing": response.headers.get("server-timing") ?? "" });
+      res.end(await response.text());
+    } catch { send(503, { error: { message: "Local verification backend unavailable" } }); }
+    return;
+  }
   if (process.env.CASHLY_TEST_CHAT === "true" && await chatTestApi(req, url, send)) return;
   if(url.pathname==="/auth/v1/user/identities/authorize") {
     if(!req.headers.authorization?.startsWith("Bearer "))return send(401,{});

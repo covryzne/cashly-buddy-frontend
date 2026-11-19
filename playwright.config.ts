@@ -3,7 +3,7 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests",
   // These suites own authenticated fixture servers in their dedicated configs.
-  testIgnore: ["**/chat-ai.spec.ts", "**/offline.spec.ts"],
+  testIgnore: ["**/chat-ai.spec.ts", "**/offline.spec.ts", "**/receipt-ai.spec.ts", "**/voice-ai.spec.ts", "**/ai-live.spec.ts"],
   fullyParallel: false,
   use: {
     launchOptions: {

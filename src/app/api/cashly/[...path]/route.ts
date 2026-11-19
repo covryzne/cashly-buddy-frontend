@@ -11,14 +11,14 @@ async function forward(request: Request, context: Context, trace: Trace) {
       return Response.json({error:{message:"Permintaan tidak diizinkan."}},{status:403,headers});
     const path = (await context.params).path.join("/");
     const allowed = /^(expenses(?:\/[0-9a-f-]{36}(?:\/restore)?)?|categories|me\/(?:preferences|profile|security\/(?:password\/(?:change|setup\/request)|google(?:\/disconnect)?))|gamification\/(overview|streak\/calendar|streak\/freeze|checkins\/(no-spend|review))|reports\/(summary|trend))$/;
-    if (!allowed.test(path) && !(request.method === "POST" && ["chat/extract", "receipts/extract", "expenses/chat-batch"].includes(path))) return Response.json({error:{message:"Endpoint tidak tersedia."}},{status:404,headers});
+    if (!allowed.test(path) && !(request.method === "POST" && ["chat/extract", "receipts/extract", "voice/transcribe", "voice/extract", "expenses/chat-batch"].includes(path))) return Response.json({error:{message:"Endpoint tidak tersedia."}},{status:404,headers});
     trace.route = path.replace(/[0-9a-f-]{36}/g, ":id");
     const authStarted = performance.now();
     let session;
     try { session = await verifiedSession(true); }
     finally { trace.authMs = performance.now() - authStarted; }
     if (!session) return Response.json({error:{message:"Silakan login kembali."}},{status:401,headers});
-    const limit = path === "receipts/extract" ? 4 * Math.ceil(10 * 1024 * 1024 / 3) + 65536 : 65536;
+    const limit = path === "receipts/extract" ? 4 * Math.ceil(10 * 1024 * 1024 / 3) + 65536 : path === "voice/transcribe" ? 4 * Math.ceil(5 * 1024 * 1024 / 3) + 8192 : 65536;
     let body: string | undefined;
     if (request.method !== "GET") {
       const reader = request.body?.getReader();
@@ -50,7 +50,7 @@ async function forward(request: Request, context: Context, trace: Trace) {
     try { upstream = await fetch(`${authConfig().api}/api/v1/${path}${new URL(request.url).search}`, {
       method: request.method, headers: {Authorization:`Bearer ${session.token}`,"Content-Type":"application/json",
         "Idempotency-Key":request.headers.get("Idempotency-Key") ?? "", "X-Request-ID": trace.requestId},
-      body, cache:"no-store",redirect:"error",signal:AbortSignal.timeout(path.startsWith("me/security/") || ["chat/extract", "receipts/extract"].includes(path) ? 45000 : 15000),
+      body, cache:"no-store",redirect:"error",signal:AbortSignal.timeout(["chat/extract", "receipts/extract", "voice/transcribe", "voice/extract"].includes(path) ? 75000 : path.startsWith("me/security/") ? 45000 : 15000),
     }); } finally { trace.backendMs = performance.now() - upstreamStarted; }
     const responseBody = await upstream.text();
     trace.backendMs = performance.now() - upstreamStarted;

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps } from "react";
-import { OnlineRequired } from "@/components/shared/online-required";
+import { useOnline } from "@/lib/pwa/connectivity";
 import { useExpenseSession } from "@/features/expenses/expense-session";
 import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
@@ -56,6 +56,8 @@ function ScanReceiptFlowContent({
   onClose: () => void;
 }) {
   const camera = useReceiptCamera();
+  const online = useOnline();
+  const stopCamera = camera.stop;
   const requestCamera = camera.request;
   const { recordDrafts, remoteMode, mutationPending } = useExpenseSession();
   const imageBlob = useRef<Blob | null>(null);
@@ -85,6 +87,9 @@ function ScanReceiptFlowContent({
   const alive = useRef(true);
   const formId = useId();
   useEffect(() => {
+    if (!online) { extractionRequest.current?.abort(); stopCamera(); }
+  }, [online, stopCamera]);
+  useEffect(() => {
     alive.current = true;
     const pendingJob = job.current;
     const ownedUrls = objectUrls.current;
@@ -100,7 +105,7 @@ function ScanReceiptFlowContent({
     let cancelled = false;
     void canSkipCameraIntro().then((skip) => {
       if (cancelled || !alive.current) return;
-      if (skip && !document.hidden) {
+      if (skip && !document.hidden && navigator.onLine) {
         enteredWithoutIntro.current = true;
         setStep("camera");
         void requestCamera();
@@ -317,8 +322,9 @@ function ScanReceiptFlowContent({
       go("review");
     } catch (error) {
       if (!alive.current || version !== job.current.version) return;
+      const aborted = controller.signal.aborted;
       go("photo");
-      setMessage(error instanceof Error ? error.message : "Foto belum bisa dianalisis.");
+      setMessage(aborted ? "Analisis dihentikan. Foto masih tersedia untuk dicoba lagi." : error instanceof Error ? error.message : "Foto belum bisa dianalisis.");
     }
   };
   const submit = async () => {
@@ -350,6 +356,9 @@ function ScanReceiptFlowContent({
     success: "Konfirmasi pengeluaran",
     help: "Panduan scan",
   }[step];
+  if (!online) return <Dialog title="Perlu koneksi internet" onBack={onBack} onClose={onClose}>
+    <p>OCR memerlukan internet. Foto dan keterangan tetap tersedia selama dialog ini belum ditutup.</p>
+  </Dialog>;
   return (
     <Dialog
       title={title}
@@ -698,5 +707,5 @@ function ScanReceiptFlowContent({
 }
 
 export function ScanReceiptFlow(props: ComponentProps<typeof ScanReceiptFlowContent>) {
-  return <OnlineRequired onBack={props.onBack} onClose={props.onClose}><ScanReceiptFlowContent {...props} /></OnlineRequired>;
+  return <ScanReceiptFlowContent {...props} />;
 }

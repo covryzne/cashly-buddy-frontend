@@ -12,7 +12,10 @@ export function useVoiceRecorder() {
   const [status, setStatus] = useState<Status>("idle");
   const [seconds, setSeconds] = useState(0);
   const [level, setLevel] = useState(0);
+  const [warning, setWarning] = useState("");
+  const [previewAvailable, setPreviewAvailable] = useState(true);
   const [error, setError] = useState("");
+  const [blob, setBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [duration, setDuration] = useState(0);
   const [peaks, setPeaks] = useState<number[]>([]);
@@ -78,6 +81,7 @@ export function useVoiceRecorder() {
     if (url.current) URL.revokeObjectURL(url.current);
     url.current = null;
     setAudioUrl(null);
+    setBlob(null);
     setSeconds(0);
     setDuration(0);
     setPeaks([]);
@@ -85,6 +89,7 @@ export function useVoiceRecorder() {
     stoppedAt.current = null;
     setLevel(0);
     setError("");
+    setWarning(""); setPreviewAvailable(true);
     setStatus("idle");
   }, [release, invalidate]);
 
@@ -152,7 +157,9 @@ export function useVoiceRecorder() {
       requesting.current = false;
       const mimeType = [
         "audio/webm;codecs=opus",
+        "audio/mp4;codecs=mp4a.40.2",
         "audio/mp4",
+        "audio/ogg;codecs=opus",
         "audio/webm",
       ].find((type) => MediaRecorder.isTypeSupported(type));
       const current = new MediaRecorder(
@@ -199,6 +206,7 @@ export function useVoiceRecorder() {
           return;
         }
         url.current = URL.createObjectURL(blob);
+        setBlob(blob);
         setDuration(elapsed);
         setSeconds(Math.floor(elapsed));
         setPeaks([...levels.current]);
@@ -253,6 +261,41 @@ export function useVoiceRecorder() {
     }
   }, [release, reset, stop]);
 
+  const loadFile = useCallback(async (file: File) => {
+    const inferred: Record<string, string> = { m4a: "audio/mp4", mp4: "audio/mp4", webm: "audio/webm", ogg: "audio/ogg", wav: "audio/wav", mp3: "audio/mpeg", aac: "audio/aac", flac: "audio/flac" };
+    const mime = file.type.split(";")[0] || inferred[file.name.split(".").pop()?.toLowerCase() ?? ""] || "";
+    if (!Object.values(inferred).concat(["audio/x-m4a", "audio/x-wav", "audio/x-flac", "audio/mp3"]).includes(mime)) {
+      setError("Pilih audio WebM, M4A, WAV, MP3, Ogg, AAC, atau FLAC."); return false;
+    }
+    if (!file.size || file.size > MAX_BYTES) { setError("Ukuran audio harus 1 byte sampai 5 MB."); return false; }
+    reset();
+    const attempt = sequence.current;
+    setStatus("stopping");
+    const candidate = URL.createObjectURL(file);
+    const element = new Audio(); element.preload = "metadata";
+    try {
+      const measured = await new Promise<number | null>((resolve) => {
+        const timeout = window.setTimeout(() => resolve(null), 8000);
+        element.onloadedmetadata = () => { clearTimeout(timeout); resolve(element.duration); };
+        element.onerror = () => { clearTimeout(timeout); resolve(null); };
+        element.src = candidate;
+      });
+      if (attempt !== sequence.current) { URL.revokeObjectURL(candidate); return false; }
+      if (measured !== null && Number.isFinite(measured) && measured > 60.5) throw new Error("Durasi audio maksimal 60 detik.");
+      url.current = candidate;
+      setBlob(new Blob([file], { type: mime }));
+      setDuration(measured !== null && Number.isFinite(measured) ? measured : 0);
+      setPreviewAvailable(measured !== null);
+      if (measured === null) setWarning("Audio belum bisa diputar di browser ini. Kamu tetap bisa membuat transkrip; format dan durasi akan diperiksa di server.");
+      setSeconds(measured !== null && Number.isFinite(measured) ? Math.floor(measured) : 0);
+      setAudioUrl(candidate); setStatus("ready"); return true;
+    } catch (error) {
+      URL.revokeObjectURL(candidate);
+      if (attempt === sequence.current) { setError(error instanceof Error ? error.message : "Audio tidak bisa dibaca."); setStatus("error"); }
+      return false;
+    } finally { element.pause(); element.removeAttribute("src"); element.load(); }
+  }, [reset]);
+
   useEffect(() => {
     const hidden = () => {
       if (
@@ -283,6 +326,10 @@ export function useVoiceRecorder() {
     level,
     error,
     audioUrl,
+    warning,
+    previewAvailable,
+    blob,
+    loadFile,
     start,
     stop,
     reset,

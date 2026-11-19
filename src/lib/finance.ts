@@ -52,7 +52,7 @@ export function expensePayload(draft: ReceiptDraft, version?: number) {
 export async function apiRequest(path: string, method="GET", body?: unknown, key?: string, signal?: AbortSignal) {
   if (typeof window !== "undefined" && (!navigator.onLine || document.documentElement.dataset.cashlyOffline === "true"))
     throw new Error("Kamu sedang offline. Hubungkan internet untuk memperbarui data.");
-  const timeout = AbortSignal.timeout(path.startsWith("me/security/") || ["chat/extract", "receipts/extract"].includes(path) ? 50000 : 20000);
+  const timeout = AbortSignal.timeout(["chat/extract", "receipts/extract", "voice/transcribe", "voice/extract"].includes(path) ? 80000 : path.startsWith("me/security/") ? 50000 : 20000);
   const response = await fetch(`/api/cashly/${path}`, {method, cache:"no-store",
     headers: {"Content-Type":"application/json", ...(method!=="GET" ? {"Idempotency-Key":key ?? crypto.randomUUID()} : {})},
     body: body === undefined ? undefined : JSON.stringify(body),

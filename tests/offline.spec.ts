@@ -75,7 +75,7 @@ test("account data, profile and streak survive offline reload and navigation wit
   await context.setOffline(true);
   page.on("request", request => { if (/\/api\/|\/auth\/session/.test(request.url())) hits.push(new URL(request.url()).pathname); });
   await page.reload();
-  await expect(page.locator(".expense-summary .hero-amount")).toContainText("12.500");
+  await expect(page.locator(".expense-summary .hero-amount:visible")).toContainText("12.500");
   await expect(page.locator(".local-data-status")).toHaveAttribute("data-state", "offline");
   await expect(page.locator(".local-data-status time")).toBeVisible();
   for (const path of ["/aktivitas", "/laporan", "/profil", "/beranda"]) {
@@ -119,7 +119,7 @@ test("offline shell validates session before reconnecting to the account", async
   await expect(page.locator(".local-data-status")).toHaveAttribute("data-state", "offline");
   await context.setOffline(false);
   await expect(page.getByRole("status", { name: "Status koneksi", exact: true })).toHaveAttribute("data-state", "online", { timeout: 20000 });
-  await expect(page.locator(".expense-summary .hero-amount")).toContainText("12.500");
+  await expect(page.locator(".expense-summary .hero-amount:visible")).toContainText("12.500");
 });
 
 test("account switch clears A and ignores leftover snapshots from another owner", async ({ page, request }) => {
@@ -171,7 +171,7 @@ test("invalid owner data is rejected instead of showing another account or demo"
 test("expired session on reconnect removes private offline data", async ({ page, context }) => {
   await page.route("**/auth/session", route => route.fulfill({ status: 401, json: { authenticated: false } }));
   await context.setOffline(true); await page.reload();
-  await expect(page.locator(".expense-summary .hero-amount")).toContainText("12.500");
+  await expect(page.locator(".expense-summary .hero-amount:visible")).toContainText("12.500");
   await context.setOffline(false);
   await expect(page).toHaveURL(/\/login/);
   await expect.poll(async () => (await stored(page)).keys.length).toBe(0);
@@ -189,7 +189,7 @@ test("opening the public offline route online returns to the app once", async ({
 test("unavailable storage keeps the online app usable and fails closed offline", async ({ page, context }) => {
   await page.addInitScript(() => { indexedDB.open = () => { throw new Error("Storage disabled for test"); }; });
   await page.reload();
-  await expect(page.locator(".expense-summary .hero-amount")).toContainText("12.500");
+  await expect(page.locator(".expense-summary .hero-amount:visible")).toContainText("12.500");
   await expect(page.getByText("Penyimpanan lokal gagal.", { exact: false })).toBeVisible();
   await context.setOffline(true); await page.reload();
   await expect(page.getByRole("heading", { name: "Salinan data belum tersedia" })).toBeVisible();

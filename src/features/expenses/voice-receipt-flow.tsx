@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useId, useRef, useState, type CSSProperties, type ComponentProps } from "react";
-import { AudioLines, RotateCcw, ShieldCheck, Sparkles, ArrowRight, MessageCircle, Upload, WifiOff } from "lucide-react";
+import { useEffect, useEffectEvent, useId, useRef, useState, type CSSProperties, type ComponentProps } from "react";
+import { AudioLines, RotateCcw, ShieldCheck, Sparkles, WifiOff } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,8 +21,8 @@ import { batchTotal, type ChatEntry } from "./chat-batch";
 import { transcribeVoice, extractVoice } from "./extract-voice";
 
 type Step = "record" | "transcript" | "preview" | "detail" | "success";
-function VoiceReceiptFlowContent({ onBack, onClose, onChat }: {
-  onBack: () => void; onClose: () => void; onChat: () => void;
+function VoiceReceiptFlowContent({ onBack, onClose }: {
+  onBack: () => void; onClose: () => void;
 }) {
   const voice = useVoiceRecorder();
   const online = useOnline();
@@ -42,10 +42,9 @@ function VoiceReceiptFlowContent({ onBack, onClose, onChat }: {
   const version = useRef(0);
   const busyRequest = useRef(false);
   const player = useRef<VoiceNoteHandle>(null);
-  const file = useRef<HTMLInputElement>(null);
+  const attemptedRecordings = useRef(new WeakSet<Blob>());
   const content = useRef<HTMLDivElement>(null);
   const formId = useId();
-  const busy = ["recording", "requesting", "stopping"].includes(voice.status);
   const ready = voice.status === "ready" && !!voice.blob;
   const active = entries.find(entry => entry.id === activeId);
   const total = batchTotal(entries).toString();
@@ -84,7 +83,7 @@ function VoiceReceiptFlowContent({ onBack, onClose, onChat }: {
     busyRequest.current = true; setPending(kind); setError(""); player.current?.pause();
     try {
       if (kind === "transcribe") {
-        const data = await transcribeVoice(voice.blob!, controller.signal);
+        const data = await transcribeVoice(voice.blob!, controller.signal, voice.duration);
         if (current !== version.current || controller.signal.aborted) return;
         setText(data.transcript); setNotice(data.issue ?? "Periksa nama pembelian dan nominalnya sebelum melanjutkan.");
         setDuration(data.duration_seconds); setStep("transcript");
@@ -106,6 +105,21 @@ function VoiceReceiptFlowContent({ onBack, onClose, onChat }: {
       if (current === version.current) { busyRequest.current = false; setPending(null); request.current = null; }
     }
   }
+  const transcribeRecording = useEffectEvent(() => { void run("transcribe"); });
+  const recordedAudio = voice.blob;
+  useEffect(() => {
+    if (step !== "record" || !recordedAudio || attemptedRecordings.current.has(recordedAudio)) return;
+    if (!online) {
+      attemptedRecordings.current.add(recordedAudio);
+      return;
+    }
+    const launch = window.setTimeout(() => {
+      attemptedRecordings.current.add(recordedAudio);
+      transcribeRecording();
+    }, 0);
+    return () => window.clearTimeout(launch);
+  }, [step, recordedAudio, online]);
+
   async function save() {
     if (!complete || mutationPending) return;
     if (await recordDrafts(entries.flatMap(entry => entry.draft ? [{ id: entry.id, draft: entry.draft, source: "voice" as const }] : []))) setStep("success");
@@ -137,10 +151,8 @@ function VoiceReceiptFlowContent({ onBack, onClose, onChat }: {
     onBack={mutationPending ? undefined : back} onClose={() => { if (!mutationPending) { cancel(); onClose(); } }} showCloseButton={!mutationPending}
     footer={<div className="voice-footer">
       {pending ? <Button variant="secondary" onClick={cancel}>Batal</Button> : step === "record" ? <>
-        {ready ? <><Button onClick={() => void run("transcribe")}><Sparkles size={18} /> Buat transkrip <ArrowRight size={17} /></Button>
-          <Button variant="ghost" onClick={() => { setNotice("Tulis atau perbaiki ucapan dari rekamanmu."); setStep("transcript"); }}>Tulis transkrip sendiri</Button></> :
-          <Button variant="secondary" disabled={busy} onClick={() => { voice.reset(); onChat(); }}><MessageCircle size={18} /> Catat lewat chat</Button>}
-        <p><ShieldCheck size={13} /> Audio dikirim ke AI saat kamu memilih Buat transkrip.</p>
+        {ready && <Button onClick={() => void run("transcribe")}><Sparkles size={18} /> Coba transkripsi lagi</Button>}
+        <p><ShieldCheck size={13} /> Audio dikirim ke AI setelah kamu menghentikan rekaman.</p>
       </> : step === "transcript" ? <Button disabled={!text.trim()} onClick={() => void run("extract")}><Sparkles size={18} /> Tinjau pengeluaran</Button> :
         step === "preview" ? <><Button disabled={!complete || mutationPending} onClick={() => void save()}><ShieldCheck size={18} /> Simpan {entries.length} pengeluaran <MoneyDisplay amountIdr={total} /></Button>
           <Button variant="ghost" disabled={mutationPending} onClick={() => setStep("transcript")}>Ubah transkrip</Button></> :
@@ -148,30 +160,24 @@ function VoiceReceiptFlowContent({ onBack, onClose, onChat }: {
     </div>}>
     <div ref={content} className="voice-content">
       {error && <p role="alert" className="voice-error">{error}</p>}
-      {pending ? <ReceiptAnalysis example={false} source="voice" pending pendingLabel={pending === "transcribe" ? "Mochi sedang mendengarkan VN" : "Mochi sedang merapikan transkrip"} /> : <>
+      {pending ? <ReceiptAnalysis example={false} source="voice" pending pendingLabel={pending === "transcribe" ? "Mochi sedang menganalisis rekaman" : "Mochi sedang merapikan transkrip"} /> : <>
         {step === "record" && <>
           <div className="voice-intro"><div className="voice-mochi"><Image src="/mascot/mochi-crown-transparent.webp" alt="Mochi siap mendengarkan" width={76} height={76} /><span><AudioLines size={17} /></span></div>
             <span className="pill">Cerita lewat suara</span><h3>{ready ? "Dengarkan, lalu rapikan." : voice.status === "recording" ? "Mochi mendengarkan..." : "Belanja apa hari ini?"}</h3>
             <p>Sebutkan pembelian, nominal, dan pembayaran. Misal: tadi beli nasi padang dua belas ribu, bayar QRIS.</p></div>
           <section className="voice-recorder" aria-label="Perekam pengeluaran">
             <div className="voice-status" role="status">{voice.status === "recording" ? "Sedang merekam" : voice.status === "requesting" ? "Menunggu izin mikrofon" : voice.status === "stopping" ? "Menyiapkan audio" : ready ? "Rekaman siap diputar" : "Siap saat kamu siap"}</div>
-            <div className="voice-timer" aria-label={`${voice.seconds} detik`}>{`${Math.floor(voice.seconds / 60)}`.padStart(2, "0")}:{`${voice.seconds % 60}`.padStart(2, "0")}<span> / 01:00</span></div>
+            <div className="voice-timer" aria-label={`${voice.seconds} detik`}>{`${Math.floor(voice.seconds / 60)}`.padStart(2, "0")}:{`${voice.seconds % 60}`.padStart(2, "0")}</div>
             {!ready && <button className={`voice-record-button ${voice.status === "recording" ? "is-recording" : ""}`} style={{ "--voice-level": voice.level } as CSSProperties}
               disabled={voice.status === "requesting" || voice.status === "stopping"} aria-label={voice.status === "recording" ? "Hentikan rekaman" : "Mulai rekam"}
               aria-pressed={voice.status === "recording"} onClick={() => voice.status === "recording" ? voice.stop() : void voice.start()}>
               {voice.status === "requesting" || voice.status === "stopping" ? <AppLoader /> : <FluidOrb size={160} color="var(--primary)" className="voice-orb" aria-hidden="true" />}</button>}
             {ready && <Button variant="ghost" onClick={reset}><RotateCcw size={16} /> Rekam ulang</Button>}
-            <Button variant="secondary" disabled={busy} onClick={() => file.current?.click()}><Upload size={17} /> Pilih audio</Button>
-            <input ref={file} type="file" className="sr-only" aria-label="Pilih berkas audio" accept="audio/*,.m4a,.webm,.ogg,.wav,.mp3,.aac,.flac" onChange={async event => {
-              const selected = event.currentTarget.files?.[0]; event.currentTarget.value = "";
-              if (selected && await voice.loadFile(selected)) { setText(""); setNotice(""); setError(""); setDuration(0); setEntries([]); stableIds.current = []; }
-            }} />
-            <p className="voice-record-hint">Maksimal 60 detik dan 5 MB. WebM, M4A, WAV, MP3, Ogg, AAC, atau FLAC.</p>
+            <p className="voice-record-hint">Tekan Stop untuk menganalisis. Pemrosesan mendukung rekaman hingga 5 menit dan 10 MB.</p>
           </section>
-          {voice.warning && <p className="scan-field-hint" role="status">{voice.warning}</p>}
           {voice.error && <div className="voice-error" role="alert">{voice.error}</div>}
         </>}
-        {(step === "record" || step === "transcript") && voice.audioUrl && voice.previewAvailable && <VoiceNote ref={player} src={voice.audioUrl} duration={duration || voice.duration} peaks={voice.peaks} words={[]} defaultTranscript={false} />}
+        {(step === "record" || step === "transcript") && voice.audioUrl && <VoiceNote ref={player} src={voice.audioUrl} duration={duration || voice.duration} peaks={voice.peaks} words={[]} defaultTranscript={false} />}
         {step === "transcript" && <section className="voice-source-editor">
           <label htmlFor="voice-transcript">Transkrip voice note</label>
           {notice && <p role="status">{notice}</p>}

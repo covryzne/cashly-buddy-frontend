@@ -304,7 +304,6 @@ export function HomeDashboard() {
         <VoiceReceiptFlow
           onBack={back}
           onClose={close}
-          onChat={() => push({ kind: 'chat' })}
         />
       )}
       {panel &&

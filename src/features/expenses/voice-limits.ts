@@ -1,0 +1,4 @@
+export const MAX_VOICE_BYTES = 10 * 1024 * 1024;
+export const MAX_VOICE_SECONDS = 5 * 60;
+export const MAX_VOICE_DECODED_SECONDS = MAX_VOICE_SECONDS + 0.5;
+export const MAX_VOICE_REQUEST_BYTES = 4 * Math.ceil(MAX_VOICE_BYTES / 3) + 8192;

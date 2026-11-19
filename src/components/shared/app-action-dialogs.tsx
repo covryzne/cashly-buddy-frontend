@@ -58,7 +58,6 @@ export function AppActionDialogs({
       <VoiceReceiptFlow
         onBack={back}
         onClose={close}
-        onChat={() => push({ kind: "chat" })}
       />
     );
   return (

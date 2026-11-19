@@ -1,6 +1,8 @@
 // Real local FastAPI/PostgreSQL + real configured AI. Synthetic login and media only.
 import { test, expect } from "@playwright/test";
 import sharp from "sharp";
+import { readFile } from "node:fs/promises";
+import { installRecordedAudio, startRecording, stopRecording } from "./voice-recorder-fixture";
 
 test.skip(!process.env.CASHLY_TEST_REAL_API || !process.env.CASHLY_LIVE_AUDIO_PATH, "Explicit live AI verification only");
 test.use({ reducedMotion: "reduce" });
@@ -32,8 +34,9 @@ test("actual OCR and VN to preview/save, uncertain response replay, and expense 
 
   await page.locator(".expense-summary").getByRole("button", { name: "Catat pengeluaran" }).click();
   await page.getByRole("button", { name: /Voice note kilat/ }).click();
-  await page.getByLabel("Pilih berkas audio").setInputFiles(process.env.CASHLY_LIVE_AUDIO_PATH!);
-  await page.getByRole("button", { name: "Buat transkrip" }).click();
+  await installRecordedAudio(page, await readFile(process.env.CASHLY_LIVE_AUDIO_PATH!));
+  await startRecording(page);
+  await stopRecording(page);
   await expect(page.getByRole("textbox", { name: "Transkrip voice note" })).toBeVisible({ timeout: 50000 });
   await expect(page.getByRole("textbox", { name: "Transkrip voice note" })).not.toBeEmpty();
   // Explicit correction must drive the draft instead of the audio's original amount.

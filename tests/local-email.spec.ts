@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { chromium, expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 test.describe.configure({ mode: "serial" });
@@ -144,4 +144,49 @@ test("returning to a tab validates the session without reloading the document", 
   await page.route("**/auth/session",route=>route.fulfill({status:401,contentType:"application/json",body:"{}"}));
   await page.evaluate(()=>window.dispatchEvent(new PageTransitionEvent("pageshow",{persisted:true})));
   await expect(page).toHaveURL(/\/login/);
+});
+
+
+test("PWA launch restores a valid login after closing and reopening Chrome", async ({ request, baseURL }, testInfo) => {
+  const origin = baseURL!;
+  const manifest = await (await request.get("/manifest.webmanifest")).json();
+  const launchUrl = new URL(manifest.start_url, origin).href;
+  const guest = await request.get(launchUrl, { maxRedirects: 0 });
+  expect(guest.status()).toBe(307);
+  expect(new URL(guest.headers().location, launchUrl).href).toBe(`${origin}/login`);
+
+  await request.get("http://127.0.0.1:34568/__test/otp?enabled=false");
+  const profile = testInfo.outputPath("pwa-chrome-profile");
+  const open = () => chromium.launchPersistentContext(profile, { channel: "chrome", headless: true });
+  const initial = await open();
+  try {
+    const auth = { email: "pwa-reopen@example.invalid", password };
+    const headers = { Origin: origin };
+    const registration = await initial.request.post(`${origin}/auth/email/register`, {
+      headers, data: { ...auth, name: "PWA Tester", confirmPassword: password },
+    });
+    expect(registration.status()).toBe(201);
+    const login = await initial.request.post(`${origin}/auth/email/login`, { headers, data: auth });
+    expect(login.ok()).toBeTruthy();
+  } finally {
+    await initial.close();
+  }
+
+  const reopened = await open();
+  try {
+    const landing = await reopened.request.get(launchUrl, { maxRedirects: 0 });
+    expect(landing.status()).toBe(307);
+    expect(new URL(landing.headers().location, launchUrl).href).toBe(`${origin}/beranda`);
+    expect(landing.headers()["cache-control"]).toBe("private, no-store");
+    const page = reopened.pages()[0] ?? await reopened.newPage();
+    await page.goto(launchUrl);
+    await expect(page).toHaveURL(`${origin}/beranda`);
+
+    await request.post("http://127.0.0.1:34568/auth/v1/logout");
+    const revoked = await reopened.request.get(launchUrl, { maxRedirects: 0 });
+    expect(revoked.status()).toBe(307);
+    expect(new URL(revoked.headers().location, launchUrl).href).toBe(`${origin}/login`);
+  } finally {
+    await reopened.close();
+  }
 });

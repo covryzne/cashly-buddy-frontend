@@ -1,3 +1,4 @@
+import { MAX_VOICE_REQUEST_BYTES } from "@/features/expenses/voice-limits";
 import { verifiedSession } from "@/lib/auth/server";
 import { authConfig, sameOrigin } from "@/lib/auth/config";
 import { randomUUID } from "node:crypto";
@@ -18,7 +19,7 @@ async function forward(request: Request, context: Context, trace: Trace) {
     try { session = await verifiedSession(true); }
     finally { trace.authMs = performance.now() - authStarted; }
     if (!session) return Response.json({error:{message:"Silakan login kembali."}},{status:401,headers});
-    const limit = path === "receipts/extract" ? 4 * Math.ceil(10 * 1024 * 1024 / 3) + 65536 : path === "voice/transcribe" ? 4 * Math.ceil(5 * 1024 * 1024 / 3) + 8192 : 65536;
+    const limit = path === "receipts/extract" ? 4 * Math.ceil(10 * 1024 * 1024 / 3) + 65536 : path === "voice/transcribe" ? MAX_VOICE_REQUEST_BYTES : 65536;
     let body: string | undefined;
     if (request.method !== "GET") {
       const reader = request.body?.getReader();

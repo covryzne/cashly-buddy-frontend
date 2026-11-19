@@ -1,3 +1,3 @@
-// The HTTP redirect lives in next.config.ts, before segment rendering.
+// Proxy routes the launch page before rendering, using the verified session.
 export { metadata } from "./login/page";
 export default function RootPage() { return null; }

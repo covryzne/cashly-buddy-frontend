@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { installRecordedAudio, startRecording, stopRecording } from "./voice-recorder-fixture";
 
 test.use({ reducedMotion: "reduce" });
 const upstream = "http://127.0.0.1:34568";
@@ -12,12 +13,12 @@ function wav(seconds = 1) {
   for (let index = 0; index < size / 2; index++) buffer.writeInt16LE(Math.round(4000 * Math.sin(2 * Math.PI * 440 * index / 16000)), 44 + index * 2);
   return buffer;
 }
-async function upload(page: Page, seconds = 1) {
-  await page.getByLabel("Pilih berkas audio").setInputFiles({ name: "synthetic.wav", mimeType: "audio/wav", buffer: wav(seconds) });
-  if (seconds <= 60) await expect(page.getByRole("button", { name: "Buat transkrip" })).toBeVisible();
+async function record(page: Page) {
+  await installRecordedAudio(page, wav());
+  await startRecording(page);
+  await stopRecording(page);
 }
-async function transcribe(page: Page) {
-  await page.getByRole("button", { name: "Buat transkrip" }).click();
+async function expectTranscript(page: Page) {
   await expect(page.getByRole("textbox", { name: "Transkrip voice note" })).toBeVisible();
 }
 test.beforeEach(async ({ page, request }) => {
@@ -36,9 +37,10 @@ test.beforeEach(async ({ page, request }) => {
   await expect(page.getByRole("button", { name: "Mulai rekam", exact: true })).toBeVisible();
 });
 
-test("upload, real returned transcript, correction, editable preview and explicit voice save", async ({ page, request }, testInfo) => {
+test("record, automatic transcription, correction, editable preview and explicit voice save", async ({ page, request }, testInfo) => {
   expect((await (await request.get(`${upstream}/__test/chat-state`)).json()).transcriptions).toBe(0);
-  await upload(page); await transcribe(page);
+  await expect(page.locator("input[type=file]")).toHaveCount(0);
+  await record(page); await expectTranscript(page);
   await expect(page.getByRole("textbox", { name: "Transkrip voice note" })).toHaveValue("Hari ini beli nasi padang dua belas ribu bayar qris");
   await page.getByRole("textbox", { name: "Transkrip voice note" }).fill("Hari ini beli nasi padang 15rb qris");
   await page.screenshot({ path: testInfo.outputPath("voice-transcript.png") });
@@ -59,7 +61,7 @@ test("upload, real returned transcript, correction, editable preview and explici
 
 test("unclear audio does not invent a transcript and can be corrected manually", async ({ page, request }) => {
   await request.get(`${upstream}/__test/chat?unclear=true`);
-  await upload(page); await transcribe(page);
+  await record(page); await expectTranscript(page);
   await expect(page.getByRole("textbox", { name: "Transkrip voice note" })).toHaveValue("");
   await expect(page.locator(".voice-source-editor").getByRole("status")).toContainText("Suara belum jelas");
   await expect(page.getByRole("button", { name: "Tinjau pengeluaran", exact: true })).toBeDisabled();
@@ -69,45 +71,44 @@ test("unclear audio does not invent a transcript and can be corrected manually",
   expect((await (await request.get(`${upstream}/__test/chat-state`)).json()).commits).toBe(0);
 });
 
-test("timeout and invalid result preserve the uploaded audio for retry", async ({ page, request }) => {
-  await upload(page);
+test("timeout and invalid result preserve the recorded audio for retry", async ({ page, request }) => {
   await request.get(`${upstream}/__test/chat?fail=true`);
-  await page.getByRole("button", { name: "Buat transkrip" }).click();
+  await record(page);
   await expect(page.locator(".voice-flow").getByRole("alert")).toContainText("AI belum merespons");
-  await expect(page.getByRole("button", { name: "Buat transkrip" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Coba transkripsi lagi" })).toBeVisible();
   await request.get(`${upstream}/__test/chat?invalid=true`);
-  await page.getByRole("button", { name: "Buat transkrip" }).click();
+  await page.getByRole("button", { name: "Coba transkripsi lagi" }).click();
   await expect(page.locator(".voice-flow").getByRole("alert")).toContainText("Transkrip AI belum bisa dibaca");
-  await transcribe(page);
+  await page.getByRole("button", { name: "Coba transkripsi lagi" }).click();
+  await expectTranscript(page);
   await expect(page.getByRole("textbox", { name: "Transkrip voice note" })).not.toBeEmpty();
 });
 
 test("disconnect preserves audio and transcript in the open dialog; reconnect resumes", async ({ page, context }) => {
-  await upload(page); await transcribe(page);
+  await record(page); await expectTranscript(page);
   await page.getByRole("textbox", { name: "Transkrip voice note" }).fill("Transkrip yang sudah dikoreksi 15rb qris");
   await context.setOffline(true);
   await expect(page.getByRole("dialog", { name: "Perlu koneksi internet" })).toBeVisible();
   await context.setOffline(false);
   await expect(page.getByRole("textbox", { name: "Transkrip voice note" })).toHaveValue("Transkrip yang sudah dikoreksi 15rb qris");
   await page.getByRole("button", { name: "Kembali", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Buat transkrip" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Coba transkripsi lagi" })).toBeVisible();
 });
 
 test("cancel keeps audio, ignores late response, and never saves", async ({ page, request }) => {
-  await upload(page);
   await request.get(`${upstream}/__test/chat?slow=true`);
   const sent = page.waitForRequest(request => request.url().endsWith("/voice/transcribe"));
-  await page.getByRole("button", { name: "Buat transkrip" }).click();
+  await record(page);
   await sent;
-  await expect(page.getByText("Mochi sedang mendengarkan VN", { exact: false })).toBeVisible();
+  await expect(page.getByText("Mochi sedang menganalisis rekaman", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "Batal", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Buat transkrip" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Coba transkripsi lagi" })).toBeVisible();
   expect((await (await request.get(`${upstream}/__test/chat-state`)).json()).commits).toBe(0);
 });
 
 test("an uncertain save retries the same voice record without another commit", async ({ page, request }) => {
   await request.get(`${upstream}/__test/chat?saveFailOnce=true`);
-  await upload(page); await transcribe(page);
+  await record(page); await expectTranscript(page);
   await page.getByRole("button", { name: "Tinjau pengeluaran", exact: true }).click();
   await page.getByRole("button", { name: /Simpan 1 pengeluaran/ }).click();
   await expect(page.getByRole("dialog", { name: "Permintaan belum selesai" })).toBeVisible();
@@ -117,17 +118,20 @@ test("an uncertain save retries the same voice record without another commit", a
   expect((await (await request.get(`${upstream}/__test/chat-state`)).json()).commits).toBe(1);
 });
 
-test("audio longer than 60 seconds is rejected before a provider request", async ({ page, request }) => {
-  await upload(page, 61);
-  const analyze = page.getByRole("button", { name: "Buat transkrip" });
-  await expect.poll(async () => await analyze.isVisible() || await page.locator(".voice-flow").getByRole("alert").isVisible()).toBe(true);
-  if (await analyze.isVisible()) await analyze.click();
-  await expect(page.locator(".voice-flow").getByRole("alert")).toContainText("Durasi audio maksimal 60 detik");
+test("recording past one minute keeps running and Stop transcribes it once", async ({ page, request }) => {
+  await installRecordedAudio(page, wav(61));
+  await page.clock.install();
+  await startRecording(page);
+  await page.clock.fastForward(61000);
+  await expect(page.locator(".voice-timer")).toHaveAttribute("aria-label", "61 detik");
   expect((await (await request.get(`${upstream}/__test/chat-state`)).json()).transcriptions).toBe(0);
+  await stopRecording(page);
+  await expectTranscript(page);
+  expect((await (await request.get(`${upstream}/__test/chat-state`)).json()).transcriptions).toBe(1);
 });
 
 test("invalid extraction preserves the corrected transcript and can be retried", async ({ page, request }) => {
-  await upload(page); await transcribe(page);
+  await record(page); await expectTranscript(page);
   await page.getByRole("textbox", { name: "Transkrip voice note" }).fill("Nasi padang 15rb qris");
   await request.get(`${upstream}/__test/chat?invalid=true`);
   await page.getByRole("button", { name: "Tinjau pengeluaran", exact: true }).click();
@@ -139,7 +143,7 @@ test("invalid extraction preserves the corrected transcript and can be retried",
 
 test("MediaRecorder path releases microphone and creates a transcribable blob", async ({ page }) => {
   const nativeRecorder = await page.evaluate(() => typeof MediaRecorder !== "undefined");
-  test.skip(!nativeRecorder, "This WebKit runtime does not provide MediaRecorder; upload/transcript paths are tested separately.");
+  test.skip(!nativeRecorder, "This WebKit runtime does not provide MediaRecorder; fixture recordings are tested separately.");
   await page.evaluate(() => {
     const context = new AudioContext();
     const destination = context.createMediaStreamDestination();
@@ -152,11 +156,11 @@ test("MediaRecorder path releases microphone and creates a transcribable blob", 
   await expect(page.locator(".voice-status")).toHaveText("Sedang merekam");
   await expect(page.locator(".voice-timer")).toHaveAttribute("aria-label", "1 detik");
   await page.getByRole("button", { name: "Hentikan rekaman", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Buat transkrip" })).toBeVisible();
+  await expectTranscript(page);
   expect(await page.evaluate(async () => {
     const capture = (window as unknown as { __voiceTest: { context: AudioContext; stream: MediaStream } }).__voiceTest;
     const released = capture.stream.getTracks().every(track => track.readyState === "ended");
     await capture.context.close(); return released;
   })).toBe(true);
-  await transcribe(page);
+  await expectTranscript(page);
 });

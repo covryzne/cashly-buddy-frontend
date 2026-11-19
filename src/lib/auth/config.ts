@@ -1,12 +1,12 @@
 import "server-only";
 
-function origin(value: string | undefined, label: string): string {
+function origin(value: string | undefined, label: string, internalHost?: string): string {
   if (!value) throw new Error(`${label} belum dikonfigurasi.`);
   const url = new URL(value);
   const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
   if (url.username || url.password || url.search || url.hash || url.pathname !== "/" ||
-      (url.protocol !== "https:" && !(local && url.protocol === "http:"))) {
-    throw new Error(`${label} harus origin HTTPS atau HTTP localhost tanpa path.`);
+      (url.protocol !== "https:" && !((local || url.hostname === internalHost) && url.protocol === "http:"))) {
+    throw new Error(`${label} harus origin HTTPS atau HTTP lokal yang diizinkan, tanpa path.`);
   }
   return url.origin;
 }
@@ -14,7 +14,7 @@ function origin(value: string | undefined, label: string): string {
 export function authConfig() {
   const dev = process.env.CASHLY_ENV === "dev";
   const site = origin(process.env.APP_ORIGIN || (dev ? "http://localhost:3000" : undefined), "APP_ORIGIN");
-  const api = origin(process.env.CASHLY_API_ORIGIN || (dev ? "http://127.0.0.1:8000" : undefined), "CASHLY_API_ORIGIN");
+  const api = origin(process.env.CASHLY_API_ORIGIN || (dev ? "http://127.0.0.1:8000" : undefined), "CASHLY_API_ORIGIN", "backend");
   return { site, api };
 }
 
@@ -40,7 +40,7 @@ async function loadProviderConfig(config: ReturnType<typeof authConfig>): Promis
   if (typeof data.publishable_key !== "string" || !data.publishable_key) {
     throw new Error("Publishable key backend belum tersedia.");
   }
-  return { ...config, supabase: origin(data.supabase_url, "Supabase backend"), key: data.publishable_key, googleEnabled: data.local === false };
+  return { ...config, supabase: origin(data.supabase_url, "Supabase backend", process.env.CASHLY_ENV === "dev" ? "host.docker.internal" : undefined), key: data.publishable_key, googleEnabled: data.local === false };
 }
 
 export function sameOrigin(request: Request): boolean {

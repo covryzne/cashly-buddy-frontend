@@ -1,6 +1,6 @@
 /* Public assets only. Bump VERSION whenever a listed file or Spline export changes,
    even when its URL stays the same. Keep SCENE in sync with spline-mascot.tsx. */
-const VERSION = "v3-alpha";
+const VERSION = "v5-header-brand";
 // Separate public offline shell; asset allowlist and private-data exclusions stay scoped.
 if (typeof importScripts === "function") importScripts("/offline-worker.js");
 const PREFIX = "cashly-public-assets-";
@@ -12,7 +12,8 @@ const ASSETS = [
   "/mascot/mochi-level-2.webp",
   "/mascot/mochi-level-3.webp",
   "/mascot/mochi-level-4.webp",
-  "/branding/cashly-header.webp",
+  "/branding/header-light.png",
+  "/branding/header-dark.png",
   "/branding/google-g.png",
   "/icons/icon-192.png?v=mochi-1",
   "/icons/icon-512.png?v=mochi-1",

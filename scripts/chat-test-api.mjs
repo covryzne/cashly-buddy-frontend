@@ -19,6 +19,26 @@ export async function chatTestApi(req, url, send) {
   if (url.pathname === "/__test/chat-state") {
     send(200, { commits, saved, extractions, gameReads, expenseReads, summaryReads }); return true;
   }
+  if (url.pathname === "/api/v1/receipts/extract") {
+    let raw = ""; for await (const chunk of req) raw += chunk;
+    const body = JSON.parse(raw);
+    extractions++;
+    if (slow) await new Promise(resolve => setTimeout(resolve, 1200));
+    if (failExtraction) {
+      failExtraction = false;
+      send(503, { error: { message: "AI belum tersedia. Foto tetap bisa dicoba lagi." } }); return true;
+    }
+    const incomplete = body.caption === "buram";
+    const draft = incomplete ? null : {
+      merchant: "Nasi Padang", categoryCode: "food_drink", paymentMethod: "QRIS",
+      occurredDate: "2026-11-17", occurredTime: "12:00", discountIdr: "0", taxIdr: "0",
+      items: [{ id: "receipt-1", name: "Nasi Padang", quantity: "1", priceIdr: "12000" }],
+    };
+    send(200, { data: { entries: [{ id: randomUUID(), text: body.caption || "Foto", createdAt: new Date().toISOString(),
+      draft, issue: incomplete ? "Berapa total yang tertulis?" : null, reason: incomplete ? "amount" : null }],
+      reply: incomplete ? "Berapa total yang tertulis?" : "Periksa hasil foto sebelum menyimpan." } });
+    return true;
+  }
   if (url.pathname === "/api/v1/chat/extract") {
     let raw = ""; for await (const chunk of req) raw += chunk;
     const body = JSON.parse(raw);
@@ -58,7 +78,7 @@ export async function chatTestApi(req, url, send) {
     if (!keys.has(key)) {
       commits++;
       const result = { data: body.records.map(record => ({
-        ...record.expense, id: randomUUID(), source: "text", version: 1,
+        ...record.expense, id: randomUUID(), source: record.source === "receipt" ? "receipt" : "text", version: 1,
         items: record.expense.items.map((item, index) => ({ ...item, item_index: index,
           amount_idr: String(item.quantity * Number(item.unit_price_idr)) })),
       })) };

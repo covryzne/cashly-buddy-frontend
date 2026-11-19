@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Keep offline browser test builds away from a running developer's HMR output.
+  distDir: process.env.CASHLY_TEST_BUILD === "offline" ? ".next-offline-test" : ".next",
   logging: { incomingRequests: false },
   // Tailwind uses postcss.config.mjs; Next handles CSS imports natively.
   cacheComponents: true,
@@ -26,7 +28,7 @@ const nextConfig: NextConfig = {
       ...(process.env.NODE_ENV === "production"
         ? [{
             source: "/offline",
-            headers: [{ key: "X-Cashly-Offline-Shell", value: "public-demo-v1" }],
+            headers: [{ key: "X-Cashly-Offline-Shell", value: "public-account-v2" }],
           }]
         : []),
     ];

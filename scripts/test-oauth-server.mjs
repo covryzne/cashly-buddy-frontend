@@ -33,6 +33,13 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url, upstream);
   const send = (status, body) => { res.writeHead(status, { "Content-Type": "application/json" }); res.end(JSON.stringify(body)); };
   if (url.pathname === "/__test/state") return send(200, { calls, revoked });
+  if (process.env.CASHLY_TEST_OFFLINE === "true" && url.pathname === "/__test/offline-account") {
+    const variant = url.searchParams.get("name") === "B" ? "B" : "A";
+    account.account_id = variant === "A" ? accountId : "20000000-0000-4000-8000-000000000002";
+    account.display_name = `Offline ${variant}`; account.sample_data = false;
+    Object.assign(game, { current_streak: 7, longest_streak: 7, hero_level: 1, recovery: null, streak_status: "active" });
+    return send(200, {});
+  }
   if (url.pathname === "/__test/otp") { otpMode = url.searchParams.get("enabled") !== "false"; confirmed = !otpMode; password = ""; calls.length = 0; return send(200, {}); }
   if (url.pathname === "/__test/backend-down") { backendDown = url.searchParams.get("enabled") === "true"; return send(200, {}); }
   if (url.pathname === "/__test/resend-down") { resendDown = url.searchParams.get("enabled") === "true"; return send(200, {}); }

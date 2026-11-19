@@ -26,6 +26,14 @@
   object-fit: contain;
   flex-shrink: 0;
 }
+.auth-brand-light { display: block; }
+.auth-brand-dark { display: none; }
+:root[data-theme="dark"] .auth-brand-light { display: none; }
+:root[data-theme="dark"] .auth-brand-dark { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .auth-brand-light { display: none; }
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .auth-brand-dark { display: block; }
+}
 .auth-brand .brand-dot {
   display: inline;
   font-size: 8px;

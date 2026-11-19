@@ -44,8 +44,16 @@ export function AuthShell({
       <header className="auth-header">
         <Link href="/login" className="auth-brand">
           <Image
-            className="auth-brand-image"
-            src="/branding/cashly-header.webp"
+            className="auth-brand-image auth-brand-light"
+            src="/branding/header-light.png"
+            alt=""
+            width={44}
+            height={44}
+            priority
+          />
+          <Image
+            className="auth-brand-image auth-brand-dark"
+            src="/branding/header-dark.png"
             alt=""
             width={44}
             height={44}

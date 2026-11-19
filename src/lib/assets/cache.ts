@@ -16,6 +16,7 @@ export function prepareAssetCache(signal?: AbortSignal): Promise<boolean> {
     signal?.aborted
   )
     return Promise.resolve(false);
+  if (!navigator.onLine) return Promise.resolve(Boolean(ownsController()));
 
   const registered = (registration ??= Promise.resolve()
     .then(() =>

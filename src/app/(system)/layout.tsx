@@ -37,7 +37,7 @@ async function SystemContent({ children }: { children: React.ReactNode }) {
   if (!data) redirect("/auth/complete");
   const expenses = data.result.data.map(mapExpense);
   return <AuthSessionBoundary key={data.account.account_id} accountId={data.account.account_id}>
-    <ExpenseSessionProvider remote={{ expenses, sampleData: data.account.sample_data, hasMore: data.result.has_more, runtime: data.account.runtime }}>
+    <ExpenseSessionProvider remote={{ account: data.account, expenses, sampleData: data.account.sample_data, hasMore: data.result.has_more, runtime: data.account.runtime }}>
       <ProfileSessionProvider account={data.account}>{children}</ProfileSessionProvider>
     </ExpenseSessionProvider>
   </AuthSessionBoundary>;

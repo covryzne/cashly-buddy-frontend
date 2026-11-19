@@ -8,7 +8,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import {
   Camera,
   CircleHelp,
-  CheckCircle2,
   ImagePlus,
   Lightbulb,
   LockKeyhole,
@@ -17,7 +16,6 @@ import {
   ShieldCheck,
   Sparkles,
   SquarePen,
-  Store,
   Zap,
   ZapOff,
 } from "lucide-react";
@@ -27,10 +25,8 @@ import { AppLoader } from "@/components/shared/app-loader";
 import { MoneyDisplay } from "@/components/finance/money-display";
 import { ReceiptReview } from "@/components/finance/receipt-review";
 import { ReceiptScanSuccess } from "@/components/finance/receipt-scan-success";
-import {
-  ReceiptAnalysis,
-  RECEIPT_ANALYSIS_DURATION_MS,
-} from "@/components/finance/receipt-analysis";
+import { ReceiptAnalysis } from "@/components/finance/receipt-analysis";
+import { extractReceipt } from "./extract-receipt";
 import { exampleReceipt } from "@/mocks/fixtures/receipt";
 import {
   blankReceipt,
@@ -46,6 +42,7 @@ type Step =
   | "checking"
   | "permission"
   | "camera"
+  | "photo"
   | "processing"
   | "review"
   | "success"
@@ -60,7 +57,11 @@ function ScanReceiptFlowContent({
 }) {
   const camera = useReceiptCamera();
   const requestCamera = camera.request;
-  const { recordDrafts } = useExpenseSession();
+  const { recordDrafts, remoteMode, mutationPending } = useExpenseSession();
+  const imageBlob = useRef<Blob | null>(null);
+  const extractionRequest = useRef<AbortController | null>(null);
+  const [caption, setCaption] = useState("");
+  const [clarification, setClarification] = useState("");
   const recordId = useRef(crypto.randomUUID());
   const [step, setStep] = useState<Step>("checking");
   const enteredWithoutIntro = useRef(false);
@@ -90,6 +91,7 @@ function ScanReceiptFlowContent({
     return () => {
       alive.current = false;
       pendingJob.version++;
+      extractionRequest.current?.abort();
       ownedUrls.forEach((url) => URL.revokeObjectURL(url));
       ownedUrls.clear();
     };
@@ -127,17 +129,6 @@ function ScanReceiptFlowContent({
     });
     return () => cancelAnimationFrame(frame);
   }, [step]);
-  useEffect(() => {
-    if (step !== "processing") return;
-    const requestId = job.current.version;
-    const timer = window.setTimeout(() => {
-      if (alive.current && requestId === job.current.version) {
-        job.current.version++;
-        setStep("review");
-      }
-    }, RECEIPT_ANALYSIS_DURATION_MS);
-    return () => window.clearTimeout(timer);
-  }, [step]);
   const createUrl = (blob: Blob) => {
     const url = URL.createObjectURL(blob);
     objectUrls.current.add(url);
@@ -159,6 +150,7 @@ function ScanReceiptFlowContent({
   };
   const go = (next: Step) => {
     job.current.version++;
+    extractionRequest.current?.abort();
     setBusy(false);
     setMessage("");
     if (next !== "camera") camera.stop();
@@ -189,6 +181,8 @@ function ScanReceiptFlowContent({
   };
   const cancelAnalysis = () => {
     if (photoRef.current?.url) revokeUrl(photoRef.current.url);
+    extractionRequest.current?.abort();
+    imageBlob.current = null;
     photoRef.current = null;
     setPhoto(null);
     setDraft(blankReceipt());
@@ -201,6 +195,7 @@ function ScanReceiptFlowContent({
   };
   const openManualReview = () => {
     recordId.current = crypto.randomUUID();
+    if (!photoRef.current) replacePhoto({ source: "gallery", url: null });
     setDraft(blankReceipt());
     setManualReview(true);
     setErrors({});
@@ -212,10 +207,13 @@ function ScanReceiptFlowContent({
     setDraft(exampleReceipt());
     setManualReview(false);
     setErrors({});
-    go("processing");
+    setClarification("");
+    imageBlob.current = null;
+    go("review");
   };
   const openGallery = () => {
     job.current.version++;
+    extractionRequest.current?.abort();
     setBusy(false);
     setMessage("");
     releasePendingPhotos();
@@ -231,10 +229,13 @@ function ScanReceiptFlowContent({
       const blob = await captureReceipt(videoRef.current, frameRef.current);
       if (!alive.current || requestId !== job.current.version) return;
       replacePhoto({ source: "camera", url: createUrl(blob) });
-      setDraft(exampleReceipt());
+      imageBlob.current = blob;
+      setCaption("");
+      setClarification("");
+      setDraft(blankReceipt());
       setManualReview(false);
       setErrors({});
-      go("processing");
+      go("photo");
     } catch (error) {
       if (alive.current && requestId === job.current.version)
         setMessage(
@@ -275,10 +276,13 @@ function ScanReceiptFlowContent({
         return;
       }
       replacePhoto({ source: "gallery", url });
+      imageBlob.current = file;
+      setCaption("");
+      setClarification("");
       setDraft(blankReceipt());
       setManualReview(false);
       setErrors({});
-      go("review");
+      go("photo");
     } catch (error) {
       revokeUrl(url);
       if (alive.current && requestId === job.current.version)
@@ -291,7 +295,34 @@ function ScanReceiptFlowContent({
       if (alive.current && requestId === job.current.version) setBusy(false);
     }
   };
+  const analyze = async () => {
+    if (!imageBlob.current || busy) return;
+    go("processing");
+    const version = job.current.version;
+    const controller = new AbortController();
+    extractionRequest.current = controller;
+    try {
+      const result = await extractReceipt(imageBlob.current, caption, controller.signal);
+      if (!alive.current || version !== job.current.version) return;
+      const entry = result.entries[0];
+      if (!entry?.draft || entry.issue) {
+        go("photo");
+        setClarification(entry?.issue || result.reply);
+        return;
+      }
+      setDraft(entry.draft);
+      setManualReview(false);
+      setErrors({});
+      setClarification("");
+      go("review");
+    } catch (error) {
+      if (!alive.current || version !== job.current.version) return;
+      go("photo");
+      setMessage(error instanceof Error ? error.message : "Foto belum bisa dianalisis.");
+    }
+  };
   const submit = async () => {
+    if (photo?.source === "example" && remoteMode) return;
     const result = receiptSchema.safeParse(draft);
     if (!result.success) {
       const next: Record<string, string> = {};
@@ -313,6 +344,7 @@ function ScanReceiptFlowContent({
     checking: "Scan struk",
     permission: "Scan struk",
     camera: "AI OCR Scanner",
+    photo: "Periksa foto",
     processing: "Analisis struk",
     review: "Review struk",
     success: "Konfirmasi pengeluaran",
@@ -386,7 +418,12 @@ function ScanReceiptFlowContent({
         ) : undefined
       }
       footer={
-        step === "processing" ? (
+        step === "photo" ? (
+          <div className="scan-review-actions">
+            <Button onClick={() => void analyze()}>Analisis foto</Button>
+            <Button variant="secondary" onClick={openManualReview}>Lengkapi manual</Button>
+          </div>
+        ) : step === "processing" ? (
           <div className="analysis-actions">
             <div>
               <Button variant="secondary" onClick={openManualReview}>
@@ -399,12 +436,12 @@ function ScanReceiptFlowContent({
             </div>
             <small>
               <LockKeyhole size={13} />
-              Foto tetap di perangkatmu
+              Foto dikirim ke AI untuk dibaca
             </small>
           </div>
         ) : step === "review" ? (
           <div className="scan-review-actions">
-            <Button type="submit" form={formId}>
+            <Button type="submit" form={formId} disabled={mutationPending || (photo?.source === "example" && remoteMode)}>
               <ShieldCheck size={18} />
               Simpan pengeluaran{" "}
               <MoneyDisplay
@@ -471,8 +508,23 @@ function ScanReceiptFlowContent({
           {message}
         </p>
       )}
+      {step === "photo" && photo?.url && (
+        <div className="scan-card scan-photo-input">
+          <Image src={photo.url} alt="Foto pengeluaran yang akan dianalisis" width={480} height={640} unoptimized />
+          <div className="scan-field">
+            <label htmlFor="receipt-caption">Keterangan foto (opsional)</label>
+            <textarea id="receipt-caption" className="input" rows={3} maxLength={1000}
+              placeholder="Misal: servis motor, bayar QRIS. Totalnya 290 ribu."
+              value={caption} onChange={event => setCaption(event.target.value)} />
+          </div>
+          {clarification && <p role="status">{clarification} Tambahkan keterangannya di atas, lalu analisis lagi, atau lengkapi manual.</p>}
+          <p className="scan-field-hint">Foto dan keterangan akan dikirim ke AI. Periksa hasilnya sebelum menyimpan.</p>
+          <Button variant="secondary" onClick={openGallery}>Ganti foto</Button>
+        </div>
+      )}
+      {step === "review" && photo?.source === "example" && remoteMode && <p className="scan-demo-notice">Ini contoh untuk mencoba pratinjau. Pilih foto sendiri untuk mencatat pengeluaran.</p>}
       {step === "processing" && (
-        <ReceiptAnalysis example={photo?.source === "example"} />
+        <ReceiptAnalysis example={false} pending />
       )}
       {step === "checking" && (
         <div className="scan-permission">
@@ -548,14 +600,7 @@ function ScanReceiptFlowContent({
                   <span className="scan-guide-line" />
                 </span>
                 <span className="scan-crosshair" aria-hidden="true" />
-                <div className="scan-merchant-tag">
-                  <Store size={14} />
-                  <strong>Indomaret Point</strong>
-                </div>
-                <div className="scan-total-tag">
-                  <CheckCircle2 size={15} />
-                  <strong>Total: Rp47.500</strong>
-                </div>
+
               </>
             )}
             {camera.status !== "ready" && (

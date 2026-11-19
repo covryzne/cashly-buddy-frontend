@@ -1,4 +1,5 @@
 "use client";
+import { clearAccountSnapshot } from "@/lib/pwa/account-snapshot";
 import { AppLoader } from "@/components/shared/app-loader";
 
 import { useId, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
@@ -52,6 +53,8 @@ export function PasswordAuthForm({ mode }: { mode: "login" | "register" }) {
     }
     setErrors({}); setPending(true);
     try {
+      // Revocation is synchronous; optional IndexedDB cleanup must not delay login.
+      void clearAccountSnapshot().catch(() => undefined);
       const response = await fetch(`/auth/email/${mode}`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(register ? values : { email: values.email, password: values.password }),

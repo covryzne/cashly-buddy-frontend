@@ -12,6 +12,7 @@ import {
 
 import SplineMascot from "./spline-mascot";
 import { AppLoader } from "@/components/shared/app-loader";
+import { useOnline } from "@/lib/pwa/connectivity";
 class SceneBoundary extends Component<
   { children: ReactNode; onFailure: () => void },
   { failed: boolean }
@@ -35,6 +36,7 @@ export function MascotStageRenderer({
   stage: number;
   onGreeting: () => void;
 }) {
+  const online = useOnline();
   const ref = useRef<HTMLButtonElement>(null);
   const greetingRef = useRef<(() => void) | null>(null);
   const [eligible, setEligible] = useState(false);
@@ -52,12 +54,12 @@ export function MascotStageRenderer({
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     function update() {
       greetingRef.current = null;
-      const shouldLoad = !motion.matches;
+      const shouldLoad = !motion.matches && online;
       setEligible(shouldLoad);
       setPhase(shouldLoad ? "loading" : "poster");
     }
     function retry() {
-      if (!motion.matches)
+      if (!motion.matches && online)
         setPhase((current) => (current === "failed" ? "loading" : current));
     }
     update();
@@ -67,7 +69,7 @@ export function MascotStageRenderer({
       motion.removeEventListener("change", update);
       window.removeEventListener("online", retry);
     };
-  }, []);
+  }, [online]);
 
   useEffect(() => {
     if (phase !== "loading") return;

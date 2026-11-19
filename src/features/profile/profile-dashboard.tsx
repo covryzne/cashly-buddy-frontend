@@ -450,6 +450,7 @@ export function ProfileDashboard() {
                 </Button>
                 <Button
                   className="profile-logout-confirm"
+                  disabled={!online}
                   onClick={async () => {
                     try {
                       if (session.remoteMode) await logoutGoogle();

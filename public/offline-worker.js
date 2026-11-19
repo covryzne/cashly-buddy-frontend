@@ -1,8 +1,8 @@
 /* Public shell only. Never cache page responses, RSC requests, APIs or auth.
    /offline is an audited, prerendered UI with no server account data. */
-const SHELL_CACHE = "cashly-offline-shell-v1";
+const SHELL_CACHE = "cashly-offline-shell-v2-account";
 const SHELL_URL = "/offline";
-const SHELL_MARKER = "public-demo-v1";
+const SHELL_MARKER = "public-account-v2";
 const OFFLINE_ROUTES = new Set(["/", "/beranda", "/aktivitas", "/laporan", "/profil", "/offline"]);
 let shellPreparation;
 

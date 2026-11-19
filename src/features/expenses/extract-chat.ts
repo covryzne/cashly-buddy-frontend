@@ -9,7 +9,7 @@ const extractedEntry = z.object({
   draft: receiptSchema.nullable(), issue: z.string().nullable(),
   reason: z.enum(["name", "amount", "ambiguous"]).nullable(),
 });
-const responseSchema = z.object({
+export const extractionResponseSchema = z.object({
   data: z.object({ entries: z.array(extractedEntry).max(50), reply: z.string().min(1).max(1000) }),
 });
 
@@ -24,7 +24,7 @@ export async function extractChat(
   if (new TextEncoder().encode(JSON.stringify(body)).length > 60000)
     throw new Error("Sesi chat terlalu panjang. Tinjau dan simpan daftar ini sebelum mencatat lagi.");
   const response = await apiRequest("chat/extract", "POST", body, undefined, signal);
-  const result = responseSchema.safeParse(response);
+  const result = extractionResponseSchema.safeParse(response);
   if (!result.success) throw new Error("Hasil AI belum bisa dibaca. Coba kirim ulang pesanmu.");
   return result.data.data;
 }

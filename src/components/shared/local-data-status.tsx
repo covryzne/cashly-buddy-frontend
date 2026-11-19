@@ -9,24 +9,21 @@ import { prepareAssetCache } from "@/lib/assets/cache";
 export function LocalDataStatus() {
   const online = useOnline();
   const offlineDocument = useContext(OfflineDocumentContext);
-  const { updatedAt, storageError, remoteMode, hasMore, runtime, syncError } = useExpenseSession();
+  const { updatedAt, storageError, remoteMode, hasMore, runtime, syncError, persisted } = useExpenseSession();
 
   useEffect(() => {
     let active = true;
+    const prepare = () => {
+      if (active && online && navigator.onLine)
+        navigator.serviceWorker.controller?.postMessage({ type: "PREPARE_OFFLINE_SHELL" });
+    };
+    navigator.serviceWorker?.addEventListener("controllerchange", prepare);
     void prepareAssetCache().then(ready => {
       if (!active || !ready || !online) return;
-      navigator.serviceWorker.controller?.postMessage({ type: "PREPARE_OFFLINE_SHELL" });
+      prepare();
     });
-    return () => { active = false; };
+    return () => { active = false; navigator.serviceWorker?.removeEventListener("controllerchange", prepare); };
   }, [online]);
-
-  useEffect(() => {
-    if (!offlineDocument) return;
-    // A fallback document must reload before enabling online actions again.
-    const reconnect = () => window.location.reload();
-    window.addEventListener("online", reconnect);
-    return () => window.removeEventListener("online", reconnect);
-  }, [offlineDocument]);
 
   const time = updatedAt
     ? new Intl.DateTimeFormat("id-ID", {
@@ -47,6 +44,8 @@ export function LocalDataStatus() {
       <span>{online ? "Online" : "Offline"}</span>
       {!online && time && <small>Terakhir diperbarui: <time dateTime={updatedAt!}>{time} WIB</time></small>}
     </section>
+    {remoteMode && !online && <p className="caption">Salinan data terakhir. Pencatatan dan perubahan tersedia saat online.</p>}
+    {remoteMode && online && persisted && !offlineDocument && <p className="caption">Salinan data tersimpan di perangkat ini.</p>}
     {storageError && <p className="local-data-error" role="alert">Penyimpanan lokal gagal. Data hanya tersedia selama sesi ini; perubahan terakhir mungkin belum tersimpan di perangkat.</p>}
   </>;
 }

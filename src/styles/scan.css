@@ -1372,3 +1372,7 @@
     margin: 7px 0 9px;
   }
 }
+
+.scan-photo-input { display: grid; gap: 16px; }
+.scan-photo-input > img { width: 100%; height: auto; max-height: 45dvh; object-fit: contain; }
+.scan-photo-input textarea { width: 100%; resize: vertical; min-height: 90px; }

@@ -7,6 +7,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { AppLoader } from "@/components/shared/app-loader";
 import { AuthPasswordField } from "@/features/auth/auth-password-field";
 import { clearSnapshot } from "@/lib/pwa/local-snapshot";
+import { clearAccountSnapshot } from "@/lib/pwa/account-snapshot";
 import { useOnline } from "@/lib/pwa/connectivity";
 import { useProfileSession } from "./profile-session";
 
@@ -25,6 +26,7 @@ export function DeleteAccount() {
     setPending(true);setError("");
     try {
       await clearSnapshot();
+      await clearAccountSnapshot();
       try {localStorage.setItem("cashly-auth-logout",String(Date.now()));} catch { /* cross-tab session checks remain */ }
       const channel=typeof BroadcastChannel!=="undefined" ? new BroadcastChannel("cashly-auth") : null;
       channel?.postMessage("account_deleted");channel?.close();

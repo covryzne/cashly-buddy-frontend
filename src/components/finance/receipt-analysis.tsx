@@ -45,8 +45,10 @@ const stages = [
 export function ReceiptAnalysis({
   example,
   source = "photo",
+  pending = false,
 }: {
   example: boolean;
+  pending?: boolean;
   source?: "photo" | "chat" | "voice";
 }) {
   const fromChat = source !== "photo";
@@ -70,13 +72,14 @@ export function ReceiptAnalysis({
   const [stage, setStage] = useState(0);
   const gradientId = useId();
   useEffect(() => {
+    if (pending) return;
     const timers = stages
       .slice(1)
       .map((_, index) =>
         window.setTimeout(() => setStage(index + 1), (index + 1) * 600),
       );
     return () => timers.forEach(window.clearTimeout);
-  }, []);
+  }, [pending]);
   const progress = stages[stage].progress;
   return (
     <div className="receipt-analysis">
@@ -127,8 +130,8 @@ export function ReceiptAnalysis({
           }
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-valuenow={progress}
-          aria-valuetext={`${progress}%, tahap ${stage + 1} dari 4`}
+          aria-valuenow={pending ? undefined : progress}
+          aria-valuetext={pending ? "Menunggu respons AI" : `${progress}%, tahap ${stage + 1} dari 4`}
         >
           <svg
             width={112}
@@ -164,13 +167,13 @@ export function ReceiptAnalysis({
             />
           </svg>
           <div className="analysis-ring-label" aria-hidden="true">
-            <strong>{progress}%</strong>
+            {pending ? <AppLoader inline iconOnly size={28} /> : <strong>{progress}%</strong>}
           </div>
         </div>
         <p className="analysis-live" role="status" aria-live="polite">
-          {activeStages[stage].title}…
+          {pending ? "Mochi sedang membaca foto, tunggu ya" : activeStages[stage].title}…
         </p>
-        <ol
+        {!pending && <ol
           className="analysis-stages"
           aria-label={
             fromChat ? "Tahap analisis catatan" : "Tahap analisis struk"
@@ -210,7 +213,7 @@ export function ReceiptAnalysis({
               </span>
             </li>
           ))}
-        </ol>
+        </ol>}
       </section>
     </div>
   );

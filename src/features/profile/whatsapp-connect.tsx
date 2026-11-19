@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { whatsappExample } from "@/mocks/fixtures/whatsapp";
+import { useOnline } from "@/lib/pwa/connectivity";
 
 function ExampleNotice() {
   return (
@@ -30,10 +31,13 @@ export function WhatsappConnectIntro({
 }: {
   onStart: (source: "chat" | "example") => void;
 }) {
-  const [availability, setAvailability] = useState<
+  const online = useOnline();
+  const [availabilityValue, setAvailability] = useState<
     "loading" | "ready" | "missing" | "error"
   >("loading");
+  const availability = online ? availabilityValue : "error";
   useEffect(() => {
+    if (!online) return;
     const controller = new AbortController();
     fetch("/api/whatsapp/connect?mode=availability", {
       cache: "no-store",
@@ -49,7 +53,7 @@ export function WhatsappConnectIntro({
         if (!controller.signal.aborted) setAvailability("error");
       });
     return () => controller.abort();
-  }, []);
+  }, [online]);
   return (
     <div className="whatsapp-connect">
       <div className="whatsapp-connect-heading">

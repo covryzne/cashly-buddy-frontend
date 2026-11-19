@@ -180,24 +180,6 @@ export function ChatReceiptFlow({
     return () => cancelAnimationFrame(frame);
   }, [step, messages.length]);
 
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    const dialog = dialogRef.current?.closest<HTMLElement>("dialog");
-    if ((step !== "chat" && step !== "transcript") || !viewport || !dialog)
-      return;
-    const resize = () =>
-      dialog.style.setProperty(
-        "--chat-viewport-height",
-        `${viewport.height}px`,
-      );
-    resize();
-    viewport.addEventListener("resize", resize);
-    return () => {
-      viewport.removeEventListener("resize", resize);
-      dialog.style.removeProperty("--chat-viewport-height");
-    };
-  }, [step]);
-
   function send() {
     if (pending.current || step !== "chat" || !input.trim()) return;
     let text = input.trim();
@@ -284,6 +266,7 @@ export function ChatReceiptFlow({
         }[step]
       }
       variant="screen"
+      fitViewport={step === "chat" || step === "transcript"}
       className={`scan-flow ${step === "chat" || step === "transcript" ? "expense-chat-flow" : `scan-flow-${step}`}`}
       onBack={back}
       onClose={() => suspend(onClose)}

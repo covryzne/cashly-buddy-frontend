@@ -28,6 +28,38 @@ test.beforeEach(async ({ page, request }) => {
   await openChat(page);
 });
 
+test("chat composer follows keyboard viewport resize and pan", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "Mobile keyboard layout");
+  await send(page, "kopi 18rb");
+  const composer = page.getByRole("textbox", { name: "Catatan pengeluaran" });
+  await composer.fill("bensin 30rb");
+  await composer.focus();
+  const dialog = page.getByRole("dialog", { name: "Chat manual", exact: true });
+  await page.evaluate(() => {
+    const viewport = window.visualViewport!;
+    Object.defineProperties(viewport, {
+      height: { configurable: true, value: 420 },
+      offsetTop: { configurable: true, value: 0 },
+    });
+    viewport.dispatchEvent(new Event("resize"));
+  });
+  await expect(dialog).toHaveCSS("height", "420px");
+  await page.evaluate(() => {
+    const viewport = window.visualViewport!;
+    Object.defineProperty(viewport, "offsetTop", { configurable: true, value: 100 });
+    viewport.dispatchEvent(new Event("scroll"));
+  });
+  await expect(dialog).toHaveCSS("top", "100px");
+  const sendButton = page.getByRole("button", { name: "Kirim catatan" });
+  for (const control of [composer, sendButton]) {
+    const box = (await control.boundingBox())!;
+    expect(box.y).toBeGreaterThanOrEqual(100);
+    expect(box.y + box.height).toBeLessThanOrEqual(520);
+  }
+  await expect(composer).toHaveValue("bensin 30rb");
+  await expect(composer).toBeFocused();
+});
+
 test("clarify, correct, add, preview, edit and commit only on confirmation", async ({ page, request }) => {
   await send(page, "beli kopi");
   await expect(page.getByText("Kopinya berapa?", { exact: true })).toBeVisible();

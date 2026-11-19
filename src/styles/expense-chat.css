@@ -1,10 +1,17 @@
 .expense-chat-flow[open] {
   display: flex;
   flex-direction: column;
-  height: var(--chat-viewport-height, 100dvh);
-  max-height: var(--chat-viewport-height, 100dvh);
+  height: var(--dialog-viewport-height, 100dvh);
+  max-height: var(--dialog-viewport-height, 100dvh);
   overflow: hidden;
   background: var(--background);
+}
+@media (width < 768px) {
+  .expense-chat-flow[data-fit-viewport][open] {
+    position: fixed;
+    top: var(--dialog-viewport-top, 0px);
+    bottom: auto;
+  }
 }
 .expense-chat-flow .dialog-header {
   flex-shrink: 0;

@@ -133,23 +133,6 @@ function ChatBatchFlowContent({
     return () => cancelAnimationFrame(frame);
   }, [step, messages.length, requestBusy]);
 
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    const dialog = content.current?.closest<HTMLElement>("dialog");
-    if (!viewport || !dialog || (step !== "chat" && step !== "source")) return;
-    const resize = () =>
-      dialog.style.setProperty(
-        "--chat-viewport-height",
-        `${viewport.height}px`,
-      );
-    resize();
-    viewport.addEventListener("resize", resize);
-    return () => {
-      viewport.removeEventListener("resize", resize);
-      dialog.style.removeProperty("--chat-viewport-height");
-    };
-  }, [step]);
-
   function suspend(leave: () => void) {
     ++work.current;
     ++aiVersion.current;
@@ -394,6 +377,7 @@ function ChatBatchFlowContent({
         }[step]
       }
       variant="screen"
+      fitViewport={step === "chat" || step === "source"}
       showCloseButton={!mutationPending}
       className={`scan-flow ${step === "chat" || step === "source" ? "expense-chat-flow" : `scan-flow-${step}`}`}
       onBack={mutationPending ? undefined : back}

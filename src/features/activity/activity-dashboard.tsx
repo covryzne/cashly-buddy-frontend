@@ -573,7 +573,6 @@ export function ActivityDashboard() {
         <VoiceReceiptFlow
           onBack={back}
           onClose={close}
-          onChat={() => push({ kind: "chat" })}
         />
       )}
       {panel?.kind === "manual" && <ManualExpenseForm onClose={close} />}

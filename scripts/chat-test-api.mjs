@@ -26,15 +26,18 @@ export async function chatTestApi(req, url, send) {
     let raw = ""; for await (const chunk of req) raw += chunk;
     const input = JSON.parse(raw);
     const audio = Buffer.from(input.audio.data, "base64");
-    if (audio.toString("ascii", 0, 4) === "RIFF" && audio.length >= 44 && audio.readUInt32LE(40) / audio.readUInt32LE(28) > 60.5) {
-      send(422, { error: { message: "Durasi audio maksimal 60 detik." } }); return true;
+    const duration = audio.toString("ascii", 0, 4) === "RIFF" && audio.length >= 44
+      ? audio.readUInt32LE(40) / audio.readUInt32LE(28)
+      : 1;
+    if (duration > 300.5) {
+      send(422, { error: { message: "Durasi audio maksimal 5 menit." } }); return true;
     }
     transcriptions++;
     if (slow) await new Promise(resolve => setTimeout(resolve, 1500));
     if (failExtraction) { failExtraction = false; send(504, { error: { message: "AI belum merespons. Rekaman tetap tersedia." } }); return true; }
     if (invalidVoice) { invalidVoice = false; send(200, { data: { unexpected: true } }); return true; }
     send(200, { data: { status: voiceUnclear ? "unclear" : "clear", transcript: voiceUnclear ? "" : "Hari ini beli nasi padang dua belas ribu bayar qris",
-      issue: voiceUnclear ? "Suara belum jelas. Lengkapi transkrip atau rekam ulang." : null, duration_seconds: 1 } }); return true;
+      issue: voiceUnclear ? "Suara belum jelas. Lengkapi transkrip atau rekam ulang." : null, duration_seconds: duration } }); return true;
   }
   if (url.pathname === "/api/v1/voice/extract") {
     let raw = ""; for await (const chunk of req) raw += chunk;

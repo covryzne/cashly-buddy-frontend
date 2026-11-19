@@ -1,13 +1,17 @@
 import { z } from "zod";
 import { apiRequest } from "@/lib/finance";
 import { extractionResponseSchema } from "./extract-chat";
+import { MAX_VOICE_DECODED_SECONDS, MAX_VOICE_SECONDS } from "./voice-limits";
 
 const transcriptSchema = z.object({ data: z.object({
   transcript: z.string().max(4000), status: z.enum(["clear", "unclear"]),
-  issue: z.string().nullable(), duration_seconds: z.number().min(0.25).max(60.5),
+  issue: z.string().nullable(), duration_seconds: z.number().min(0.25).max(MAX_VOICE_DECODED_SECONDS),
 }) });
 
-export async function transcribeVoice(blob: Blob, signal: AbortSignal) {
+export async function transcribeVoice(blob: Blob, signal: AbortSignal, duration: number) {
+  if (duration > MAX_VOICE_DECODED_SECONDS) {
+    throw new Error(`Rekaman melebihi ${MAX_VOICE_SECONDS / 60} menit. Rekam ulang dengan durasi lebih singkat.`);
+  }
   const data = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("Rekaman belum bisa dibaca."));

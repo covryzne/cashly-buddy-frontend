@@ -1,0 +1,132 @@
+.install-entry {
+  margin: 18px 0;
+}
+.install-entry > .button {
+  width: 100%;
+}
+.install-entry-compact {
+  margin: 0;
+}
+.install-entry-compact > .button {
+  width: auto;
+  min-height: 44px;
+  padding: 0 12px;
+  gap: 6px;
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.install-entry > p,
+.install-guide-note {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.8;
+}
+.install-entry > p {
+  text-align: center;
+  margin: 8px 0 0;
+}
+.install-guide-app {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.install-guide-app > img {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--card-shadow);
+}
+.install-guide-app .pill {
+  font-size: 10px;
+}
+.install-guide-app h3 {
+  margin: 9px 0 4px;
+  font-size: 18px;
+  font-weight: 800;
+}
+.install-guide-app p {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 0;
+}
+.install-browser-note {
+  background: var(--primary-soft);
+  color: var(--primary-text);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  font-size: 12px;
+  margin: 20px 0 0;
+}
+.install-steps {
+  list-style: none;
+  padding: 0;
+  margin: 22px 0;
+  display: grid;
+  gap: 18px;
+}
+.install-steps > li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+}
+.install-step-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: var(--primary-soft);
+  color: var(--primary-text);
+}
+.install-step-number {
+  color: var(--muted);
+  font-size: 10px;
+}
+.install-steps h4 {
+  margin: 4px 0;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.6;
+}
+.install-steps p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.install-dialog .dialog-footer > .button {
+  width: 100%;
+}
+.install-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  color: var(--success);
+  background: var(--subtle);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.install-status svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.install-profile-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.install-profile-summary h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 750;
+}
+.install-profile-summary p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}

@@ -7,6 +7,10 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Override default ignores of eslint-config-next.
   globalIgnores([
+    // Local agent tooling is not application source.
+    ".agents/**",
+    "test-results/**",
+    "playwright-report/**",
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",

@@ -20,7 +20,7 @@ const subscribeDay = (notify: () => void) => {
     document.removeEventListener("visibilitychange", notify);
   };
 };
-export function ExpenseChatMessages({ messages }: { messages: ChatMessage[] }) {
+export function ExpenseChatMessages({ messages, pending = false }: { messages: ChatMessage[]; pending?: boolean }) {
   const today = useSyncExternalStore(
     subscribeDay,
     () => wibDayKey(new Date().toISOString()),
@@ -101,6 +101,24 @@ export function ExpenseChatMessages({ messages }: { messages: ChatMessage[] }) {
           </Fragment>
         );
       })}
+      {pending && (
+        <Message align="start" className="expense-message expense-message-assistant">
+          <MessageAvatar>
+            <Image src="/mascot/mochi-crown-transparent.webp" alt="" width={30} height={30} />
+          </MessageAvatar>
+          <MessageContent>
+            <span className="chat-speaker">Mochi</span>
+            <Bubble align="start" variant="muted">
+              <BubbleContent>
+                <span className="chat-typing" role="status">
+                  Mochi sedang mengetik…
+                  <span className="chat-typing-dots" aria-hidden="true"><i /><i /><i /></span>
+                </span>
+              </BubbleContent>
+            </Bubble>
+          </MessageContent>
+        </Message>
+      )}
     </div>
   );
 }

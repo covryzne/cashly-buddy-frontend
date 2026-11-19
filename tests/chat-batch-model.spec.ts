@@ -3,8 +3,16 @@ import {
   batchTotal,
   collectChatEntry,
 } from "../src/features/expenses/chat-batch";
+import { receiptSchema } from "../src/features/scan/receipt-schema";
 
 const at = "2026-11-14T10:39:00Z";
+test("Pratinjau menolak rupiah dan diskon yang ditolak kontrak backend", () => {
+  const result = collectChatEntry([], "kopi 20k", "a", at);
+  const draft = result.entries[0].draft!;
+  expect(receiptSchema.safeParse(draft).success).toBeTruthy();
+  expect(receiptSchema.safeParse({ ...draft, taxIdr: "01" }).success).toBeFalsy();
+  expect(receiptSchema.safeParse({ ...draft, discountIdr: "25000", taxIdr: "10000" }).success).toBeFalsy();
+});
 test("Dua pesan merupakan dua transaksi terpisah dengan total 45k", () => {
   const first = collectChatEntry([], "makan naspad 25k", "a", at);
   const second = collectChatEntry(first.entries, "kopi 20k", "b", at);

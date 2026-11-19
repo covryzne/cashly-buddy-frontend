@@ -14,10 +14,13 @@ import { apiRequest, expensePayload, gameSchema, mapExpense, type GameOverview }
 import type { AuthAccount } from "@/lib/auth/types";
 import { apiExpensesSchema } from "@/lib/auth/types";
 import type { ChatBatchSnapshot } from "./chat-batch";
+import type { SummaryCache } from "@/features/reports/summary-cache";
+import { useCalendarDay } from "@/lib/use-calendar-day";
 
 export const localAppRoutes = ["/", "/beranda", "/aktivitas", "/laporan", "/profil", "/offline"];
 type ExpenseSession = {
   expenses: ActivityExpense[];
+  summaryCache: SummaryCache;
   chatSession: ChatBatchSnapshot | null;
   setChatSession: (snapshot: ChatBatchSnapshot) => void;
   updateExpense: (id: string, draft: ReceiptDraft) => Promise<boolean>;
@@ -47,11 +50,19 @@ export function ExpenseSessionProvider({ children, remote }: { children: ReactNo
   const online = useOnline();
   const [sessionEpoch, setSessionEpoch] = useState(0);
   const [expenses, setExpenses] = useState<ActivityExpense[]>(remote?.expenses ?? []);
+  const summaryCache = useRef<SummaryCache>(new Map()).current;
   const [mutationError, setMutationError] = useState("");
   const [syncError,setSyncError]=useState("");
   const refreshing=useRef(false);
   const remoteRequestVersion=useRef(0);
   const previousPath=useRef(pathname);
+  const expensesReadAt = useRef(remote ? Date.now() : 0);
+  const expenseFingerprint = useRef((remote?.expenses ?? []).map(row => `${row.id}:${row.version}`).sort().join("|"));
+  const gameReadAt = useRef(0);
+  const gameRequest = useRef<Promise<void> | null>(null);
+  const gameVersion = useRef(0);
+  const [gameRevision, setGameRevision] = useState(0);
+  const needsGame = pathname === "/beranda" || pathname === "/profil";
   const [mutationPending, setMutationPending] = useState(false);
   const [game, setGame] = useState<GameOverview | null>(remote?.game ?? null);
   const inFlight = useRef(false);
@@ -59,10 +70,15 @@ export function ExpenseSessionProvider({ children, remote }: { children: ReactNo
   const [chatSession, setChatSession] = useState<ChatBatchSnapshot | null>(null);
   const [ready, setReady] = useState(Boolean(remote));
   const [updatedAt, setUpdatedAt] = useState<string | null>(remote ? new Date().toISOString() : null);
+  const currentDay = useCalendarDay(updatedAt ?? "2000-01-01T00:00:00Z");
+  const gameDay = useRef(currentDay);
   const [storageError, setStorageError] = useState(false);
   const [persisted, setPersisted] = useState(false);
   const generation = useRef(0);
   const channel = useRef<BroadcastChannel | null>(null);
+  useEffect(() => {
+    expenseFingerprint.current = expenses.map(row => `${row.id}:${row.version}`).sort().join("|");
+  }, [expenses]);
 
   useEffect(() => {
     if (remote || typeof BroadcastChannel === "undefined") return;
@@ -147,15 +163,49 @@ export function ExpenseSessionProvider({ children, remote }: { children: ReactNo
       page = apiExpensesSchema.parse(await apiRequest(`expenses?cursor=${encodeURIComponent(page.next_cursor)}`));
       rows.push(...page.data);
     }
-    const updatedGame = gameSchema.parse((await apiRequest("gamification/overview")).data);
     if(generation.current!==epoch || remoteRequestVersion.current!==requestVersion) return;
-    setExpenses(rows.map(mapExpense)); setGame(updatedGame); setUpdatedAt(new Date().toISOString());
+    expensesReadAt.current = Date.now();
+    const fingerprint = rows.map(row => `${row.id}:${row.version}`).sort().join("|");
+    if (fingerprint !== expenseFingerprint.current) {
+      expenseFingerprint.current = fingerprint;
+      setExpenses(rows.map(mapExpense)); setUpdatedAt(new Date().toISOString());
+    }
     setSyncError("");
   },[]);
+  const refreshGame = useCallback(async function loadGame() {
+    if (gameRequest.current) return gameRequest.current;
+    if (Date.now() - gameReadAt.current < 60000) return;
+    const version = gameVersion.current;
+    const request = (async () => {
+      try {
+        const result = gameSchema.parse((await apiRequest("gamification/overview")).data);
+        if (version === gameVersion.current) { setGame(result); gameReadAt.current = Date.now(); }
+      } catch { setSyncError("Data streak belum diperbarui. Coba lagi saat koneksi tersedia."); }
+    })();
+    gameRequest.current = request;
+    try { await request; }
+    finally { gameRequest.current = null; }
+    if (version !== gameVersion.current) await loadGame();
+  }, []);
+  function invalidateGame() {
+    gameReadAt.current = 0; ++gameVersion.current;
+    setGameRevision(value => value + 1);
+  }
+  useEffect(() => {
+    if (!remote || !needsGame || !online) return;
+    if (gameDay.current !== currentDay) {
+      gameDay.current = currentDay;
+      gameReadAt.current = 0; ++gameVersion.current;
+    }
+    void refreshGame();
+    const onValidated = () => { void refreshGame(); };
+    window.addEventListener("cashly-session-validated", onValidated);
+    return () => window.removeEventListener("cashly-session-validated", onValidated);
+  }, [remote, needsGame, online, gameRevision, refreshGame, currentDay]);
   useEffect(()=>{
     if(!remote) return;
     const revalidate=()=>{
-      if(inFlight.current || refreshing.current || !navigator.onLine) return;
+      if(inFlight.current || refreshing.current || !navigator.onLine || Date.now() - expensesReadAt.current < 60000) return;
       refreshing.current=true;
       void refreshRemote().catch(()=>setSyncError("Data belum diperbarui. Periksa koneksi dan coba kembali."))
         .finally(()=>{refreshing.current=false;});
@@ -166,7 +216,7 @@ export function ExpenseSessionProvider({ children, remote }: { children: ReactNo
   useEffect(()=>{
     const changed=previousPath.current!==pathname;
     previousPath.current=pathname;
-    if(!changed || !remote || !navigator.onLine || inFlight.current || refreshing.current) return;
+    if(!changed || !remote || !navigator.onLine || inFlight.current || refreshing.current || Date.now() - expensesReadAt.current < 60000) return;
     refreshing.current=true;
     void refreshRemote().catch(()=>setSyncError("Data belum diperbarui. Periksa koneksi dan coba kembali."))
       .finally(()=>{refreshing.current=false;});
@@ -178,14 +228,45 @@ export function ExpenseSessionProvider({ children, remote }: { children: ReactNo
     const key=retryKeys.current.get(requestKey) ?? crypto.randomUUID();
     retryKeys.current.set(requestKey,key);
     try {
-      await apiRequest(path,method,body,key);
-      await refreshRemote(); retryKeys.current.delete(requestKey); return true;
+      const response = await apiRequest(path,method,body,key);
+      ++gameVersion.current;
+      setGame(gameSchema.parse(response.data)); gameReadAt.current = Date.now();
+      retryKeys.current.delete(requestKey); return true;
     } catch(error) {setMutationError(error instanceof Error ? error.message : "Data belum tersimpan."); return false;}
     finally {inFlight.current=false;setMutationPending(false);}
   }
   async function createExpense(draft: ReceiptDraft) {
-    if (remote) return performRemote("expenses","POST",expensePayload(draft));
+    if (remote) return mutateExpense("expenses", "POST", expensePayload(draft));
     return value.recordDrafts([{id:crypto.randomUUID(),draft,source:"dashboard"}]);
+  }
+  async function mutateExpense(path: string, method: string, body?: unknown, deletedId?: string) {
+    if (!navigator.onLine || inFlight.current) return false;
+    inFlight.current = true;
+    setMutationPending(true); setMutationError("");
+    const epoch = generation.current;
+    // Invalidate older reads so they cannot overwrite the confirmed edit.
+    ++remoteRequestVersion.current;
+    const requestKey = JSON.stringify([path, method, body]);
+    const key = retryKeys.current.get(requestKey) ?? crypto.randomUUID();
+    retryKeys.current.set(requestKey, key);
+    try {
+      const response = await apiRequest(path, method, body, key);
+      const saved = deletedId ? null : mapExpense(apiExpensesSchema.shape.data.element.parse(response.data));
+      if (generation.current !== epoch) return false;
+      ++remoteRequestVersion.current;
+      setExpenses(previous => saved ? [...previous.filter(expense => expense.id !== saved.id), saved] :
+        previous.filter(expense => expense.id !== deletedId));
+      expensesReadAt.current = Date.now();
+      setUpdatedAt(new Date().toISOString());
+      retryKeys.current.delete(requestKey);
+      if (method === "POST") invalidateGame();
+      return true;
+    } catch (error) {
+      setMutationError(error instanceof Error ? error.message : "Perubahan belum tersimpan.");
+      return false;
+    } finally {
+      inFlight.current = false; setMutationPending(false);
+    }
   }
   async function gameAction(kind: "review" | "no-spend" | "freeze", day?: string[]) {
     if (!remote) return false;
@@ -193,11 +274,11 @@ export function ExpenseSessionProvider({ children, remote }: { children: ReactNo
     return performRemote(path,"POST",kind==="freeze" ? {protected_local_dates:day} : undefined);
   }
   const value: ExpenseSession = {
-    expenses, chatSession, setChatSession, resetSession, updatedAt, storageError, persisted,
+    expenses, summaryCache, chatSession, setChatSession, resetSession, updatedAt, storageError, persisted,
     game, gameAction, mutationPending, createExpense, runtime:remote?.runtime, syncError,
     remoteMode: Boolean(remote), sampleData: remote?.sampleData ?? false, hasMore: remote?.hasMore ?? false,
     updateExpense: async (id, draft) => {
-      if (remote) return performRemote(`expenses/${id}`,"PATCH",expensePayload(draft,expenses.find(e=>e.id===id)?.version));
+      if (remote) return mutateExpense(`expenses/${id}`, "PATCH", expensePayload(draft, expenses.find(e=>e.id===id)?.version));
       commit(expenses.map(expense => expense.id === id ? {
       ...expense, draft, merchant: draft.merchant || draft.items[0].name,
       description: draft.items.map(item => item.name).join(", "),
@@ -206,15 +287,42 @@ export function ExpenseSessionProvider({ children, remote }: { children: ReactNo
       amountIdr: receiptAmounts(draft).total.toString(),
     } : expense)); return true; },
     removeExpense: async id => {
-      if (remote) return performRemote(`expenses/${id}?version=${expenses.find(e=>e.id===id)?.version ?? 1}`,"DELETE");
+      if (remote) return mutateExpense(`expenses/${id}?version=${expenses.find(e=>e.id===id)?.version ?? 1}`,"DELETE", undefined, id);
       commit(expenses.filter(expense=>expense.id!==id));return true;
     },
     restoreExpense: async expense => {
-      if (remote) return performRemote(`expenses/${expense.id}/restore`,"POST");
+      if (remote) return mutateExpense(`expenses/${expense.id}/restore`,"POST");
       commit(expenses.some(entry=>entry.id===expense.id) ? expenses : [...expenses,expense]);return true;
     },
     recordDrafts: async records => {
-      if (remote) {setMutationError("Gunakan Form manual di menu Aktivitas. Pemrosesan OCR, suara dan chat belum dihubungkan.");return false;}
+      if (remote) {
+        if (records.some(record => record.source !== "chat")) {
+          setMutationError("Pemrosesan OCR dan suara belum dihubungkan."); return false;
+        }
+        if (!navigator.onLine || inFlight.current || !records.length) return false;
+        inFlight.current = true; setMutationPending(true); setMutationError("");
+        try {
+          const body = { records: records.map(record => ({
+            id: record.id, expense: expensePayload(receiptSchema.parse(record.draft)),
+          })) };
+          // Stable across a close/reopen or uncertain HTTP response. Changed payloads conflict.
+          const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(
+            JSON.stringify(records.map(record => record.id)),
+          ));
+          const key = `chat-${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2,"0")).join("")}`;
+          const response = await apiRequest("expenses/chat-batch", "POST", body, key);
+          const saved = apiExpensesSchema.parse({ ...response, has_more: false, next_cursor: null }).data.map(mapExpense);
+          const savedIds = new Set(saved.map(row => row.id));
+          setExpenses(previous => [...previous.filter(row => !savedIds.has(row.id)), ...saved]);
+          ++remoteRequestVersion.current; expensesReadAt.current = Date.now();
+          setUpdatedAt(new Date().toISOString());
+          invalidateGame();
+          return true;
+        } catch (error) {
+          setMutationError(error instanceof Error ? error.message : "Pengeluaran belum tersimpan.");
+          return false;
+        } finally { inFlight.current = false; setMutationPending(false); }
+      }
       const additions: ActivityExpense[] = records.map(({ id, draft, source }) => {
         const valid = receiptSchema.parse(draft);
         return {

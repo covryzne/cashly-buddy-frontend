@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
+import { chatTestApi } from "./chat-test-api.mjs";
 const require = createRequire(import.meta.url);
 const site = "http://127.0.0.1:34567";
 const upstream = "http://127.0.0.1:34568";
@@ -54,6 +55,7 @@ const server = createServer(async (req, res) => {
     return send(200,{});
   }
   calls.push(url.pathname); // Paths only; never log code, verifier, credentials or bodies.
+  if (process.env.CASHLY_TEST_CHAT === "true" && await chatTestApi(req, url, send)) return;
   if(url.pathname==="/auth/v1/user/identities/authorize") {
     if(!req.headers.authorization?.startsWith("Bearer "))return send(401,{});
     if(linkCase==="disabled")return send(400,{code:"manual_linking_disabled"});

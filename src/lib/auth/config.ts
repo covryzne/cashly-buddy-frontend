@@ -18,8 +18,20 @@ export function authConfig() {
   return { site, api };
 }
 
+type ProviderConfiguration = { site: string; api: string; supabase: string; key: string; googleEnabled: boolean };
+let configuration: { origin: string; expiresAt: number; promise: Promise<ProviderConfiguration> } | undefined;
 export async function providerConfig() {
   const config = authConfig();
+  const cacheKey = `${config.api}/${config.site}`;
+  if (configuration?.origin === cacheKey && configuration.expiresAt > Date.now()) return configuration.promise;
+  // Only public provider metadata is shared. User sessions/tokens are never cached here.
+  const entry = { origin: cacheKey, expiresAt: Date.now() + 60000, promise: loadProviderConfig(config) };
+  configuration = entry;
+  void entry.promise.catch(() => { if (configuration === entry) configuration = undefined; });
+  return entry.promise;
+}
+
+async function loadProviderConfig(config: ReturnType<typeof authConfig>): Promise<ProviderConfiguration> {
   const response = await fetch(`${config.api}/api/v1/auth/configuration`, {
     cache: "no-store", signal: AbortSignal.timeout(10000), redirect: "error",
   });

@@ -19,6 +19,8 @@
     "lint": "eslint",
     "icons:generate": "node scripts/generate-pwa-icons.mjs",
     "test:e2e": "playwright test",
+    "test:chat:model": "playwright test --config=playwright.chat-model.config.ts",
+    "test:chat:ai": "playwright test --config=playwright.chat-ai.config.ts",
     "test:oauth": "playwright test --config=playwright.oauth.config.ts",
     "test:email": "playwright test --config=playwright.email.config.ts",
     "test:dev-styles": "node scripts/check-date-time-dev.mjs && node scripts/check-scan-dev.mjs && node scripts/check-chat-dev.mjs && node scripts/check-voice-dev.mjs",

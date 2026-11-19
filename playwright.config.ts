@@ -2,6 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
+  testIgnore: ["**/chat-ai.spec.ts"],
   fullyParallel: false,
   use: {
     launchOptions: {

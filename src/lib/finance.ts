@@ -49,10 +49,11 @@ export function expensePayload(draft: ReceiptDraft, version?: number) {
   };
 }
 
-export async function apiRequest(path: string, method="GET", body?: unknown, key?: string) {
+export async function apiRequest(path: string, method="GET", body?: unknown, key?: string, signal?: AbortSignal) {
   const response = await fetch(`/api/cashly/${path}`, {method, cache:"no-store",
     headers: {"Content-Type":"application/json", ...(method!=="GET" ? {"Idempotency-Key":key ?? crypto.randomUUID()} : {})},
-    body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(path.startsWith("me/security/") ? 50000 : 20000),
+    body: body === undefined ? undefined : JSON.stringify(body),
+    signal: signal ?? AbortSignal.timeout(path.startsWith("me/security/") || path === "chat/extract" ? 50000 : 20000),
   });
   const result = await response.json();
   if (!response.ok) throw new Error(typeof result.error?.message === "string" ? result.error.message :

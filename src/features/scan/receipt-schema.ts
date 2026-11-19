@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/format/datetime";
 
 const money = z
   .string()
-  .regex(/^\d{1,12}$/, "Isi rupiah bulat, maksimal 12 digit.");
+  .regex(/^(0|[1-9]\d{0,11})$/, "Isi rupiah bulat tanpa nol di depan, maksimal 12 digit.");
 const localDate = z.string().refine((value) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T12:00:00Z`);
@@ -68,6 +68,9 @@ export const receiptSchema = z
   })
   .superRefine((draft, context) => {
     const amounts = receiptAmounts(draft);
+    if (amounts.discount > amounts.subtotal) context.addIssue({
+      code: "custom", path: ["discountIdr"], message: "Diskon tidak boleh melebihi subtotal.",
+    });
     if (amounts.total > BigInt("999999999999")) context.addIssue({
       code:"custom",path:["items"],message:"Total maksimal 999.999.999.999 rupiah."
     });

@@ -48,6 +48,7 @@ import {
   type ConfirmedChatBatch,
 } from "./chat-batch";
 import { parseExpenseText } from "./parse-expense-text";
+import { extractChat } from "./extract-chat";
 
 const greeting = () =>
   welcomeMessage(
@@ -74,7 +75,11 @@ function ChatBatchFlowContent({
   onSuspend?: (snapshot: ChatBatchSnapshot) => void;
 }) {
   // Ignore the previous single-entry shape retained by Fast Refresh during development.
-  const { recordDrafts } = useExpenseSession();
+  const { recordDrafts, remoteMode, mutationPending } = useExpenseSession();
+  const [requestBusy, setRequestBusy] = useState(false);
+  const aiRequest = useRef<AbortController | null>(null);
+  const aiVersion = useRef(0);
+  useEffect(() => () => { ++aiVersion.current; aiRequest.current?.abort(); }, []);
   const restored = Array.isArray(initialSession?.entries)
     ? initialSession
     : null;
@@ -126,7 +131,7 @@ function ChatBatchFlowContent({
           ?.focus({ preventScroll: true });
     });
     return () => cancelAnimationFrame(frame);
-  }, [step, messages.length]);
+  }, [step, messages.length, requestBusy]);
 
   useEffect(() => {
     const viewport = window.visualViewport;
@@ -147,6 +152,8 @@ function ChatBatchFlowContent({
 
   function suspend(leave: () => void) {
     ++work.current;
+    ++aiVersion.current;
+    aiRequest.current?.abort();
     onSuspend?.({
       step: step === "processing" ? "chat" : step,
       input,
@@ -158,8 +165,48 @@ function ChatBatchFlowContent({
     });
     leave();
   }
-  function send() {
-    if (step !== "chat" || !input.trim()) return;
+  async function send() {
+    if (step !== "chat" || !input.trim() || aiRequest.current) return;
+    if (remoteMode) {
+      const controller = new AbortController();
+      aiRequest.current = controller;
+      const version = ++aiVersion.current;
+      const text = input.trim();
+      const createdAt = new Date().toISOString();
+      // A failed/interrupted send keeps its bubble; retry it without duplicating history.
+      const last = messages.at(-1);
+      const retry = last?.role === "user" && last.text === text;
+      const history = retry ? messages.slice(0, -1) : messages;
+      if (!retry) {
+        const message: ChatMessage = { id: ++sequence.current, role: "user", text, createdAt };
+        setMessages(previous => appendChatMessage(previous, message));
+      }
+      setRequestBusy(true);
+      setError("");
+      try {
+        const result = await extractChat(text, entries, history,
+          AbortSignal.any([controller.signal, AbortSignal.timeout(50000)]));
+        if (version !== aiVersion.current) return;
+        const reply: ChatMessage = {
+          id: ++sequence.current, role: "assistant", text: result.reply,
+          createdAt: new Date().toISOString(),
+        };
+        setMessages(previous => appendChatMessage(previous, reply));
+        setEntries(result.entries);
+        setInput("");
+        setIssues({});
+      } catch (cause) {
+        if (version === aiVersion.current)
+          setError(cause instanceof Error && cause.name !== "TimeoutError" ? cause.message :
+            "AI belum merespons. Pesanmu tetap tersedia untuk dikirim ulang.");
+      } finally {
+        if (version === aiVersion.current) {
+          aiRequest.current = null;
+          setRequestBusy(false);
+        }
+      }
+      return;
+    }
     const createdAt = new Date().toISOString();
     const result = collectChatEntry(
       entries,
@@ -194,7 +241,7 @@ function ChatBatchFlowContent({
     setIssues({});
   }
   function preview() {
-    if (!entries.length || input.trim()) return;
+    if (!entries.length || input.trim() || requestBusy) return;
     setIssues({});
     setStep("processing");
   }
@@ -209,8 +256,37 @@ function ChatBatchFlowContent({
     setEntries((previous) => previous.filter((entry) => entry.id !== id));
     setIssues({});
   }
-  function applySource() {
-    if (!active) return;
+  async function applySource() {
+    if (!active || aiRequest.current || !sourceInput.trim()) return;
+    if (remoteMode) {
+      const controller = new AbortController();
+      aiRequest.current = controller;
+      const version = ++aiVersion.current;
+      setRequestBusy(true);
+      setError("");
+      try {
+        const result = await extractChat(sourceInput.trim(), entries, messages,
+          AbortSignal.any([controller.signal, AbortSignal.timeout(50000)]), active.id);
+        if (version !== aiVersion.current) return;
+        setEntries(result.entries);
+        const edited = result.entries.find(entry => entry.id === active.id);
+        if (!edited?.draft || edited.text !== sourceInput.trim()) {
+          setError(result.reply);
+          return;
+        }
+        setIssues({});
+        setStep("review");
+      } catch (cause) {
+        if (version === aiVersion.current)
+          setError(cause instanceof Error ? cause.message : "Catatan belum bisa diproses.");
+      } finally {
+        if (version === aiVersion.current) {
+          aiRequest.current = null;
+          setRequestBusy(false);
+        }
+      }
+      return;
+    }
     const result = parseExpenseText(sourceInput.trim());
     if (result.kind === "clarify") {
       setError(result.message);
@@ -247,7 +323,7 @@ function ChatBatchFlowContent({
     setStep("review");
   }
   async function confirm() {
-    if (step !== "review" || !entries.length) return;
+    if (step !== "review" || !entries.length || mutationPending) return;
     const next: Record<string, string> = {};
     const validated = entries.map((entry) => {
       if (!entry.draft) {
@@ -293,6 +369,10 @@ function ChatBatchFlowContent({
   }
   function back() {
     ++work.current;
+    ++aiVersion.current;
+    aiRequest.current?.abort();
+    aiRequest.current = null;
+    setRequestBusy(false);
     if (step === "chat") suspend(onBack);
     else if (step === "detail" || step === "success") setStep("review");
     else if (step === "source") {
@@ -314,9 +394,10 @@ function ChatBatchFlowContent({
         }[step]
       }
       variant="screen"
+      showCloseButton={!mutationPending}
       className={`scan-flow ${step === "chat" || step === "source" ? "expense-chat-flow" : `scan-flow-${step}`}`}
-      onBack={back}
-      onClose={() => suspend(onClose)}
+      onBack={mutationPending ? undefined : back}
+      onClose={() => { if (!mutationPending) suspend(onClose); }}
       footer={
         step === "chat" ? (
           <div className="chat-batch-composer">
@@ -324,17 +405,18 @@ function ChatBatchFlowContent({
               value={input}
               onChange={setInput}
               onSend={send}
+              disabled={requestBusy}
             />
             <p className="chat-batch-hint">
               <Info size={13} />
-              Kirim beberapa pengeluaran, lalu tekan Tinjau.
+              <span role="status">{requestBusy ? "Mochi sedang membaca catatanmu…" : "Kirim beberapa pengeluaran, lalu tekan Tinjau."}</span>
             </p>
             {entries.length > 0 && (
               <>
                 <Button
                   className="chat-batch-preview"
                   onClick={preview}
-                  disabled={!!input.trim()}
+                  disabled={!!input.trim() || requestBusy}
                 >
                   <Sparkles size={16} />
                   Tinjau {entries.length} pengeluaran ·{" "}
@@ -358,8 +440,8 @@ function ChatBatchFlowContent({
             </Button>
           </div>
         ) : step === "source" ? (
-          <Button form={formId} type="submit">
-            Terapkan catatan
+          <Button form={formId} type="submit" disabled={requestBusy}>
+            {requestBusy ? "Membaca catatan…" : "Terapkan catatan"}
           </Button>
         ) : step === "detail" ? (
           <Button form={formId} type="submit">
@@ -367,12 +449,12 @@ function ChatBatchFlowContent({
           </Button>
         ) : step === "review" ? (
           <div className="scan-review-actions">
-            <Button onClick={confirm} disabled={!entries.length}>
+            <Button onClick={confirm} disabled={!entries.length || mutationPending}>
               <ShieldCheck size={18} />
               Konfirmasi {entries.length} pengeluaran ·{" "}
               <MoneyDisplay amountIdr={safeTotal} />
             </Button>
-            <Button variant="ghost" onClick={() => setStep("chat")}>
+            <Button variant="ghost" onClick={() => setStep("chat")} disabled={mutationPending}>
               Tambah lewat chat
             </Button>
           </div>
@@ -405,7 +487,7 @@ function ChatBatchFlowContent({
                 </div>
                 <span className="pill">Cerita kecil, jadi catatan.</span>
                 <h3 id="chat-welcome-title">Belanja apa hari ini?</h3>
-                <p>Kirim satu per satu. Mochi siapkan daftar untuk ditinjau.</p>
+                <p>Ceritakan pembelian, nominal, dan pembayaran. Nama tempat opsional.</p>
                 <div className="chat-examples">
                   {expenseExamples.map((example) => (
                     <button
@@ -425,7 +507,7 @@ function ChatBatchFlowContent({
                 </div>
               </section>
             )}
-            <ExpenseChatMessages messages={messages} />
+            <ExpenseChatMessages messages={messages} pending={requestBusy} />
             {error && (
               <p className="scan-field-error" role="alert">
                 {error}
@@ -448,8 +530,8 @@ function ChatBatchFlowContent({
               <ChatBatchList
                 entries={entries}
                 issues={issues}
-                onEdit={edit}
-                onRemove={remove}
+                onEdit={mutationPending ? undefined : edit}
+                onRemove={mutationPending ? undefined : remove}
               />
             ) : (
               <section className="scan-card">
@@ -493,6 +575,7 @@ function ChatBatchFlowContent({
             <p>Perbaiki nama pembelian dan nominal untuk pengeluaran ini.</p>
             <Textarea
               id="chat-entry-source"
+              disabled={requestBusy}
               value={sourceInput}
               onChange={(event) => {
                 setSourceInput(event.target.value);
@@ -533,7 +616,7 @@ function ChatBatchFlowContent({
                 Selesai
               </span>
               <h3>Catatanmu siap!</h3>
-              <p>Ditambahkan ke daftar contoh Cashly. Belum dikirim ke server.</p>
+              <p>{remoteMode ? "Pengeluaran berhasil disimpan ke Cashly." : "Ditambahkan ke daftar contoh Cashly. Belum dikirim ke server."}</p>
               <p>
                 {confirmed.entries.length} pengeluaran ·{" "}
                 <MoneyDisplay

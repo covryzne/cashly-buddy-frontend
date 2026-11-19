@@ -10,19 +10,21 @@ import {
 } from "@/components/ui/input-group";
 
 export const expenseExamples = [
-  "Nescafe coffee 12k",
-  "Makan siang 25rb",
-  "Ojek 18k",
+  "W abis maksi naspad 12rb, bayar QRIS",
+  "Beli nasi Padang di RM Sederhana 25rb, bayar tunai",
+  "Naik ojek ke kantor 18rb, bayar GoPay",
 ];
 
 export function ExpenseChatComposer({
   value,
   onChange,
   onSend,
+  disabled = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   onSend: () => void;
+  disabled?: boolean;
 }) {
   const form = useRef<HTMLFormElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
@@ -55,12 +57,13 @@ export function ExpenseChatComposer({
         ref={form}
         onSubmit={(event) => {
           event.preventDefault();
-          if (value.trim()) onSend();
+          if (value.trim() && !disabled) onSend();
         }}
       >
         <InputGroup className="chat-input-group" aria-label="Tulis pengeluaran">
           <InputGroupTextarea
             ref={textarea}
+            disabled={disabled}
             value={value}
             onChange={(event) => onChange(event.target.value)}
             onKeyDown={(event) => {
@@ -86,6 +89,7 @@ export function ExpenseChatComposer({
               variant="outline"
               className="rounded-full chat-example-trigger"
               aria-label="Lihat contoh catatan"
+              disabled={disabled}
               aria-expanded={examplesOpen}
               aria-controls={examplesOpen ? examplesId : undefined}
               onClick={() => setExamplesOpen(!examplesOpen)}
@@ -101,7 +105,7 @@ export function ExpenseChatComposer({
               variant="default"
               className="rounded-full chat-send"
               aria-label="Kirim catatan"
-              disabled={!value.trim()}
+              disabled={disabled || !value.trim()}
             >
               <ArrowUp size={20} />
             </InputGroupButton>

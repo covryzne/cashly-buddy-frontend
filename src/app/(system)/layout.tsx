@@ -6,13 +6,13 @@ import { accountSchema, apiExpensesSchema } from "@/lib/auth/types";
 import { ExpenseSessionProvider } from "@/features/expenses/expense-session";
 import { ProfileSessionProvider } from "@/features/profile/profile-session";
 import { AuthSessionBoundary } from "@/features/auth/session-boundary";
-import { mapExpense, gameSchema } from "@/lib/finance";
+import { mapExpense } from "@/lib/finance";
 
 async function loadData() {
   const session = await verifiedSession();
   if (!session) return null;
-  const [me, expenses, gameResponse] = await Promise.all([
-    backend("/me", session.token), backend("/expenses", session.token), backend("/gamification/overview", session.token),
+  const [me, expenses] = await Promise.all([
+    backend("/me", session.token), backend("/expenses", session.token),
   ]);
   if (!me.ok || !expenses.ok) return null;
   const account = accountSchema.parse((await me.json()).data);
@@ -25,8 +25,7 @@ async function loadData() {
     result.has_more = page.has_more;
     result.next_cursor = page.next_cursor;
   }
-  const game = gameResponse.ok ? gameSchema.parse((await gameResponse.json()).data) : null;
-  return { account, result, game };
+  return { account, result };
 }
 
 export default function SystemLayout({ children }: { children: React.ReactNode }) {
@@ -38,7 +37,7 @@ async function SystemContent({ children }: { children: React.ReactNode }) {
   if (!data) redirect("/auth/complete");
   const expenses = data.result.data.map(mapExpense);
   return <AuthSessionBoundary key={data.account.account_id} accountId={data.account.account_id}>
-    <ExpenseSessionProvider remote={{ expenses, sampleData: data.account.sample_data, hasMore: data.result.has_more, game: data.game, runtime: data.account.runtime }}>
+    <ExpenseSessionProvider remote={{ expenses, sampleData: data.account.sample_data, hasMore: data.result.has_more, runtime: data.account.runtime }}>
       <ProfileSessionProvider account={data.account}>{children}</ProfileSessionProvider>
     </ExpenseSessionProvider>
   </AuthSessionBoundary>;

@@ -22,9 +22,9 @@ async function RegisterContent() {
   const config = await providerConfig().catch(() => null);
   return <>
     {config?.googleEnabled && <>
-      <p className="login-google-intro">Cepat pakai akun Google kamu</p>
+      <p className="login-google-intro">Paling sat-set pakai Google</p>
       <GoogleSignInButton />
-      <div className="auth-divider"><span>atau pakai email</span></div>
+      <div className="auth-divider"><span>atau daftar pakai email</span></div>
     </>}
     <PasswordAuthForm mode="register" />
   </>;

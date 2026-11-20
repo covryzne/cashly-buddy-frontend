@@ -61,7 +61,7 @@ export function PasswordAuthForm({ mode }: { mode: "login" | "register" }) {
         cache: "no-store",
       });
       const result = await response.json();
-      if (!response.ok) { setErrors({ form: result.error ?? "Proses masuk belum berhasil. Coba lagi." }); return; }
+      if (!response.ok) { setErrors({ form: result.error ?? "Yah, belum bisa masuk. Coba lagi ya." }); return; }
       if (result.status === "verification_required") {
         setVerification({ email: values.email.trim(), issuedAt: register ? Date.now() : null });
         setValues({ name: "", email: "", password: "", confirmPassword: "" });
@@ -74,25 +74,25 @@ export function PasswordAuthForm({ mode }: { mode: "login" | "register" }) {
       }
       setValues({ name: "", email: "", password: "", confirmPassword: "" });
       window.location.assign(result.redirect === "/auth/complete" ? "/auth/complete" : "/beranda");
-    } catch { setErrors({ form: "Tidak dapat menghubungi layanan login lokal. Periksa koneksi dan coba lagi." }); }
+    } catch { setErrors({ form: "Nggak bisa nyambung ke server login. Cek koneksi kamu, terus coba lagi." }); }
     finally { setPending(false); }
   }
   if (verification) return <EmailVerificationForm email={verification.email} issuedAt={verification.issuedAt} onVerified={() => { setVerification(null); setCreated("verified"); }} onBack={() => setVerification(null)} />;
   return <>
     <form ref={form} className="login-form" method="post" action={`/auth/email/${mode}`} onSubmit={submit} noValidate aria-busy={pending}>
-      {register && <div className="form-field"><label htmlFor={`${fieldPrefix}-name`}>Nama panggilan</label><div className="input-wrap"><UserRound size={19} aria-hidden="true" /><Input id={`${fieldPrefix}-name`} name="name" placeholder="Masukkan nama panggilanmu" autoComplete="nickname" value={values.name} onChange={event => change("name", event.target.value)} disabled={disabled} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? `${fieldPrefix}-name-error` : undefined} /></div>{errors.name && <p id={`${fieldPrefix}-name-error`} className="field-error">{errors.name}</p>}</div>}
+      {register && <div className="form-field"><label htmlFor={`${fieldPrefix}-name`}>Nama panggilan</label><div className="input-wrap"><UserRound size={19} aria-hidden="true" /><Input id={`${fieldPrefix}-name`} name="name" placeholder="Mochi panggil kamu apa?" autoComplete="nickname" value={values.name} onChange={event => change("name", event.target.value)} disabled={disabled} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? `${fieldPrefix}-name-error` : undefined} /></div>{errors.name && <p id={`${fieldPrefix}-name-error`} className="field-error">{errors.name}</p>}</div>}
       <div className="form-field"><label htmlFor={`${fieldPrefix}-email`}>Email</label><div className="input-wrap"><Mail size={19} aria-hidden="true" /><Input id={`${fieldPrefix}-email`} name="email" type="email" placeholder="nama@email.com" autoComplete="email" value={values.email} onChange={event => change("email", event.target.value)} disabled={disabled} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? `${fieldPrefix}-email-error` : undefined} /></div>{errors.email && <p id={`${fieldPrefix}-email-error`} className="field-error">{errors.email}</p>}</div>
-      <AuthPasswordField id={`${fieldPrefix}-password`} name="password" autoComplete={register ? "new-password" : "current-password"} label="Kata sandi" value={values.password} onChange={value => change("password", value)} error={errors.password} disabled={disabled} descriptionId={register ? `${fieldPrefix}-requirements` : undefined} labelAction={!register ? <Link className="text-button" href="/forgot-password">Lupa kata sandi?</Link> : undefined} />
+      <AuthPasswordField id={`${fieldPrefix}-password`} name="password" autoComplete={register ? "new-password" : "current-password"} label="Password" value={values.password} onChange={value => change("password", value)} error={errors.password} disabled={disabled} descriptionId={register ? `${fieldPrefix}-requirements` : undefined} labelAction={!register ? <Link className="text-button" href="/forgot-password">Lupa password?</Link> : undefined} />
       {register && <PasswordRequirements id={`${fieldPrefix}-requirements`} value={values.password} />}
-      {register && <AuthPasswordField id={`${fieldPrefix}-confirm-password`} name="confirmPassword" autoComplete="new-password" label="Konfirmasi kata sandi" value={values.confirmPassword} onChange={value => change("confirmPassword", value)} error={values.confirmPassword ? undefined : errors.confirmPassword} disabled={disabled} feedback={values.confirmPassword ? { matches: values.password === values.confirmPassword, text: values.password === values.confirmPassword ? "Kata sandi cocok" : "Kata sandi belum cocok" } : undefined} />}
+      {register && <AuthPasswordField id={`${fieldPrefix}-confirm-password`} name="confirmPassword" autoComplete="new-password" label="Ulangi password" value={values.confirmPassword} onChange={value => change("confirmPassword", value)} error={values.confirmPassword ? undefined : errors.confirmPassword} disabled={disabled} feedback={values.confirmPassword ? { matches: values.password === values.confirmPassword, text: values.password === values.confirmPassword ? "Password cocok!" : "Password belum cocok, cek lagi ya" } : undefined} />}
       {errors.form && <p className="field-error" role="alert">{errors.form}</p>}
-      {!online && <p role="status">Hubungkan kembali koneksi untuk melanjutkan.</p>}
-      <Button type="submit" className="auth-full-button" disabled={!online || disabled}>{pending ? <AppLoader inline /> : register ? "Buat akun" : "Masuk"}</Button>
+      {!online && <p role="status">Sambungin internet dulu buat lanjut, ya.</p>}
+      <Button type="submit" className="auth-full-button" disabled={!online || disabled}>{pending ? <AppLoader inline /> : register ? "Gas, bikin akun!" : "Gas, masuk!"}</Button>
     </form>
-    <p className="login-register">{register ? "Sudah punya akun? " : "Belum punya akun? "}<Link className="text-button" href={register ? "/login" : "/register"}>{register ? "Masuk" : "Buat akun"}</Link></p>
-    {created && <Dialog title={created === "verified" ? "Akun telah terverifikasi" : "Akun berhasil dibuat"} onClose={finishRegistration} showCloseButton={false} className="auth-success-dialog" footer={<Button autoFocus className="auth-full-button" onClick={finishRegistration}>Ke halaman login</Button>}>
+    <p className="login-register">{register ? "Udah punya akun? " : "Belum punya akun? "}<Link className="text-button" href={register ? "/login" : "/register"}>{register ? "Gas masuk!" : "Gas bikin!"}</Link></p>
+    {created && <Dialog title={created === "verified" ? "Email ke-verifikasi!" : "Akunmu udah jadi!"} onClose={finishRegistration} showCloseButton={false} className="auth-success-dialog" footer={<Button autoFocus className="auth-full-button" onClick={finishRegistration}>Gas ke login</Button>}>
       <CircleCheck className="auth-success-icon" size={44} aria-hidden="true" />
-      <p>{created === "verified" ? "Emailmu berhasil diverifikasi. Silakan masuk ke Cashly menggunakan email dan kata sandimu." : "Akunmu sudah siap. Silakan masuk menggunakan email dan kata sandi yang baru dibuat."}</p>
+      <p>{created === "verified" ? "Emailmu udah ke-verifikasi. Gas masuk ke Cashly pakai email sama password kamu." : "Akunmu udah siap. Gas masuk pakai email sama password barumu."}</p>
     </Dialog>}
   </>;
 }

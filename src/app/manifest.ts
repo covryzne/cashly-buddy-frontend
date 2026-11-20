@@ -2,7 +2,7 @@
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Cashly Buddy",
+    name: "Cashly",
     short_name: "Cashly",
     lang: "id",
     description: "Catat pengeluaran dan bangun kebiasaan baik bersama Cashly.",

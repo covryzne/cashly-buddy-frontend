@@ -1,3 +1,46 @@
+.profile-permissions {
+  display: grid;
+  gap: 14px;
+  text-align: left;
+}
+.profile-permission-item {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  min-width: 0;
+}
+.profile-permission-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--primary-text);
+}
+.profile-permissions .profile-permission-heading h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--foreground);
+}
+.profile-permission-status {
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--subtle);
+  color: var(--muted);
+  font-size: 11px;
+  margin-left: auto;
+}
+.profile-permission-status[data-state='granted'] { color: var(--success); }
+.profile-permission-status[data-state='denied'] { color: var(--danger); }
+.profile-permissions p, .profile-permissions small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.profile-permissions p { margin: 8px 0; }
+.profile-permissions [role='status']:empty { display: none; }
+.profile-permissions .button { margin-top: 8px; }
 .profile-main {
   max-width: 1000px;
   padding: 20px 20px calc(112px + env(safe-area-inset-bottom));

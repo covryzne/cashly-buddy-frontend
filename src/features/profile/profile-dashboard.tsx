@@ -38,6 +38,7 @@ import {
   type AppActionPanel,
 } from '@/components/shared/app-action-dialogs';
 import { AccountSecurityPanel } from './account-security-panel';
+import { PermissionsPanel } from './permissions-panel';
 import { SettingsRow } from '@/components/shared/settings-row';
 import { InstallAppEntry } from '@/components/shared/install-app';
 import { useModalStack } from '@/components/shared/use-modal-stack';
@@ -61,6 +62,7 @@ import {
   WhatsappExampleConnected,
 } from './whatsapp-connect';
 import { whatsappExample } from '@/mocks/fixtures/whatsapp';
+import { WhatsappLivePanel } from './whatsapp-live-panel';
 
 type InfoPanel =
   | 'theme'
@@ -68,6 +70,7 @@ type InfoPanel =
   | 'currency'
   | 'reminder'
   | 'privacy'
+  | 'permissions'
   | 'help'
   | 'hero';
 type Panel =
@@ -82,6 +85,7 @@ const infoTitles: Record<InfoPanel, string> = {
   currency: 'Mata uang & format',
   reminder: 'Pengingat catat harian',
   privacy: 'Privasi & keamanan',
+  permissions: 'Perizinan',
   help: 'Pusat bantuan',
   hero: 'Level hero',
 };
@@ -97,6 +101,7 @@ export function ProfileDashboard() {
     saveProfile,
     whatsappExampleLinked,
     setWhatsappExampleLinked,
+    remoteMode, whatsappStatus, whatsappError, refreshWhatsapp, applyWhatsappStatus,
   } = useProfileSession();
   const { theme, setTheme } = useTheme();
   const { panel, open, push, close, back, canGoBack } = useModalStack<Panel>();
@@ -152,8 +157,8 @@ export function ProfileDashboard() {
   }
   const title =
     panel?.kind === 'whatsapp'
-      ? whatsappExampleLinked
-        ? 'WhatsApp contoh terhubung'
+      ? (remoteMode ? whatsappStatus?.status === 'connected' : whatsappExampleLinked)
+        ? (remoteMode ? 'WhatsApp terhubung' : 'WhatsApp contoh terhubung')
         : panel.step === 'otp'
           ? 'Masukkan kode OTP'
           : 'Hubungkan WhatsApp'
@@ -352,7 +357,9 @@ export function ProfileDashboard() {
                     title="Catat via WhatsApp"
                     description="Catat pengeluaran langsung dari percakapanmu."
                     value={
-                      whatsappExampleLinked ? 'Contoh terhubung' : 'Hubungkan'
+                      remoteMode
+                        ? (!online ? 'Periksa saat online' : whatsappError ? 'Periksa koneksi' : whatsappStatus?.status === 'connected' ? 'Terhubung' : 'Hubungkan')
+                        : whatsappExampleLinked ? 'Contoh terhubung' : 'Hubungkan'
                     }
                     onClick={() => open({ kind: 'whatsapp', step: 'intro' })}
                   />
@@ -376,6 +383,12 @@ export function ProfileDashboard() {
                     title="Ekspor ringkasan"
                     description="Salin teks atau simpan laporan sebagai PDF"
                     href="/laporan"
+                  />
+                  <SettingsRow
+                    icon={ShieldCheck}
+                    title="Perizinan"
+                    description="Kamera, mikrofon, foto & akses perangkat"
+                    onClick={() => open({ kind: 'info', topic: 'permissions' })}
                   />
                   <SettingsRow
                     icon={ShieldCheck}
@@ -416,6 +429,7 @@ export function ProfileDashboard() {
           onBack={canGoBack ? back : undefined}
           variant={
             panel.kind === 'edit' ||
+            (panel.kind === 'info' && panel.topic === 'permissions') ||
             panel.kind === 'guide' ||
             panel.kind === 'whatsapp'
               ? 'sheet'
@@ -476,6 +490,8 @@ export function ProfileDashboard() {
                 Penautan dan verifikasi WhatsApp memerlukan koneksi internet.
                 WhatsApp tetap opsional untuk menggunakan Cashly.
               </p>
+            ) : remoteMode ? (
+              <WhatsappLivePanel status={whatsappStatus} statusError={whatsappError} refresh={refreshWhatsapp} applyStatus={applyWhatsappStatus} />
             ) : whatsappExampleLinked ? (
               <WhatsappExampleConnected
                 onReset={() => {
@@ -542,6 +558,7 @@ export function ProfileDashboard() {
           )}
           {panel.kind === 'info' && (
             <div className="profile-info-content">
+              {panel.topic === 'permissions' && <PermissionsPanel />}
               {panel.topic === 'theme' && (
                 <>
                   <p>Pilih tampilan yang paling nyaman untukmu.</p>
@@ -649,8 +666,9 @@ export function ProfileDashboard() {
                       dikelola Supabase Auth.
                     </li>
                     <li>
-                      Foto profil, foto struk, dan rekaman suara tidak diunggah
-                      melalui alur yang tersedia saat ini.
+                      Foto struk dan rekaman suara dikirim untuk analisis atau
+                      transkripsi saat kamu memakai fitur terkait. Lihat
+                      Perizinan untuk rincian akses perangkat.
                     </li>
                     <li>
                       Pilihan tema disimpan pada perangkat agar tampilannya

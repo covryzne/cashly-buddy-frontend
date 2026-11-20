@@ -8,10 +8,10 @@ export const registerSchema = loginSchema
       .trim()
       .min(2, "Nama panggilan minimal 2 karakter.")
       .max(40, "Nama panggilan maksimal 40 karakter."),
-    confirmPassword: z.string().min(1, "Ulangi kata sandimu."),
+    confirmPassword: z.string().min(1, "Ulangi password kamu."),
   })
   .refine((values) => values.password === values.confirmPassword, {
-    message: "Konfirmasi kata sandi belum cocok.",
+    message: "Password-nya belum cocok.",
     path: ["confirmPassword"],
   });
 

@@ -62,6 +62,7 @@ import {
   WhatsappExampleConnected,
 } from './whatsapp-connect';
 import { whatsappExample } from '@/mocks/fixtures/whatsapp';
+import { WhatsappLivePanel } from './whatsapp-live-panel';
 
 type InfoPanel =
   | 'theme'
@@ -100,6 +101,7 @@ export function ProfileDashboard() {
     saveProfile,
     whatsappExampleLinked,
     setWhatsappExampleLinked,
+    remoteMode, whatsappStatus, whatsappError, refreshWhatsapp, applyWhatsappStatus,
   } = useProfileSession();
   const { theme, setTheme } = useTheme();
   const { panel, open, push, close, back, canGoBack } = useModalStack<Panel>();
@@ -155,8 +157,8 @@ export function ProfileDashboard() {
   }
   const title =
     panel?.kind === 'whatsapp'
-      ? whatsappExampleLinked
-        ? 'WhatsApp contoh terhubung'
+      ? (remoteMode ? whatsappStatus?.status === 'connected' : whatsappExampleLinked)
+        ? (remoteMode ? 'WhatsApp terhubung' : 'WhatsApp contoh terhubung')
         : panel.step === 'otp'
           ? 'Masukkan kode OTP'
           : 'Hubungkan WhatsApp'
@@ -355,7 +357,9 @@ export function ProfileDashboard() {
                     title="Catat via WhatsApp"
                     description="Catat pengeluaran langsung dari percakapanmu."
                     value={
-                      whatsappExampleLinked ? 'Contoh terhubung' : 'Hubungkan'
+                      remoteMode
+                        ? (!online ? 'Periksa saat online' : whatsappError ? 'Periksa koneksi' : whatsappStatus?.status === 'connected' ? 'Terhubung' : 'Hubungkan')
+                        : whatsappExampleLinked ? 'Contoh terhubung' : 'Hubungkan'
                     }
                     onClick={() => open({ kind: 'whatsapp', step: 'intro' })}
                   />
@@ -486,6 +490,8 @@ export function ProfileDashboard() {
                 Penautan dan verifikasi WhatsApp memerlukan koneksi internet.
                 WhatsApp tetap opsional untuk menggunakan Cashly.
               </p>
+            ) : remoteMode ? (
+              <WhatsappLivePanel status={whatsappStatus} statusError={whatsappError} refresh={refreshWhatsapp} applyStatus={applyWhatsappStatus} />
             ) : whatsappExampleLinked ? (
               <WhatsappExampleConnected
                 onReset={() => {

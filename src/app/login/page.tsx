@@ -7,7 +7,7 @@ import { AppLoader } from "@/components/shared/app-loader";
 import { connection } from "next/server";
 import { providerConfig } from "@/lib/auth/config";
 
-export const metadata: Metadata = { title: "Masuk ? Cashly" };
+export const metadata: Metadata = { title: "Masuk · Cashly" };
 
 export default function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; account?: string }> }) {
   return (

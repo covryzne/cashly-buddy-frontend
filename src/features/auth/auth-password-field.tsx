@@ -47,7 +47,7 @@ export function AuthPasswordField({
           type={visible ? "text" : "password"}
           autoComplete={autoComplete}
           placeholder={
-            autoComplete === "current-password" ? "Masukkan kata sandi" : isConfirmation ? "Ulangi kata sandi" : "Minimal 8 karakter"
+            autoComplete === "current-password" ? "Masukin password kamu" : isConfirmation ? "Ketik ulang password kamu" : "Min. 8 karakter, biar aman"
           }
           value={value}
           onChange={(event) => onChange(event.target.value)}

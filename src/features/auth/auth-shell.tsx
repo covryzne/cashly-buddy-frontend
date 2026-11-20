@@ -17,15 +17,15 @@ export function AuthShell({
   const copy = {
     login: {
       form: "masuk",
-      kicker: "Senang kamu di sini",
-      title: "Selamat datang kembali!",
-      description: "Yuk, lanjutkan kebiasaan baikmu bersama Cashly.",
+      kicker: "Yo, balik lagi!",
+      title: "Dompetmu kangen nih.",
+      description: "Gas lanjut, streak kamu nungguin.",
     },
     register: {
       form: "buat akun",
-      kicker: "Mulai cerita baikmu",
-      title: "Kenalan dulu, yuk!",
-      description: "Buat ruang untuk kebiasaan baik, satu langkah setiap hari.",
+      kicker: "Mulai petualangan dompetmu",
+      title: "Kenalan dulu, bestie!",
+      description: "Bikin akun, terus kita beresin dompetmu bareng Mochi. Santai, satu langkah sekali.",
     },
     "forgot-password": {
       form: "pemulihan",
@@ -72,17 +72,17 @@ export function AuthShell({
         <section className="auth-story" aria-labelledby="auth-story-title">
           <span className="auth-kicker">
             <Sparkles size={16} />
-            Your little money adventure
+            Uang jajan, but make it fun
           </span>
           <h1 id="auth-story-title">
-            Kebiasaan kecil.
+            Jajan boleh.
             <br />
-            <span>Cerita baik setiap hari.</span>
+            <span>Boncos jangan.</span>
           </h1>
           <p className="auth-story-description">
-            Kenali pengeluaranmu, rayakan konsistensimu.
+            Track pengeluaran tanpa drama, rayain progres kecilmu.
             <br />
-            Mochi siap menemani, satu langkah setiap hari.
+            Mochi nemenin, santai aja, satu langkah sekali.
           </p>
           <div className="auth-mascot-scene">
             <div className="mascot-halo" aria-hidden="true" />
@@ -99,12 +99,12 @@ export function AuthShell({
                 <Check size={18} />
               </span>
               <span>
-                Langkah kecil hari ini<strong>Sudah berarti.</strong>
+                Langkah kecil hari ini,<strong>udah keren banget.</strong>
               </span>
             </span>
             <span className="auth-floating-note note-heart">
               <Heart size={18} />
-              <span>Pelan-pelan, bareng Mochi.</span>
+              <span>Santai, bareng Mochi.</span>
             </span>
             <span className="auth-sparkle sparkle-one" aria-hidden="true">
               ✦
@@ -115,7 +115,7 @@ export function AuthShell({
           </div>
           <p className="auth-story-footer">
             <Leaf size={16} />
-            Tanpa menghakimi. Selalu menemani.
+            Nggak nge-judge, cuma ngingetin.
           </p>
         </section>
         <section
@@ -133,7 +133,7 @@ export function AuthShell({
             {children}
           </div>
           <p className="auth-footnote">
-            Sedikit lebih kenal pengeluaranmu, setiap hari.
+            Makin kenal dompetmu, dikit-dikit tiap hari.
           </p>
         </section>
       </main>

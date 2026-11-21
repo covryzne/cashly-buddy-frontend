@@ -3,7 +3,7 @@
 const SHELL_CACHE = "cashly-offline-shell-v2-account";
 const SHELL_URL = "/offline";
 const SHELL_MARKER = "public-account-v2";
-const OFFLINE_ROUTES = new Set(["/", "/beranda", "/aktivitas", "/laporan", "/profil", "/offline"]);
+const OFFLINE_ROUTES = new Set(["/", "/launch", "/beranda", "/aktivitas", "/laporan", "/profil", "/offline"]);
 let shellPreparation;
 
 async function boundedFetch(input) {

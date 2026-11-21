@@ -34,10 +34,13 @@ for (const width of [320, 360, 390, 430, 768, 1280, 1440]) {
   }
 }
 
-test("Login offers Google and email without a demo bypass", async ({ page }) => {
+test("Public landing opens the guest login without a demo bypass", async ({ page }) => {
   await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1, name: /^Jajan boleh\. Boncos jangan\.\s*Catat pengeluaran tanpa beban, tanpa drama\.$/ })).toBeVisible();
+  await page.getByRole("link", { name: "Gas, buka Cashly!", exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByRole("button", { name: "Lanjutkan dengan Google" })).toBeVisible();
-  await expect(page.getByLabel("Kata sandi", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Install", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Masuk ke demo" })).toHaveCount(0);
 });

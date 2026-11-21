@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import {
   ArrowDownToLine,
   Check,
@@ -17,7 +17,68 @@ import { SettingsRow } from '@/components/shared/settings-row';
 import { Dialog } from '@/components/ui/dialog';
 import { useInstallEnvironment } from '@/lib/pwa/install-environment';
 
-export function InstallGuide() {
+const installSteps = {
+  ios: [
+    {
+      Icon: Share2,
+      title: 'Ketuk Bagikan',
+      description: 'Di Safari, buka menu Bagikan pada halaman Cashly.',
+    },
+    {
+      Icon: PlusSquare,
+      title: 'Tambahkan ke Layar Utama',
+      description: 'Gulir pilihan Bagikan, lalu pilih Add to Home Screen.',
+    },
+    {
+      Icon: Check,
+      title: 'Aktifkan Buka sebagai App Web',
+      description:
+        'Jika pilihan ini muncul, aktifkan. Pastikan nama Cashly dan ikon Mochi, lalu ketuk Tambah.',
+    },
+  ],
+  android: [
+    {
+      Icon: EllipsisVertical,
+      title: 'Buka menu Chrome',
+      description:
+        'Ketuk menu tiga titik di Chrome saat membuka Cashly.',
+    },
+    {
+      Icon: ArrowDownToLine,
+      title: 'Pilih Instal aplikasi',
+      description:
+        'Pilihan ini juga bisa bernama Tambahkan ke layar utama.',
+    },
+    {
+      Icon: Check,
+      title: 'Konfirmasi pemasangan',
+      description:
+        'Periksa nama Cashly dan ikon Mochi, lalu pilih Instal atau Tambah.',
+    },
+  ],
+  desktop: [
+    {
+      Icon: Monitor,
+      title: 'Buka melalui Chrome atau Edge',
+      description:
+        'Buka halaman Cashly pada browser yang ingin kamu gunakan.',
+    },
+    {
+      Icon: ArrowDownToLine,
+      title: 'Cari pilihan Instal',
+      description:
+        'Gunakan ikon instal di bilah alamat, atau pilihan instal di menu browser jika tersedia.',
+    },
+    {
+      Icon: Check,
+      title: 'Konfirmasi pemasangan',
+      description:
+        'Periksa nama Cashly dan ikon Mochi, lalu ikuti konfirmasi browser.',
+    },
+  ],
+};
+
+export function InstallGuide({ showMobilePlatforms = false }: { showMobilePlatforms?: boolean } = {}) {
   const environment = useInstallEnvironment();
   if (environment === 'unknown') return null;
   if (environment === 'standalone' || environment === 'installed')
@@ -27,68 +88,10 @@ export function InstallGuide() {
         Cashly sudah siap di Home Screen kamu.
       </p>
     );
-  const steps =
-    environment === 'ios'
-      ? [
-          {
-            Icon: Share2,
-            title: 'Ketuk Bagikan',
-            description: 'Di Safari, buka menu Bagikan pada halaman Cashly.',
-          },
-          {
-            Icon: PlusSquare,
-            title: 'Tambahkan ke Layar Utama',
-            description:
-              'Gulir pilihan Bagikan, lalu pilih Add to Home Screen.',
-          },
-          {
-            Icon: Check,
-            title: 'Aktifkan Buka sebagai App Web',
-            description:
-              'Jika pilihan ini muncul, aktifkan. Pastikan nama Cashly dan ikon Mochi, lalu ketuk Tambah.',
-          },
-        ]
-      : environment === 'android'
-        ? [
-            {
-              Icon: EllipsisVertical,
-              title: 'Buka menu Chrome',
-              description:
-                'Ketuk menu tiga titik di Chrome saat membuka Cashly.',
-            },
-            {
-              Icon: ArrowDownToLine,
-              title: 'Pilih Instal aplikasi',
-              description:
-                'Pilihan ini juga bisa bernama Tambahkan ke layar utama.',
-            },
-            {
-              Icon: Check,
-              title: 'Konfirmasi pemasangan',
-              description:
-                'Periksa nama Cashly dan ikon Mochi, lalu pilih Instal atau Tambah.',
-            },
-          ]
-        : [
-            {
-              Icon: Monitor,
-              title: 'Buka melalui Chrome atau Edge',
-              description:
-                'Buka halaman Cashly pada browser yang ingin kamu gunakan.',
-            },
-            {
-              Icon: ArrowDownToLine,
-              title: 'Cari pilihan Instal',
-              description:
-                'Gunakan ikon instal di bilah alamat, atau pilihan instal di menu browser jika tersedia.',
-            },
-            {
-              Icon: Check,
-              title: 'Konfirmasi pemasangan',
-              description:
-                'Periksa nama Cashly dan ikon Mochi, lalu ikuti konfirmasi browser.',
-            },
-          ];
+  const platforms: (keyof typeof installSteps)[] = showMobilePlatforms
+    ? ['ios', 'android']
+    : [environment];
+
   return (
     <div className="install-guide">
       <div className="install-guide-app">
@@ -113,20 +116,25 @@ export function InstallGuide() {
           buka alamat Cashly di Safari terlebih dahulu.
         </p>
       )}
-      <ol className="install-steps">
-        {steps.map(({ Icon, title, description }, index) => (
-          <li key={title}>
-            <span className="install-step-icon">
-              <Icon size={20} aria-hidden="true" />
-            </span>
-            <div>
-              <span className="install-step-number">Langkah {index + 1}</span>
-              <h4>{title}</h4>
-              <p>{description}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
+      {platforms.map((platform) => (
+        <Fragment key={platform}>
+          {showMobilePlatforms && <h3>{platform === 'ios' ? 'iOS (Safari)' : 'Android (Chrome)'}</h3>}
+          <ol className="install-steps">
+            {installSteps[platform].map(({ Icon, title, description }, index) => (
+              <li key={title}>
+                <span className="install-step-icon">
+                  <Icon size={20} aria-hidden="true" />
+                </span>
+                <div>
+                  <span className="install-step-number">Langkah {index + 1}</span>
+                  <h4>{title}</h4>
+                  <p>{description}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </Fragment>
+      ))}
       <p className="install-guide-note">
         Setelah ditambahkan, buka Cashly lewat ikon di layar utama. Nama menu
         bisa sedikit berbeda pada perangkatmu.
@@ -141,12 +149,14 @@ export function InstallAppEntry({
   showStatus = false,
   compact = false,
   layout = 'default',
+  showMobilePlatforms = false,
 }: {
   onOpen?: () => void;
   className?: string;
   showStatus?: boolean;
   compact?: boolean;
   layout?: 'default' | 'settings';
+  showMobilePlatforms?: boolean;
 }) {
   const environment = useInstallEnvironment();
   const [open, setOpen] = useState(false);
@@ -193,7 +203,7 @@ export function InstallAppEntry({
           className="install-dialog"
           onClose={() => setOpen(false)}
         >
-          <InstallGuide />
+          <InstallGuide showMobilePlatforms={showMobilePlatforms} />
         </Dialog>
       )}
     </div>

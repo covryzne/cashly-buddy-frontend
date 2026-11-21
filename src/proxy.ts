@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { providerConfig } from "@/lib/auth/config";
 
 export async function proxy(request: NextRequest) {
-  const openingApp = request.nextUrl.pathname === "/";
+  const openingApp = request.nextUrl.pathname === "/launch";
   let response = NextResponse.next({ request });
   const updates: { name: string; value: string; options: Parameters<typeof response.cookies.set>[2] }[] = [];
   const finish = (result: NextResponse) => {
@@ -37,4 +37,4 @@ export async function proxy(request: NextRequest) {
   }
 }
 
-export const config = { matcher: ["/", "/beranda/:path*", "/aktivitas/:path*", "/laporan/:path*", "/profil/:path*"] };
+export const config = { matcher: ["/launch", "/beranda/:path*", "/aktivitas/:path*", "/laporan/:path*", "/profil/:path*"] };

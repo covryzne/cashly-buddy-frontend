@@ -5,6 +5,39 @@ test.describe.configure({ mode: "serial" });
 const email = "local-qa@example.invalid";
 const password = "Local-Test123!";
 
+test("Profil opens the Laporan export dialog directly", async ({ page, request }) => {
+  const exportEmail = "export-qa@example.invalid";
+  await request.get("http://127.0.0.1:34568/__test/otp?enabled=false");
+  const registration = await request.post("/auth/email/register", {
+    headers: { Origin: "http://127.0.0.1:34567" },
+    data: { name: "Export Tester", email: exportEmail, password, confirmPassword: password },
+  });
+  expect(registration.ok()).toBeTruthy();
+  await page.goto("/login");
+  await page.locator(".login-form:visible").getByLabel("Email", { exact: true }).fill(exportEmail);
+  await page.locator(".login-form:visible").getByLabel("Password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Gas, masuk!", exact: true }).click();
+  await expect(page).toHaveURL(/\/beranda/);
+
+  await page.goto("/profil");
+  await page.getByRole("link", { name: /Ekspor ringkasan/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Ekspor ringkasan" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Cashly Monthly Digest" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Salin ringkasan" })).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "Cetak / PDF" })).toBeEnabled();
+  await expect(page).toHaveURL(/\/laporan$/);
+
+  const share = page.getByRole("button", { name: "Bagikan ringkasan laporan" });
+  await dialog.getByRole("button", { name: "Tutup dialog" }).click();
+  await expect(share).toBeFocused();
+  await share.click();
+  await expect(dialog).toBeVisible();
+  await page.reload();
+  await expect(share).toBeVisible();
+  await expect(dialog).toHaveCount(0);
+});
+
 test("local signup, account bootstrap, logout and password login without Google or mail", async ({ page, context, request }) => {
   await request.get("http://127.0.0.1:34568/__test/otp?enabled=false");
   await page.goto("/login");

@@ -15,21 +15,33 @@ export const whatsappChallengeSchema = z.object({
 export const whatsappConnectionSchema = z.object({
   status: z.enum(["connected", "not_linked"]),
   masked_number: z.string().nullable().optional(),
-  connected_at: z.string().nullable().optional(),
+  connected_at: z.string().datetime({ offset: true }).nullable().optional(),
   challenge: whatsappChallengeSchema.nullable().optional(),
   recording_available: z.boolean(),
 });
 export type WhatsappChallenge = z.infer<typeof whatsappChallengeSchema>;
 export type WhatsappConnection = z.infer<typeof whatsappConnectionSchema>;
 
-export async function whatsappRequest(path: string, method = "GET", body?: unknown, key?: string) {
+export const whatsappHistorySchema = z.object({
+  data: z.array(z.object({
+    id: z.string().uuid(),
+    event: z.enum(["linked", "disconnected"]),
+    occurred_at: z.string().datetime({ offset: true }),
+    masked_number: z.string(),
+    source: z.enum(["action", "existing_connection"]),
+  })),
+  next_cursor: z.string().nullable(),
+});
+export type WhatsappHistoryEntry = z.infer<typeof whatsappHistorySchema>["data"][number];
+
+export async function whatsappRequest(path: string, method = "GET", body?: unknown, key?: string, signal?: AbortSignal) {
   if (!navigator.onLine) throw new Error("Hubungkan internet untuk mengelola koneksi WhatsApp.");
   const response = await fetch(`/api/cashly/me/whatsapp${path}`, {
-    method, cache: "no-store", signal: AbortSignal.timeout(20000),
+    method, cache: "no-store", signal: signal ?? AbortSignal.timeout(20000),
     headers: { "Content-Type": "application/json", ...(method === "POST" ? { "Idempotency-Key": key ?? crypto.randomUUID() } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const result = await response.json();
   if (!response.ok) throw new Error(typeof result.error?.message === "string" ? result.error.message : "Koneksi WhatsApp belum dapat diperbarui.");
-  return result.data;
+  return path.startsWith("/history") ? result : result.data;
 }

@@ -100,7 +100,7 @@ function VoiceReceiptFlowContent({ onBack, onClose }: {
       }
     } catch (cause) {
       if (current === version.current && !controller.signal.aborted)
-        setError(cause instanceof Error ? cause.message : "AI belum merespons. Inputmu tetap tersedia untuk dicoba lagi.");
+        setError(cause instanceof Error ? cause.message : "Catatan suaramu belum bisa diproses. Coba lagi, ya.");
     } finally {
       if (current === version.current) { busyRequest.current = false; setPending(null); request.current = null; }
     }

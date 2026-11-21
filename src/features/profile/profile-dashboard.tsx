@@ -382,7 +382,7 @@ export function ProfileDashboard() {
                     icon={Download}
                     title="Ekspor ringkasan"
                     description="Salin teks atau simpan laporan sebagai PDF"
-                    href="/laporan"
+                    href="/laporan?export=1"
                   />
                   <SettingsRow
                     icon={ShieldCheck}
@@ -659,26 +659,24 @@ export function ProfileDashboard() {
                   <span className="profile-info-icon">
                     <ShieldCheck size={29} />
                   </span>
-                  <h3>Kenali apa yang disimpan.</h3>
+                  <h3>Fitur dan izin di Cashly</h3>
                   <ul className="profile-info-list">
                     <li>
-                      Nama dan username disimpan pada akunmu melalui API. Email
-                      dikelola Supabase Auth.
+                      <strong>Foto struk.</strong> Cashly membaca rincian
+                      belanja dari foto. Izin kamera diminta saat kamu memilih
+                      untuk memotret struk.
                     </li>
                     <li>
-                      Foto struk dan rekaman suara dikirim untuk analisis atau
-                      transkripsi saat kamu memakai fitur terkait. Lihat
-                      Perizinan untuk rincian akses perangkat.
+                      <strong>Catatan suara.</strong> Cashly mengubah rekamanmu
+                      menjadi draf pengeluaran. Izin mikrofon diminta saat kamu
+                      mulai merekam.
                     </li>
                     <li>
-                      Pilihan tema disimpan pada perangkat agar tampilannya
-                      tetap nyaman saat kamu kembali.
-                    </li>
-                    <li>
-                      Akses kamera dan mikrofon diminta melalui izin browser
-                      ketika kamu memilih fitur terkait.
+                      <strong>Chat manual.</strong> Kamu bisa mencatat dengan
+                      mengetik tanpa izin kamera atau mikrofon.
                     </li>
                   </ul>
+                  <p>Buka Perizinan di Profil untuk melihat status aksesmu.</p>
                 </>
               )}
               {panel.topic === 'help' && (

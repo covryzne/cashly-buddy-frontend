@@ -3,7 +3,8 @@
 import { useServerSummary } from "@/features/reports/use-server-summary";
 import { LocalDataStatus } from "@/components/shared/local-data-status";
 
-import { useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   BookOpen,
@@ -71,6 +72,24 @@ const units = {
   year: "per tahun",
 };
 
+function OpenExportFromLink({ onOpen }: { onOpen: () => void }) {
+  const requested = useSearchParams().get("export") === "1";
+
+  useEffect(() => {
+    if (!requested) return;
+    const frame = requestAnimationFrame(() => {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("export") !== "1") return;
+      url.searchParams.delete("export");
+      window.history.replaceState(null, "", url);
+      onOpen();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [onOpen, requested]);
+
+  return null;
+}
+
 export function ReportsDashboard() {
   const session = useExpenseSession();
   const today = useCalendarDay(homeFixture.asOf);
@@ -97,6 +116,7 @@ export function ReportsDashboard() {
   const [exportFeedback, setExportFeedback] = useState("");
   const [exportTextVisible, setExportTextVisible] = useState(false);
   const exportText = useRef<HTMLTextAreaElement>(null);
+  const shareButton = useRef<HTMLButtonElement>(null);
   const { panel, open, push, back, close, canGoBack } = useModalStack<Panel>();
   const lastSeven: PeriodSelection = {
     kind: "range",
@@ -167,6 +187,12 @@ export function ReportsDashboard() {
 
   return (
     <>
+      <Suspense fallback={null}>
+        <OpenExportFromLink onOpen={() => {
+          shareButton.current?.focus({ preventScroll: true });
+          openExport();
+        }} />
+      </Suspense>
       <a className="skip-link" href="#reports-main">
         Langsung ke konten
       </a>
@@ -199,6 +225,7 @@ export function ReportsDashboard() {
             <Button
               variant="outline"
               aria-label="Bagikan ringkasan laporan"
+              ref={shareButton}
               onClick={openExport}
             >
               <Share2 size={18} />

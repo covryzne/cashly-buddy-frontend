@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { apiRequest } from "@/lib/finance";
+import { requestExtraction } from "@/lib/extraction-request";
 import { extractionResponseSchema } from "./extract-chat";
 import { MAX_VOICE_DECODED_SECONDS, MAX_VOICE_SECONDS } from "./voice-limits";
 
@@ -19,17 +19,15 @@ export async function transcribeVoice(blob: Blob, signal: AbortSignal, duration:
     reader.readAsDataURL(blob);
   });
   signal.throwIfAborted();
-  const response = await apiRequest("voice/transcribe", "POST", {
-    audio: { mime_type: blob.type, data },
-  }, undefined, signal);
-  const result = transcriptSchema.safeParse(response);
-  if (!result.success) throw new Error("Transkrip AI belum bisa dibaca. Rekamanmu tetap tersedia untuk dicoba lagi.");
-  return result.data.data;
+  return requestExtraction("voice/transcribe", { audio: { mime_type: blob.type, data } }, signal, response => {
+    const result = transcriptSchema.safeParse(response);
+    return result.success ? result.data.data : undefined;
+  });
 }
 
 export async function extractVoice(message: string, signal: AbortSignal) {
-  const response = await apiRequest("voice/extract", "POST", { message }, undefined, signal);
-  const result = extractionResponseSchema.safeParse(response);
-  if (!result.success) throw new Error("Draft AI belum bisa dibaca. Periksa transkrip lalu coba lagi.");
-  return result.data.data;
+  return requestExtraction("voice/extract", { message }, signal, response => {
+    const result = extractionResponseSchema.safeParse(response);
+    return result.success ? result.data.data : undefined;
+  });
 }

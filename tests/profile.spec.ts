@@ -315,14 +315,14 @@ test("Keluar butuh konfirmasi dan mereset state sementara", async ({
     .getByRole("button", { name: "Simpan profil", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Keluar dari akun", exact: true })
+    .getByRole("button", { name: /^Keluar dari akun/ })
     .click();
   await dialog(page)
     .getByRole("button", { name: "Tetap di sini", exact: true })
     .click();
   await expect(page).toHaveURL(/\/profil$/);
   await page
-    .getByRole("button", { name: "Keluar dari akun", exact: true })
+    .getByRole("button", { name: /^Keluar dari akun/ })
     .click();
   await dialog(page)
     .getByRole("button", { name: "Keluar", exact: true })

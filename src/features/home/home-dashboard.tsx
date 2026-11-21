@@ -17,6 +17,7 @@ import { TransactionRow } from '@/components/finance/transaction-row';
 import { CategoryDetail } from '@/components/finance/category-detail';
 import { defaultCategoryDetailFilters, type CategoryDetailFilters } from '@/features/expenses/select-category-detail';
 import { ExpenseSummaryCard } from '@/components/finance/expense-summary-card';
+import { MochiTools } from './mochi-tools';
 import { StreakCard } from '@/components/gamification/streak-card';
 import { MissionBoard } from '@/components/gamification/mission-board';
 import { MissionCard } from '@/components/gamification/mission-card';
@@ -169,6 +170,7 @@ export function HomeDashboard() {
                 count={snapshot.count}
                 onAdd={() => setPanel({ kind: 'add' })}
               />
+              <MochiTools />
             </div>
             <section
               className="companion-area companion-card"

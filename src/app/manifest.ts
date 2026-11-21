@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "id",
     description: "Catat pengeluaran dan bangun kebiasaan baik bersama Cashly.",
     id: "/",
-    start_url: "/launch",
+    start_url: "/",
     scope: "/",
     display: "standalone",
     background_color: "#faf9fe",

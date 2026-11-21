@@ -201,6 +201,9 @@
   grid-template-columns: minmax(0, 1fr) 88px;
   gap: 10px;
 }
+.analysis-actions > div > .button:only-child {
+  grid-column: 1 / -1;
+}
 .analysis-actions .button {
   font-size: 12px;
 }

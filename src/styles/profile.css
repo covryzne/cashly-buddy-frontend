@@ -350,6 +350,14 @@
 .settings-row:last-child {
   border-bottom: 0;
 }
+.settings-row[data-tone="danger"] {
+  color: var(--danger);
+  border-bottom: 0;
+}
+.settings-row[data-tone="danger"] .settings-row-icon {
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+  color: var(--danger);
+}
 .settings-row-icon {
   flex-shrink: 0;
   width: 36px;
@@ -440,13 +448,6 @@
   border-radius: 22px;
   background: var(--surface);
   box-shadow: var(--card-shadow);
-}
-.profile-logout {
-  width: 100%;
-  background: var(--surface);
-  color: var(--foreground);
-  border: 1px solid var(--border);
-  font-size: 13px;
 }
 .profile-footer {
   margin: 18px 0 0;
@@ -917,9 +918,6 @@
   }
 }
 
-.account-actions { display: grid; gap: 12px; margin-top: 16px; }
-.account-actions .account-delete-trigger { width: 100%; background: var(--danger); color: var(--background); border-color: var(--danger); transition: opacity .15s ease, transform .15s ease; }
-.account-actions .account-delete-trigger:hover { background: color-mix(in srgb,var(--danger) 90%,var(--foreground)); }
 .profile-settings-section .profile-install-card { margin-top: 12px; margin-bottom: 0; }
 .account-delete-confirm { background: var(--danger); color: var(--background); transition: opacity .15s ease, transform .15s ease; }
 .account-delete-confirm:hover { background: color-mix(in srgb,var(--danger) 90%,var(--foreground)); }

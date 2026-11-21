@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
+const appOrigin = process.env.APP_ORIGIN;
+const devAppHostname = process.env.NODE_ENV === "development" && appOrigin && URL.canParse(appOrigin)
+  ? new URL(appOrigin).hostname
+  : undefined;
+
 const nextConfig: NextConfig = {
+  allowedDevOrigins: devAppHostname ? ["127.0.0.1", devAppHostname] : ["127.0.0.1"],
   // Keep offline browser test builds away from a running developer's HMR output.
   distDir: process.env.CASHLY_TEST_BUILD === "offline" ? ".next-offline-test" : ".next",
   logging: { incomingRequests: false },

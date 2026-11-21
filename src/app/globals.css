@@ -664,17 +664,18 @@ svg {
 }
 .bottom-nav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: max(8px, env(safe-area-inset-bottom));
+  left: max(8px, env(safe-area-inset-left));
+  right: max(8px, env(safe-area-inset-right));
   z-index: 20;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
-  border-top: 1px solid var(--border);
-  background: var(--surface);
-  padding: 8px max(10px, env(safe-area-inset-left))
-    calc(8px + env(safe-area-inset-bottom));
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: blur(16px);
+  padding: 5px 7px;
   box-shadow: 0 -4px 20px var(--primary-shadow);
 }
 .bottom-item {
@@ -688,9 +689,10 @@ svg {
   min-height: 50px;
   color: var(--muted);
   font-size: 10px;
-  border-radius: 12px;
+  border-radius: 999px;
 }
 .bottom-item.selected {
+  background: var(--primary-soft);
   color: var(--primary-text);
   font-weight: 750;
 }
@@ -698,16 +700,24 @@ svg {
   background: var(--subtle);
 }
 .quick-add {
-  background: var(--primary);
-  color: var(--on-primary);
-  border: 5px solid var(--background);
-  height: 62px;
-  width: 62px;
-  border-radius: 50%;
+  display: grid;
+  justify-items: center;
+  align-self: stretch;
+  justify-self: center;
+  margin-top: -23px;
+  color: var(--primary-text);
+  font-size: 10px;
+  font-weight: 750;
+  border-radius: 999px;
+}
+.quick-add-icon {
   display: grid;
   place-items: center;
-  justify-self: center;
-  margin-top: -25px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--on-primary);
   box-shadow: 0 4px 12px var(--primary-shadow);
 }
 .dialog {

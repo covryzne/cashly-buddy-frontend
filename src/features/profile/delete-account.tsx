@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
 import { AppLoader } from "@/components/shared/app-loader";
+import { SettingsRow } from "@/components/shared/settings-row";
 import { AuthPasswordField } from "@/features/auth/auth-password-field";
 import { clearSnapshot } from "@/lib/pwa/local-snapshot";
 import { clearAccountSnapshot } from "@/lib/pwa/account-snapshot";
@@ -46,7 +47,7 @@ export function DeleteAccount() {
     } catch {setError("Penghapusan belum dapat dipastikan. Coba masuk kembali untuk memeriksa akun.");setPending(false);}
   }
   return <>
-    <Button variant="ghost" className="account-delete-trigger" disabled={!remoteMode || !online} onClick={()=>setOpen(true)}><Trash2 size={16} aria-hidden="true" />Hapus akun</Button>
+    <SettingsRow icon={Trash2} title="Hapus akun" description="Hapus akun dan data Cashly secara permanen." tone="danger" disabled={!remoteMode || !online} onClick={()=>setOpen(true)} />
     {open && <Dialog title={deleted ? "Akun sudah dihapus" : "Hapus akun permanen?"} onClose={close} showCloseButton={!pending && !deleted}>
       {deleted ? <><p>Data akun di server sudah dihapus. Selesaikan pembersihan data pada perangkat ini.</p>{error && <p role="alert" className="field-error">{error}</p>}<Button disabled={pending} onClick={()=>void finish()}>{pending ? <AppLoader inline /> : "Selesaikan dan ke login"}</Button></> : <form className="login-form" method="post" noValidate aria-busy={pending} onSubmit={event=>{event.preventDefault();void submit();}}>
         <p>Akun Cashly <strong>{account.email}</strong>, profil, seluruh transaksi dan rincian, streak, hero, serta progres akan dihapus permanen. Penghapusan tidak bisa dibatalkan.</p>

@@ -107,7 +107,7 @@ test("confirmed Google disconnect keeps email login and the same account", async
   expect(after.account_id).toBe(before.account_id);
   await page.reload();
   await expect(page.getByText("Disconnected", { exact: true })).toBeVisible();
-  await page.locator(".profile-logout").click();
+  await page.getByRole("button", { name: /^Keluar dari akun/ }).click();
   await page.locator(".profile-logout-confirm").click();
   await expect(page).toHaveURL(/\/login/);
   await page.getByLabel("Email", { exact: true }).fill("oauth-test@example.invalid");

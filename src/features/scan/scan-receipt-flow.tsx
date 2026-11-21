@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useOnline } from "@/lib/pwa/connectivity";
 import { useExpenseSession } from "@/features/expenses/expense-session";
 import Image from "next/image";
@@ -51,9 +51,13 @@ type Step =
 function ScanReceiptFlowContent({
   onBack,
   onClose,
+  renderReview,
+  renderReviewActions,
 }: {
   onBack: () => void;
   onClose: () => void;
+  renderReview?: (draft: ReceiptDraft) => ReactNode;
+  renderReviewActions?: (draft: ReceiptDraft) => ReactNode;
 }) {
   const camera = useReceiptCamera();
   const online = useOnline();
@@ -430,15 +434,15 @@ function ScanReceiptFlowContent({
         step === "photo" ? (
           <div className="scan-review-actions">
             <Button onClick={() => void analyze()}>Analisis foto</Button>
-            <Button variant="secondary" onClick={openManualReview}>Lengkapi manual</Button>
+            {!renderReview && <Button variant="secondary" onClick={openManualReview}>Lengkapi manual</Button>}
           </div>
         ) : step === "processing" ? (
           <div className="analysis-actions">
             <div>
-              <Button variant="secondary" onClick={openManualReview}>
+              {!renderReview && <Button variant="secondary" onClick={openManualReview}>
                 <SquarePen size={17} />
                 Ketik manual saja
-              </Button>
+              </Button>}
               <Button variant="secondary" onClick={cancelAnalysis}>
                 Batal
               </Button>
@@ -448,6 +452,8 @@ function ScanReceiptFlowContent({
               Foto dikirim ke AI untuk dibaca
             </small>
           </div>
+        ) : step === "review" && renderReview ? (
+          renderReviewActions?.(draft)
         ) : step === "review" ? (
           <div className="scan-review-actions">
             <Button type="submit" form={formId} disabled={mutationPending || (photo?.source === "example" && remoteMode)}>
@@ -526,8 +532,8 @@ function ScanReceiptFlowContent({
               placeholder="Misal: servis motor, bayar QRIS. Totalnya 290 ribu."
               value={caption} onChange={event => setCaption(event.target.value)} />
           </div>
-          {clarification && <p role="status">{clarification} Tambahkan keterangannya di atas, lalu analisis lagi, atau lengkapi manual.</p>}
-          <p className="scan-field-hint">Foto dan keterangan akan dikirim ke AI. Periksa hasilnya sebelum menyimpan.</p>
+          {clarification && <p role="status">{clarification} Tambahkan keterangannya di atas, lalu analisis lagi{renderReview ? "." : ", atau lengkapi manual."}</p>}
+          <p className="scan-field-hint">Foto dan keterangan akan dikirim ke AI. {renderReview ? "Periksa menu yang terbaca sebelum dipakai." : "Periksa hasilnya sebelum menyimpan."}</p>
           <Button variant="secondary" onClick={openGallery}>Ganti foto</Button>
         </div>
       )}
@@ -573,10 +579,10 @@ function ScanReceiptFlowContent({
             <ImagePlus size={18} />
             Pilih dari galeri
           </Button>
-          <button className="text-button" onClick={chooseExample}>
+          {!renderReview && <button className="text-button" onClick={chooseExample}>
             <ReceiptText size={15} />
             Coba struk contoh
-          </button>
+          </button>}
           <Button variant="ghost" onClick={onBack}>
             Nanti saja
           </Button>
@@ -639,12 +645,12 @@ function ScanReceiptFlowContent({
                     >
                       Aktifkan kamera
                     </Button>
-                    <button
+                    {!renderReview && <button
                       className="scan-example-button"
                       onClick={chooseExample}
                     >
                       Coba struk contoh
-                    </button>
+                    </button>}
                   </>
                 )}
               </div>
@@ -661,7 +667,7 @@ function ScanReceiptFlowContent({
           </p>
         </div>
       )}
-      {step === "review" && photo && (
+      {step === "review" && photo && (renderReview ? renderReview(draft) : (
         <ReceiptReview
           draft={draft}
           photo={photo}
@@ -675,7 +681,7 @@ function ScanReceiptFlowContent({
           onSubmit={submit}
           onRetake={() => openCamera("review")}
         />
-      )}
+      ))}
       {step === "success" && confirmed && (
         <ReceiptScanSuccess draft={confirmed} />
       )}

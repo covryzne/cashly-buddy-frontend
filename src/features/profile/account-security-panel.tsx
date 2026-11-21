@@ -25,12 +25,10 @@ export function AccountSecurityPanel({onLogout}:{onLogout:()=>void}) {
     <div className="profile-settings-card">
       <GoogleConnection connected={account.googleConnected} email={account.email} available={remoteMode} onSetupPassword={() => setPasswordOpen(true)} />
       <SettingsRow icon={KeyRound} title={account.passwordLoginEnabled ? "Ganti kata sandi" : "Buat kata sandi Cashly"} description={account.passwordLoginEnabled ? "Kata sandi sudah dibuat. Login email/password aktif." : "Kata sandi belum dibuat. Tambahkan untuk login dengan email."} value={account.passwordLoginEnabled ? "Aktif" : "Belum dibuat"} onClick={() => setPasswordOpen(true)} />
-    </div>
-    {passwordOpen && <SecurityForm available={remoteMode} onClose={() => setPasswordOpen(false)} />}
-    <div className="account-actions">
-      <Button variant="outline" className="profile-logout" onClick={onLogout}><LogOut size={17} aria-hidden="true" />Keluar dari akun</Button>
+      <SettingsRow icon={LogOut} title="Keluar dari akun" description="Akhiri sesi di perangkat ini." onClick={onLogout} />
       <DeleteAccount />
     </div>
+    {passwordOpen && <SecurityForm available={remoteMode} onClose={() => setPasswordOpen(false)} />}
   </section>;
 }
 

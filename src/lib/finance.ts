@@ -49,6 +49,12 @@ export function expensePayload(draft: ReceiptDraft, version?: number) {
   };
 }
 
+export class ApiRequestError extends Error {
+  constructor(message: string, readonly status: number, readonly code?: string) {
+    super(message);
+  }
+}
+
 export async function apiRequest(path: string, method="GET", body?: unknown, key?: string, signal?: AbortSignal) {
   if (typeof window !== "undefined" && (!navigator.onLine || document.documentElement.dataset.cashlyOffline === "true"))
     throw new Error("Kamu sedang offline. Hubungkan internet untuk memperbarui data.");
@@ -59,7 +65,11 @@ export async function apiRequest(path: string, method="GET", body?: unknown, key
     signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
   });
   const result = await response.json();
-  if (!response.ok) throw new Error(typeof result.error?.message === "string" ? result.error.message :
-    "Permintaan belum berhasil. Coba lagi atau muat ulang data.");
+  if (!response.ok) throw new ApiRequestError(
+    typeof result.error?.message === "string" ? result.error.message :
+      "Permintaan belum berhasil. Coba lagi atau muat ulang data.",
+    response.status,
+    typeof result.error?.code === "string" ? result.error.code : undefined,
+  );
   return result;
 }

@@ -13,6 +13,7 @@ async function forward(request: Request, context: Context, trace: Trace) {
     const path = (await context.params).path.join("/");
     const allowed = /^(expenses(?:\/[0-9a-f-]{36}(?:\/restore)?)?|categories|me\/(?:preferences|profile|security\/(?:password\/(?:change|setup\/request)|google(?:\/disconnect)?))|gamification\/(overview|streak\/calendar|streak\/freeze|checkins\/(no-spend|review))|reports\/(summary|trend))$/;
     const whatsappAllowed = ((request.method === "GET" || request.method === "DELETE") && path === "me/whatsapp") ||
+      (request.method === "GET" && path === "me/whatsapp/history") ||
       (request.method === "POST" && /^me\/whatsapp\/challenges(?:\/[0-9a-f-]{36}\/verify)?$/.test(path));
     if (!allowed.test(path) && !whatsappAllowed && !(request.method === "POST" && ["chat/extract", "receipts/extract", "voice/transcribe", "voice/extract", "expenses/chat-batch"].includes(path))) return Response.json({error:{message:"Endpoint tidak tersedia."}},{status:404,headers});
     trace.route = path.replace(/[0-9a-f-]{36}/g, ":id");

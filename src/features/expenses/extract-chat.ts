@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { receiptSchema } from "@/features/scan/receipt-schema";
-import { apiRequest } from "@/lib/finance";
+import { requestExtraction } from "@/lib/extraction-request";
 import type { ChatEntry } from "./chat-batch";
 import type { ChatMessage } from "./chat-session";
 
@@ -23,8 +23,8 @@ export async function extractChat(
   };
   if (new TextEncoder().encode(JSON.stringify(body)).length > 60000)
     throw new Error("Sesi chat terlalu panjang. Tinjau dan simpan daftar ini sebelum mencatat lagi.");
-  const response = await apiRequest("chat/extract", "POST", body, undefined, signal);
-  const result = extractionResponseSchema.safeParse(response);
-  if (!result.success) throw new Error("Hasil AI belum bisa dibaca. Coba kirim ulang pesanmu.");
-  return result.data.data;
+  return requestExtraction("chat/extract", body, signal, response => {
+    const result = extractionResponseSchema.safeParse(response);
+    return result.success ? result.data.data : undefined;
+  });
 }

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
-import { CheckCircle2, ExternalLink, KeyRound, MessageCircle, RotateCcw, Unplug } from "lucide-react";
+import { CheckCircle2, Clock3, ExternalLink, Info, KeyRound, MessageCircle, RotateCcw, Unplug } from "lucide-react";
 import { AppLoader } from "@/components/shared/app-loader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { whatsappChallengeSchema, whatsappConnectionSchema, whatsappRequest, type WhatsappConnection } from "./whatsapp-api";
+import { connectionTime, WhatsappHistory } from "./whatsapp-history";
 
 export function WhatsappLivePanel({ status, statusError, refresh, applyStatus }: {
   status: WhatsappConnection | null;
@@ -81,20 +82,39 @@ export function WhatsappLivePanel({ status, statusError, refresh, applyStatus }:
   }
 
   return <div className="whatsapp-connect">
-    <div className="whatsapp-connect-heading">
-      <span>{connected ? <CheckCircle2 size={27} /> : challenge ? <KeyRound size={27} /> : <MessageCircle size={27} />}</span>
-      <div><h3>{connected ? "WhatsApp terhubung" : challenge ? "Masukkan kode dari chat" : "Hubungkan WhatsApp kamu"}</h3>
+    {!connected && <div className="whatsapp-connect-heading">
+      <span aria-hidden="true">{challenge ? <KeyRound size={27} /> : <MessageCircle size={27} />}</span>
+      <div><h3>{challenge ? "Masukkan kode dari chat" : "Hubungkan WhatsApp kamu"}</h3>
         <p>WhatsApp opsional. Kamu tetap bisa mencatat di Cashly.</p></div>
-    </div>
+    </div>}
     {(error || statusError) && <p role="alert" className="whatsapp-otp-error">{error || statusError}</p>}
     {connected ? <>
-      <p>Nomor {status.masked_number} sudah terverifikasi.</p>
-      {!status.recording_available && <p>Pencatatan WhatsApp masih disiapkan. Sementara gunakan pencatatan di aplikasi.</p>}
-      {confirmDisconnect ? <div className="whatsapp-connect-buttons">
+      <section className="whatsapp-account" aria-labelledby={`${id}-account`}>
+        <div className="whatsapp-account-top">
+          <span className="whatsapp-account-icon"><MessageCircle size={21} aria-hidden="true" /></span>
+          <span className="whatsapp-verified"><CheckCircle2 size={14} aria-hidden="true" />Terverifikasi</span>
+        </div>
+        <h3 id={`${id}-account`}>Nomor WhatsApp</h3>
+        {status.masked_number && <p className="whatsapp-account-number">{status.masked_number}</p>}
+        {status.connected_at && <dl className="whatsapp-account-meta">
+          <div>
+            <dt><Clock3 size={15} aria-hidden="true" />Terhubung sejak</dt>
+            <dd><time dateTime={status.connected_at}>{connectionTime(status.connected_at)}</time></dd>
+          </div>
+        </dl>}
+      </section>
+      {!status.recording_available && <aside className="whatsapp-recording-note">
+        <Info size={17} aria-hidden="true" />
+        <div>
+          <strong>Pencatatan WhatsApp masih disiapkan</strong>
+          <p>Untuk sementara, catat pengeluaran di aplikasi Cashly.</p>
+        </div>
+      </aside>}
+      {confirmDisconnect ? <div className="whatsapp-connect-buttons whatsapp-disconnect-confirm">
         <p>Putuskan koneksi nomor ini? Kamu perlu verifikasi lagi untuk menghubungkannya kembali.</p>
-        <Button disabled={busy} onClick={() => void disconnect()}><Unplug size={17} />Ya, putuskan koneksi</Button>
+        <Button variant="outline" className="whatsapp-disconnect-action" disabled={busy} onClick={() => void disconnect()}><Unplug size={16} aria-hidden="true" />Ya, putuskan koneksi</Button>
         <Button variant="ghost" disabled={busy} onClick={() => setConfirmDisconnect(false)}>Batal</Button>
-      </div> : <Button variant="outline" onClick={() => setConfirmDisconnect(true)}>Putuskan koneksi</Button>}
+      </div> : <Button variant="outline" onClick={() => setConfirmDisconnect(true)}><Unplug size={16} aria-hidden="true" />Putuskan koneksi</Button>}
     </> : challenge ? <>
       <p>Kirim pesan yang sudah disiapkan di WhatsApp. Masukkan OTP dari balasan bot di sini. {challenge.masked_number ? `Tujuan kode: ${challenge.masked_number}.` : "Menunggu pesanmu ke bot."}</p>
       <form onSubmit={submit} noValidate className="whatsapp-otp-form">
@@ -119,5 +139,6 @@ export function WhatsappLivePanel({ status, statusError, refresh, applyStatus }:
       <Button disabled={busy} onClick={() => void start()}>{busy ? <AppLoader inline /> : <><MessageCircle size={17} />Buka WhatsApp</>}</Button>
       {statusError && <Button variant="ghost" disabled={busy} onClick={() => void refresh()}>Periksa status lagi</Button>}
     </>}
+    {status?.status === "not_linked" && <WhatsappHistory />}
   </div>;
 }

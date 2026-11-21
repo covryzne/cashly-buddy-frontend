@@ -180,8 +180,7 @@ function ChatBatchFlowContent({
         setIssues({});
       } catch (cause) {
         if (version === aiVersion.current)
-          setError(cause instanceof Error && cause.name !== "TimeoutError" ? cause.message :
-            "AI belum merespons. Pesanmu tetap tersedia untuk dikirim ulang.");
+          setError(cause instanceof Error ? cause.message : "Pesanmu belum bisa diproses. Coba kirim lagi, ya.");
       } finally {
         if (version === aiVersion.current) {
           aiRequest.current = null;

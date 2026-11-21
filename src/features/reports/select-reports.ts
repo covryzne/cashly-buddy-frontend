@@ -95,8 +95,9 @@ function trendIntervals(start: string, end: string) {
 export function selectReports(
   expenses: readonly Expense[],
   period: PeriodSelection,
+  timezone = "Asia/Jakarta",
 ) {
-  const snapshot = selectPeriod(period, expenses);
+  const snapshot = selectPeriod(period, expenses, timezone);
   const bounds = periodBounds(period);
   const days = dayCount(bounds.start, bounds.end);
   const categories: ReportCategory[] = snapshot.categories.map((category) => ({
@@ -116,7 +117,7 @@ export function selectReports(
           : 1,
     );
   const previous = previousPeriod(period);
-  const comparison = selectPeriod(previous, expenses);
+  const comparison = selectPeriod(previous, expenses, timezone);
   const before = BigInt(comparison.totalIdr);
   const difference = BigInt(snapshot.totalIdr) - before;
   const percentChange =
@@ -132,6 +133,7 @@ export function selectReports(
     const data = selectPeriod(
       { kind: "range", start: point.start, end: point.end },
       snapshot.expenses,
+      timezone,
     );
     return { ...point, totalIdr: data.totalIdr, count: data.count };
   });

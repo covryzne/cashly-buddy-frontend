@@ -1,24 +1,18 @@
 "use client";
 
+import { ReportOverview } from "./report-overview";
 import { useServerSummary } from "@/features/reports/use-server-summary";
 import { LocalDataStatus } from "@/components/shared/local-data-status";
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  ArrowRight,
   BookOpen,
   CalendarDays,
-  ChartNoAxesColumn,
   Copy,
   Download,
-  Info,
-  PieChart,
   Printer,
-  ReceiptText,
   Share2,
-  TrendingDown,
-  TrendingUp,
 } from "lucide-react";
 import { AppNavigation } from "@/components/shared/app-navigation";
 import { AppPageHeader } from "@/components/shared/app-page-header";
@@ -30,10 +24,7 @@ import {
 import { useModalStack } from "@/components/shared/use-modal-stack";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MoneyDisplay } from "@/components/finance/money-display";
 import { PeriodPicker } from "@/components/finance/period-picker";
-import { SpendingCategoryChart } from "@/components/finance/spending-category-chart";
-import { SpendingTrendChart } from "@/components/finance/spending-trend-chart";
 import { TransactionRow } from "@/components/finance/transaction-row";
 import {
   ExpenseDetail,
@@ -65,13 +56,6 @@ type Panel =
   | { kind: "category"; code: string | null }
   | { kind: "trend"; start: string; end: string }
   | { kind: "detail"; id: string };
-const units = {
-  day: "harian",
-  week: "mingguan",
-  month: "bulanan",
-  year: "per tahun",
-};
-
 function OpenExportFromLink({ onOpen }: { onOpen: () => void }) {
   const requested = useSearchParams().get("export") === "1";
 
@@ -256,124 +240,18 @@ export function ReportsDashboard() {
               Pilih tanggal <CalendarDays size={14} />
             </button>
           </div>
-          <section
-            className="report-card report-summary"
-            aria-label="Ringkasan laporan"
-          >
-            <div className="report-summary-top">
-              <span>Total pengeluaran</span>
-              <span className="pill">
-                <ReceiptText size={12} />
-                {snapshot.count} transaksi
-              </span>
-            </div>
-            <MoneyDisplay
-              amountIdr={snapshot.totalIdr}
-              className="report-total"
-            />
-            <p className="report-scope">{reportPeriodLabel(period)} · WIB</p>
-            <div className="report-summary-stats">
-              <div>
-                <span>
-                  <i className="report-stat-dot" />
-                  Perbandingan periode
-                </span>
-                <strong>
-                  {snapshot.comparison.percent === null ? (
-                    <>
-                      <Info size={15} /> Belum ada pembanding
-                    </>
-                  ) : (
-                    <>
-                      {snapshot.comparison.direction === "down" ? (
-                        <TrendingDown size={16} />
-                      ) : (
-                        <TrendingUp size={16} />
-                      )}
-                      {snapshot.comparison.direction === "same"
-                        ? "Sama dengan sebelumnya"
-                        : `${snapshot.comparison.direction === "down" ? "Turun" : "Naik"} ${snapshot.comparison.percent}%`}
-                    </>
-                  )}
-                </strong>
-                <small>
-                  {snapshot.comparison.count
-                    ? `dibanding ${reportPeriodLabel(snapshot.comparison.period)}`
-                    : `Belum ada catatan pada ${reportPeriodLabel(snapshot.comparison.period)}.`}
-                </small>
-              </div>
-              <div>
-                <span>
-                  <i className="report-stat-dot is-primary" />
-                  Rata-rata harian
-                </span>
-                <strong>
-                  <MoneyDisplay amountIdr={snapshot.averageIdr} />
-                  <small>/ hari</small>
-                </strong>
-                <small>{snapshot.days} hari kalender</small>
-              </div>
-            </div>
-          </section>
-          {!snapshot.count && (
-            <section className="report-empty" aria-label="Laporan kosong">
-              <ReceiptText size={24} />
-              <div>
-                <h3>Belum ada pengeluaran di periode ini.</h3>
-                <p>Coba periode lain atau mulai catatan pengeluaranmu.</p>
-              </div>
-              <Button variant="secondary" onClick={() => open({ kind: "add" })}>
-                Catat pengeluaran
-              </Button>
-            </section>
-          )}
-          <div className="report-grid">
-            <section
-              className="report-card report-distribution"
-              aria-labelledby="report-distribution-title"
-            >
-              <div className="report-card-heading">
-                <PieChart size={19} />
-                <h3 id="report-distribution-title">Distribusi Kategori</h3>
-                <span>{snapshot.ranked.length} kategori</span>
-              </div>
-              <SpendingCategoryChart
-                categories={snapshot.categories}
-                selectedCode={selectedCategory}
-                onSelect={setCategory}
-                onDetails={(code) => open({ kind: "category", code })}
-              />
-            </section>
-            <section
-              className="report-card report-trend"
-              aria-labelledby="report-trend-title"
-            >
-              <div className="report-card-heading">
-                <ChartNoAxesColumn size={19} />
-                <h3 id="report-trend-title">Tren Pengeluaran</h3>
-              </div>
-              <p className="report-card-description">
-                Jejak pengeluaran {units[snapshot.trend.unit]} pada periode
-                pilihanmu.
-              </p>
-              <SpendingTrendChart
-                points={snapshot.trend.points}
-                selectedStart={selectedTrend}
-                onSelect={setTrend}
-              />
-              {point && point.count > 0 && (
-                <Button
-                  variant="ghost"
-                  onClick={() =>
-                    open({ kind: "trend", start: point.start, end: point.end })
-                  }
-                >
-                  Lihat {point.count} transaksi periode ini{" "}
-                  <ArrowRight size={15} />
-                </Button>
-              )}
-            </section>
-          </div>
+          <ReportOverview
+            snapshot={snapshot}
+            periodLabel={reportPeriodLabel(period)}
+            selectedCategory={selectedCategory}
+            selectedTrend={selectedTrend}
+            point={point}
+            onAdd={() => open({ kind: "add" })}
+            onCategory={(code) => open({ kind: "category", code })}
+            onSelectCategory={setCategory}
+            onSelectTrend={setTrend}
+            onTrend={(start, end) => open({ kind: "trend", start, end })}
+          />
           <section className="report-export-card" aria-label="Unduh laporan">
             <span className="report-export-icon">
               <Download size={21} />

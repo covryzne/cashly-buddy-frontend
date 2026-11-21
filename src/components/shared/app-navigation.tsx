@@ -88,7 +88,8 @@ export function AppNavigation({
           aria-label="Catat pengeluaran"
           onClick={onAdd}
         >
-          <Plus size={29} />
+          <span className="quick-add-icon"><Plus size={27} aria-hidden /></span>
+          <span>Catat</span>
         </button>
         {items.slice(2).map((entry) => item(entry, true))}
       </nav>

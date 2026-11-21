@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { providerConfig } from "@/lib/auth/config";
 
 export async function proxy(request: NextRequest) {
-  const openingApp = request.nextUrl.pathname === "/";
   let response = NextResponse.next({ request });
   const updates: { name: string; value: string; options: Parameters<typeof response.cookies.set>[2] }[] = [];
   const finish = (result: NextResponse) => {
@@ -27,14 +26,11 @@ export async function proxy(request: NextRequest) {
       },
     });
     const { data: { user }, error } = await supabase.auth.getUser();
-    if (openingApp) {
-      return finish(NextResponse.redirect(new URL(user && !error ? "/beranda" : "/login", config.site)));
-    }
     if (error || !user) return finish(NextResponse.redirect(new URL("/login?error=session", config.site)));
     return finish(response);
   } catch {
-    return finish(new NextResponse(null, { status: 307, headers: { Location: "/login?error=configuration" } }));
+    return finish(NextResponse.redirect(new URL("/login?error=configuration", request.url)));
   }
 }
 
-export const config = { matcher: ["/", "/beranda/:path*", "/aktivitas/:path*", "/laporan/:path*", "/profil/:path*"] };
+export const config = { matcher: ["/beranda/:path*", "/aktivitas/:path*", "/laporan/:path*", "/profil/:path*"] };

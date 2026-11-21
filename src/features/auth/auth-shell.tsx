@@ -64,7 +64,7 @@ export function AuthShell({
           </span>
         </Link>
         <div className="auth-header-actions">
-          <InstallAppEntry compact />
+          {mode !== "login" && <InstallAppEntry compact />}
           <ThemeToggle />
         </div>
       </header>

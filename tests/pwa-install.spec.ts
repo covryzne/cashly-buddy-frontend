@@ -81,7 +81,7 @@ for (const platform of ["iphone", "ipad", "android", "desktop"] as const) {
         if (/hydration|hydrated|server rendered HTML/i.test(message.text()))
           warnings.push(message.text());
       });
-      await page.goto("/login");
+      await page.goto("/register");
       await expect(page.locator(".auth-header .install-entry")).toBeVisible();
       await expect(
         page.locator(".auth-form-section .install-entry"),
@@ -212,7 +212,7 @@ for (const mode of ["media", "legacy"] as const) {
 test("appinstalled menghapus ajakan dan menutup guide tanpa popup berikutnya", async ({
   page,
 }) => {
-  await page.goto("/login");
+  await page.goto("/");
   await page.getByRole("button", { name: "Install", exact: true }).click();
   await page.evaluate(() => window.dispatchEvent(new Event("appinstalled")));
   await expect(

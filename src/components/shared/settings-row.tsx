@@ -7,13 +7,17 @@ export function SettingsRow({
   value,
   onClick,
   href,
+  disabled,
+  tone,
 }: {
   icon: LucideIcon;
   title: string;
-  description: string;
+  description?: string;
   value?: string;
   onClick?: () => void;
   href?: string;
+  disabled?: boolean;
+  tone?: "danger";
 }) {
   const content = (
     <>
@@ -22,7 +26,7 @@ export function SettingsRow({
       </span>
       <span className="settings-row-copy">
         <strong>{title}</strong>
-        <small>{description}</small>
+        {description && <small>{description}</small>}
       </span>
       {value && <span className="settings-row-value">{value}</span>}
       <ChevronRight size={17} aria-hidden="true" />
@@ -33,7 +37,7 @@ export function SettingsRow({
       {content}
     </Link>
   ) : (
-    <button type="button" className="settings-row" onClick={onClick}>
+    <button type="button" className="settings-row" data-tone={tone} disabled={disabled} onClick={onClick}>
       {content}
     </button>
   );

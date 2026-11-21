@@ -25,7 +25,7 @@ test("protected pages, Google PKCE callback, account reads and logout without SM
   await second.goto("/aktivitas");
   await page.bringToFront();
   await page.goto("/profil");
-  await page.locator(".profile-logout").click();
+  await page.getByRole("button", { name: /^Keluar dari akun/ }).click();
   await page.locator(".profile-logout-confirm").click();
   await expect(page).toHaveURL(/\/login/);
   await expect(second).toHaveURL(/\/login/);

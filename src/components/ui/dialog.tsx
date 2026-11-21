@@ -90,7 +90,10 @@ export function Dialog({
       data-fit-viewport={fitViewport ? "" : undefined}
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
-      onCancel={onClose}
+      onCancel={(event) => {
+        event.stopPropagation();
+        onClose();
+      }}
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           const bounds = event.currentTarget.getBoundingClientRect();

@@ -145,7 +145,7 @@ test("client logout revokes cached data in another open offline shell", async ({
   await other.goto("/offline");
   await expect(other.getByRole("heading", { name: "Cashly sedang offline" })).toBeVisible();
   await page.goto("/profil");
-  await page.getByRole("button", { name: "Keluar dari akun", exact: true }).click();
+  await page.getByRole("button", { name: /^Keluar dari akun/ }).click();
   await page.locator(".profile-logout-confirm").click();
   await expect(page).toHaveURL(/\/login/);
   await expect.poll(async () => (await stored(page)).keys.length).toBe(0);

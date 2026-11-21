@@ -6,6 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Cashly",
     lang: "id",
     description: "Catat pengeluaran dan bangun kebiasaan baik bersama Cashly.",
+    id: "/",
     start_url: "/",
     scope: "/",
     display: "standalone",

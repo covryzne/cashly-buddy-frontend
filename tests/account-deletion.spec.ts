@@ -13,14 +13,14 @@ for(const mode of ["password","google"] as const) test(`delete ${mode} account c
   await expect(page).toHaveURL(/\/beranda/);
   await page.goto("/profil");
   await page.setViewportSize({width:390,height:844});
-  await page.getByRole("button",{name:"Hapus akun",exact:true}).click();
+  await page.getByRole("button",{name:/^Hapus akun Hapus akun dan data Cashly/}).click();
   const dialog=page.getByRole("dialog",{name:"Hapus akun permanen?",exact:true});
   await expect(dialog).toContainText("tidak bisa dibatalkan");
   await page.getByRole("button",{name:"Batal",exact:true}).click();
   await expect(dialog).toHaveCount(0);
   expect((await context.request.post("/auth/account/delete",{headers:{Origin:"https://evil.invalid"},data:{confirmation:"HAPUS AKUN"}})).status()).toBe(403);
   expect((await context.request.post("/auth/account/delete",{headers:{Origin:"http://127.0.0.1:34567"},data:{confirmation:"HAPUS AKUN",account_id:"other"}})).status()).toBe(422);
-  await page.getByRole("button",{name:"Hapus akun",exact:true}).click();
+  await page.getByRole("button",{name:/^Hapus akun Hapus akun dan data Cashly/}).click();
   await page.getByRole("button",{name:"Hapus akun permanen",exact:true}).click();
   await expect(dialog.getByRole("alert")).toContainText("Ketik HAPUS AKUN");
   await page.getByLabel("Ketik HAPUS AKUN",{exact:true}).fill("HAPUS AKUN");

@@ -8,9 +8,13 @@ import { MoneyDisplay } from "./money-display";
 export function ReportPrintDetails({
   snapshot,
   periodLabel,
+  timezone = "Asia/Jakarta",
+  timezoneLabel = "WIB",
 }: {
   snapshot: ReportSnapshot;
   periodLabel: string;
+  timezone?: string;
+  timezoneLabel?: string;
 }) {
   const groups = reportTransactionGroups(snapshot);
   return (
@@ -22,7 +26,7 @@ export function ReportPrintDetails({
         <p>Cashly · Laporan pengeluaran</p>
         <h2>Rincian transaksi per kategori</h2>
         <p>
-          {periodLabel} · {snapshot.count} transaksi · Seluruh waktu dalam WIB
+          {periodLabel} · {snapshot.count} transaksi · Zona waktu {timezoneLabel}
         </p>
       </header>
       {groups.length ? (
@@ -47,7 +51,7 @@ export function ReportPrintDetails({
               </colgroup>
               <thead>
                 <tr>
-                  <th scope="col">Tanggal & jam (WIB)</th>
+                  <th scope="col">Tanggal & jam ({timezoneLabel})</th>
                   <th scope="col">Merchant / deskripsi</th>
                   <th scope="col">Pembayaran</th>
                   <th scope="col">Nominal</th>
@@ -60,13 +64,15 @@ export function ReportPrintDetails({
                       <time dateTime={expense.occurredAt}>
                         {formatDate(expense.occurredAt, {
                           dateStyle: "medium",
+                          timeZone: timezone,
                         })}
                         <small>
                           {formatDate(expense.occurredAt, {
                             hour: "2-digit",
                             minute: "2-digit",
+                            timeZone: timezone,
                           })}{" "}
-                          WIB
+                          {timezoneLabel}
                         </small>
                       </time>
                     </td>

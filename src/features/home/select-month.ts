@@ -19,13 +19,17 @@ export function selectMonth(month: string) {
 export function selectPeriod(
   selection: PeriodSelection,
   allExpenses: readonly Expense[] = homeFixture.expenses,
+  timezone = "Asia/Jakarta",
 ) {
-  const expenses = allExpenses.filter((expense) =>
-    selection.kind === "month"
-      ? monthKey(expense.occurredAt) === selection.month
-      : dateKey(expense.occurredAt) >= selection.start &&
-        dateKey(expense.occurredAt) <= selection.end,
-  );
+  const formatter = timezone === "Asia/Jakarta" ? null : new Intl.DateTimeFormat("sv-SE", {
+    timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit",
+  });
+  const expenses = allExpenses.filter((expense) => {
+    const day = formatter ? formatter.format(new Date(expense.occurredAt)) : dateKey(expense.occurredAt);
+    return selection.kind === "month"
+      ? day.slice(0, 7) === selection.month
+      : day >= selection.start && day <= selection.end;
+  });
   const monthLabel =
     selection.kind === "month"
       ? formatDate(`${selection.month}-01T00:00:00+07:00`, {

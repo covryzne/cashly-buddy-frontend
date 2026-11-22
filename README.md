@@ -1,36 +1,288 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cashly Buddy Frontend
 
-## Getting Started
+Local email/password development (ADR-0068): follow backend
+[LOCAL_DEVELOPMENT.md](../cashly-buddy-backend/LOCAL_DEVELOPMENT.md).
+FE still runs with `npm run dev`; Supabase is managed only from BE. Local signup
+activates immediately without SMTP or Google. Hosted/email auth remains deferred.
 
-First, run the development server:
+Frontend Cashly menggunakan Next.js App Router, TypeScript, dan Tailwind CSS.
+Tahap awal berfokus pada prototipe frontend dengan data fiktif. Requirement
+proyek tersedia di `../specs/README.md`.
 
-```bash
+Update Google OAuth (ADR-0066): login sekarang melalui Google/Supabase dengan
+cookie server, bootstrap akun FastAPI, dan pembacaan PostgreSQL per akun.
+Ikuti [setup Google OAuth](GOOGLE_OAUTH_SETUP.md) sebelum mencoba login.
+Email/password dan SMTP ditunda. Snapshot offline lama tetap demo terpisah;
+data akun OAuth tidak disimpan ke snapshot tersebut.
+
+Copy UI utama mengikuti tampilan produk tanpa badge/peringatan simulasi, dummy,
+atau demo (ADR-0024). Penanda dan bantuan akun contoh tetap ada pada alur auth.
+Update ADR-0066: mode akun Google menandai data development dan fitur yang belum
+menyimpan ke server secara eksplisit; tombol masuk demo telah diganti login Google.
+Perubahan copy tidak menambah OCR, penyimpanan, atau reward; fixture dan batas
+implementasi yang dijelaskan di dokumen ini tetap berlaku.
+
+## Menjalankan proyek
+
+Jalankan perintah dari folder `cashly-buddy-frontend`:
+
+Memerlukan Node.js >=20.12. Salin template sekali, lalu isi `.env.dev`:
+
+```powershell
+npm ci
+Copy-Item .env.dev.example .env.dev
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka http://localhost:3000: aplikasi mengarah ke `/login`. Pilih **Lanjutkan dengan Google**
+setelah provider dan env dikonfigurasi. Acuan desain Beranda:
+`../design-references/cashly_beranda_varian_b_floating_cards/`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment per branch
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`npm run dev`, `build`, dan `start` memilih file sebelum menjalankan Next.js:
 
-## Learn More
+| Branch | File |
+| --- | --- |
+| dev / develop / development / branch fitur | `.env.dev` |
+| staging / stage | `.env.staging` |
+| main / master / prod / production | `.env.prod` |
 
-To learn more about Next.js, take a look at the following resources:
+Template `.env.dev.example`, `.env.staging.example`, `.env.prod.example` boleh
+masuk Git; file asli tetap diabaikan. Salin template environment tujuan dan isi
+nilainya sebelum menjalankan command. Jangan duplikasi dengan `.env.local`,
+`.env.development.local` atau file standar Next lain; launcher menolak sumber
+campuran. Salinan `.env.development.local` lama yang identik sudah dihapus.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```powershell
+npm run env:check
+npm run dev:staging
+npm run build:staging
+npm run start:staging
+npm run build:prod
+npm run start:prod
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Perintah eksplisit memakai environment tujuan walau branch berbeda. Alternatif:
+`npm run build -- --app-env=staging` atau variabel proses `CASHLY_ENV=staging`.
+Prioritas: flag → CASHLY_ENV → metadata branch CI → Git → dev (hanya command dev
+tanpa Git). Build/start tanpa Git membutuhkan pilihan eksplisit.
 
-## Deploy on Vercel
+Untuk deployment dengan variabel server/CI tanpa file:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```powershell
+$env:CASHLY_ENV = 'prod'
+$env:CASHLY_ENV_SOURCE = 'system'
+npm run build
+npm run start
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Variabel proses/CI mengalahkan file; log hanya menyebut environment/filename,
+tidak nilainya. `NODE_ENV` tetap development untuk dev dan production untuk
+build/start. Build harus cocok dengan environment start. Nilai `NEXT_PUBLIC_*`
+tetap dibekukan saat build; rahasia server jangan memakai prefix tersebut.
+
+Restart server setelah mengganti branch/file env. Pakai script npm, bukan
+`npx next` langsung. Detail: `docs/environments.md`; tes loader: `npm run test:env`.
+
+## Struktur folder
+
+```text
+src/
+  app/                     # Routing, layout, metadata, dan global CSS
+  components/
+    ui/                    # Primitive UI reusable; tempat shadcn nantinya
+    shared/                # Komponen lintas fitur: navigasi, state screens
+    finance/               # Komponen pengeluaran, form, dan grafik
+    gamification/          # Komponen mascot, streak, XP, dan misi
+  features/
+    auth/                  # Komposisi, hooks, schema, dan adapter fitur auth
+    expenses/              # Logika tampilan fitur pengeluaran
+    reports/               # Logika tampilan fitur laporan
+    gamification/          # Logika tampilan fitur gamification
+    home/                  # Komposisi Beranda dan interaksi pratinjau
+  lib/
+    assets/                # Registrasi cache aset dan preload background
+    api/                   # Tempat transport API saat tahap integrasi
+    format/                # Utilitas format Rupiah dan tanggal bersama
+    theme/                 # Utilitas tema
+  mocks/
+    fixtures/              # Dummy data fiktif untuk prototipe frontend
+  styles/                  # Styles bersama dan semantic tokens nantinya
+public/
+  branding/                # Identitas visual runtime
+  icons/                   # Ikon PWA
+  mascot/                  # Ilustrasi Mochi
+  asset-worker.js          # Cache berversi untuk aset publik dalam allowlist
+```
+
+Folder yang belum diimplementasikan berisi `.gitkeep` agar tersimpan di Git.
+Konfigurasi proyek, environment, dan `public/` berada di root, sejajar dengan `src/`.
+Referensi desain berada di `../design-references/`, di luar aplikasi Next.js.
+
+## Cache aset publik
+
+Checklist implementasi dan hasil validasi: `docs/asset-cache.md`.
+
+Worker v2 mempertahankan cookie browser pada request aset satu origin agar gambar
+tetap dimuat melalui private dev tunnel. Spline CDN tetap tanpa credentials.
+Sesudah pembaruan worker, buka ulang/reload halaman; jika halaman pertama masih
+dikendalikan worker lama, reload sekali lagi setelah worker baru aktif. Tidak
+perlu mengubah visibilitas tunnel atau membagikan token akses.
+
+- Root mendaftarkan `/asset-worker.js` pada HTTPS/localhost, termasuk tunnel dev.
+  Saat form login muncul, gambar/ikon runtime dan scene Mochi disiapkan di
+  background tanpa menahan login atau membuat canvas/WebGL.
+- Worker aset memakai cache-first untuk allowlist publik. Next image variants
+  diterima hanya jika sumbernya ada dalam daftar; ukuran baru saat offline bisa
+  memakai gambar sumber publik yang sudah tersimpan.
+- ADR-0061 menambahkan `/offline` sebagai shell UI publik beserta JS/CSS/font
+  build production. HTML halaman akun, RSC, auth, API, kredensial dan foto/audio
+  privat tidak dimasukkan cache. Data contoh transaksi disimpan terpisah dalam
+  IndexedDB; belum ada sinkronisasi server atau otorisasi akun production.
+- Reduced motion dan Save-Data melewati preload scene besar. Beranda tetap dapat
+  memuat 3D ketika dipilih secara normal. Worker/cache yang tidak tersedia
+  memiliki fallback fetch biasa; gagal scene memakai ilustrasi Mochi.
+- **Naikkan VERSION di public/asset-worker.js setiap scene atau aset dalam daftar
+  berubah**, walaupun URL-nya sama. Daftar URL scene di worker dan
+  spline-mascot.tsx harus sama. Worker baru membersihkan versi aset Cashly lama
+  tanpa reload halaman atau mengubah cache lain.
+- Untuk rollback, terbitkan worker di URL yang sama dengan handler fetch dilepas
+  dan aktivasi yang membersihkan cache berawalan cashly-public-assets-, kemudian
+  unregister dirinya. Jangan hanya menghapus file worker, karena versi lama bisa
+  tetap mengendalikan klien. Domain tunnel berbeda memiliki cache terpisah.
+- Uji target: `npx playwright test tests/asset-cache.spec.ts tests/asset-worker.spec.ts tests/mascot.spec.ts --workers=3`.
+  Verifikasi Safari standalone pada iPhone fisik tetap diperlukan.
+
+## Login demo
+
+- Form email/kata sandi dengan validasi schema Zod dan kontrol tampilkan kata sandi.
+- Hanya menerima akun fiktif dari `src/mocks/fixtures/auth.ts`; tombol Isi data contoh
+  mengisi form. Data tidak dikirim ke server atau disimpan di browser.
+- Ini alur pratinjau, bukan autentikasi atau pelindung route. `/beranda` dapat
+  dibuka langsung. Signup dan pemulihan kata sandi masih berupa informasi.
+- Input, tombol, dialog, dan tombol tema dipakai kembali dari komponen bersama.
+- Layar login dirancang dari token/UI kit Cashly, tanpa aset desain layar baru.
+
+## Cakupan Beranda
+
+- Ringkasan pengeluaran, kategori floating cards, mascot Spline 3D, streak,
+  misi, dan transaksi terbaru; nominal dan progres merupakan fixture fiktif.
+- Detail kategori dan transaksi dapat ditinjau lewat dialog. Menu lain serta
+  pencatatan pengeluaran menampilkan informasi tahap berikutnya.
+- Tema sistem/terang/gelap, navigasi mobile dengan safe area, sidebar desktop,
+  fallback mascot, dukungan reduced motion, dan indikator offline.
+- Manifest dan ikon Mochi tersedia. Shell offline publik dan data contoh lokal
+  dapat dibaca setelah persiapan online. Pencatatan/perubahan membutuhkan koneksi;
+  logout membersihkan snapshot lokal. Uji buka ulang offline dengan `npm run build`
+  lalu `npm run start`, bukan HMR `npm run dev`. Lihat
+  [panduan prototype offline](docs/offline-prototype.md). Backend, bot dan reward
+  belum terhubung.
+- Ilustrasi statis Mochi terbaru memakai referensi `public/mascot/mochi-reference (2).png`
+  (mahkota, jubah dan koin), dengan latar dihapus menggunakan imagegen bawaan.
+  Master alpha: `public/mascot/mochi-crown-transparent.png`; versi WebP untuk login,
+  quick-add, scan dan fallback Beranda: `public/mascot/mochi-crown-transparent.webp`.
+  Beranda tetap memakai scene Spline pengguna. Satu scene ini belum
+  merepresentasikan keempat tahap evolusi.
+- Ikon aplikasi memakai desain `stitch_cashly_icon_app/screen.png` yang disetujui
+  pengguna: PNG 192/512, maskable 512, Apple touch 180, serta favicon PNG/ICO.
+  Jalankan `npm run icons:generate` untuk menghasilkan ulang dari salinan sumber
+  di `scripts/assets/cashly-app-icon.png`. Validasi install di iPhone/Android
+  fisik dan HTTPS deployment belum dilakukan.
+- Ikon iPhone juga tersedia di `/apple-touch-icon.png` untuk fallback Safari.
+  Akses aset lewat tunnel harus dapat dilakukan tanpa login; pratinjau Share Sheet
+  dapat memiliki bingkai sistem yang berbeda dari ikon di Home Screen.
+
+Ringkasan perubahan desain dan batas verifikasi: `docs/home-preview.md`.
+
+Login dan `/register` memakai `AuthShell` bersama. Mobile menampilkan cerita
+Mochi lengkap dengan dua floating notes dan ikon header baru. Form pendaftaran
+memvalidasi nama, email, kata sandi dan konfirmasi secara lokal, lalu menghapus
+input dan menawarkan demo. Tidak ada akun yang dibuat atau kredensial disimpan.
+Tombol Google pada kedua form membuka penjelasan pratinjau; belum terhubung OAuth.
+Aset header dan sumber logo Google tercatat di `public/branding/README.md`.
+
+Link Lupa kata sandi membuka `/forgot-password`, dengan validasi email, data
+contoh dan konfirmasi simulasi. Tidak ada email dikirim atau kata sandi diubah;
+input dibersihkan setelah validasi dan dapat diisi ulang.
+
+Setelah jepret atau memilih struk contoh, layar analisis struk menampilkan progres
+simulasi selama 2,4 detik sebelum review dummy. Ketik manual saja membuka draft
+kosong dengan foto tetap tersedia; Batal/Kembali membersihkan foto sementara dan
+kembali ke pengantar izin. Galeri tetap memakai review manual. Progres ini belum
+terhubung ke OCR atau upload foto. Progres OCR memakai lingkaran berpersentase tanpa bar linear. Loader aset
+(scene 3D, foto dan kamera) memakai Slide asli dari loading-dev melalui AssetLoader
+bersama, default 48px, dengan reduced motion bawaan library.
+`npm run test:dev-styles` memeriksa computed style date/time dan scan langsung
+di dev server; `CASHLY_DEV_URL` dapat menunjuk origin development lain.
+Tailwind diproses lewat `postcss.config.mjs` dengan `@tailwindcss/postcss`,
+tanpa rule loader Turbopack untuk semua CSS. Token dan stylesheet fitur diimpor
+langsung dari root layout agar tetap tersedia pada dev server setelah restart.
+
+Loader Mochi memakai Slide 28px. Circle OCR menampilkan persen saja, dengan
+diameter 112px (100px pada viewport pendek). Pengantar izin kamera dilewati jika
+izin browser sudah diberikan atau stream pernah berhasil dibuka. Hanya flag
+preferensi pengantar yang disimpan lokal; izin asli tetap ditentukan browser dan
+flag dibersihkan ketika akses ditolak/dicabut. Kamera tetap berhenti saat ditutup.
+
+## Aturan penempatan kode
+
+Metode **Chat manual** menggantikan input manual langsung: pesan pembelian →
+analisis → rincian yang dapat dikoreksi → konfirmasi. Panduan, batas parser
+lokal, komponen shadcn dan setup MCP: [docs/chat-manual.md](docs/chat-manual.md).
+Keputusan: [ADR-0029](../specs/ADR/0029-chat-manual-expense-and-shadcn-mcp.md).
+
+**Voice note kilat** sudah menyediakan perekaman mikrofon dan playback lokal,
+review setelah Tinjau, serta transkrip yang dapat diedit di rincian. Transkripsi otomatis belum
+terhubung. Detail dan batas implementasi: [docs/voice-note.md](docs/voice-note.md).
+
+- Alias `@/` mengarah ke `src/`, misalnya `@/components/shared/AppShell`.
+- `app/` menyusun halaman dari komponen; gunakan Server Components secara
+  default dan Client Components untuk interaksi atau browser APIs.
+- Cari dan gunakan kembali komponen yang ada sebelum menambah komponen baru.
+  Simpan primitive di `components/ui`, komponen lintas fitur di `shared`, dan
+  widget domain di `finance` atau `gamification`.
+- Simpan hooks, schema, adapter data, dan logika tampilan khusus fitur di
+  `features/<fitur>`. Hook yang hanya dipakai satu fitur tetap di fitur tersebut.
+- Pusatkan format uang dan tanggal di `lib/format`; gunakan semantic tokens
+  untuk konsistensi light/dark saat UI mulai diimplementasikan.
+- Letakkan data prototipe di `mocks/fixtures` dan pisahkan dari komponen
+  presentasi. Data harus fiktif dan jelas sebagai demo, bukan data pengguna.
+- `../design-references` menjadi referensi implementasi di luar aplikasi Next.js.
+  Baca berkasnya langsung dari workspace; hanya aset runtime hasil implementasi
+  yang ditempatkan di public/branding, public/icons, dan public/mascot.
+
+Koneksi backend, autentikasi nyata, database, dan aturan bisnis yang otoritatif
+belum diimplementasikan pada tahap struktur ini.
+
+## Verifikasi
+
+```sh
+npm run lint
+npx tsc --noEmit
+npm run build
+npm run test:e2e
+```
+
+Tes E2E memerlukan Google Chrome lokal. Jalankan build sebelum E2E karena
+Playwright menjalankan production server di port 3127. Screenshot setiap
+viewport tersimpan di `test-results/` (diabaikan Git).
+
+## Kredit komponen
+
+- Fluid Orb oleh [Rare UI](https://rareui.com), Copyright © 2026 Swami Malode.
+  Dipasang dari `swamimalode07/rare-ui/fluid-orb`, disesuaikan untuk Cashly;
+  [lisensi dan atribusi](src/components/ui/RARE-UI-LICENSE.txt).
+- VoiceNote, RollingText dan utilitas oleh [Detent](https://detentui.com),
+  Copyright © 2026 Detent, MIT. Source registry disesuaikan ke token Cashly dan
+  audio rekaman nyata; [lisensi](src/components/detent/LICENSE).
+
+Detail integrasi: [docs/voice-orb-player.md](docs/voice-orb-player.md).
+
+Diagnostik Chrome/hydration dan perbaikan orb pada dev Strict Mode:
+[docs/browser-debugging.md](docs/browser-debugging.md).
+Jalankan `npm run test:dev-browser` untuk memeriksa hydration dan WebGL hidup
+langsung di dev server.
+`npm run test:dev-autofill` mereproduksi ID autofill Chrome iOS sebelum hydration
+pada login, register dan lupa sandi, termasuk kontrol untuk mendeteksi mismatch
+lain di luar elemen form yang diberi exception.

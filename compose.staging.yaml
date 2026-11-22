@@ -1,0 +1,20 @@
+name: cashly-frontend-staging
+services:
+  frontend:
+    image: cashly-frontend:${CASHLY_IMAGE_TAG:-local}
+    build:
+      context: .
+    env_file: ./.env.staging
+    environment:
+      CASHLY_ENV: staging
+      CASHLY_ENV_SOURCE: system
+      CASHLY_API_ORIGIN: http://backend:8000
+    ports:
+      - "127.0.0.1:3001:3000"
+    restart: unless-stopped
+    networks: [cashly]
+
+networks:
+  cashly:
+    name: cashly-staging
+    external: true

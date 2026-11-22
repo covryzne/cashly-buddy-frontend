@@ -1,0 +1,25 @@
+name: cashly-frontend-dev
+services:
+  frontend:
+    image: cashly-frontend:dev
+    build:
+      context: .
+      target: dev
+    env_file: ./.env.dev
+    environment:
+      CASHLY_ENV: dev
+      CASHLY_ENV_SOURCE: system
+      CASHLY_API_ORIGIN: http://backend:8000
+      WATCHPACK_POLLING: "true"
+    command: [npm, run, dev, --, --hostname, 0.0.0.0, --port, "3000"]
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks: [cashly]
+
+networks:
+  cashly:
+    name: cashly-dev
+    external: true

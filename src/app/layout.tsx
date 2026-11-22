@@ -1,0 +1,98 @@
+﻿import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
+import { AssetCacheBootstrap } from "@/components/shared/asset-cache-bootstrap";
+import "react-day-picker/style.css";
+import "../styles/tokens.css";
+import "./globals.css";
+import "../styles/asset-loader.css";
+import "../styles/scan.css";
+import "../styles/expense-chat.css";
+import "../styles/voice.css";
+import "../styles/date-time-picker.css";
+import "../styles/install-app.css";
+import "../styles/activity.css";
+import "../styles/reports.css";
+import "../styles/category-detail.css";
+import "../styles/profile.css";
+import "../styles/hero-carousel.css";
+import "../styles/whatsapp-connect.css";
+import "../styles/offline.css";
+
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  subsets: ["latin"],
+  display: "swap",
+});
+export const metadata: Metadata = {
+  title: "Beranda · Cashly",
+  description: "Catat pengeluaran dan bangun kebiasaan baik bersama Cashly.",
+  appleWebApp: { capable: true, title: "Cashly", statusBarStyle: "default" },
+  icons: {
+    icon: [
+      {
+        url: "/favicon.ico?v=mochi-1",
+        type: "image/x-icon",
+        sizes: "16x16 32x32 48x48",
+      },
+      {
+        url: "/icons/favicon-32.png?v=mochi-1",
+        type: "image/png",
+        sizes: "32x32",
+      },
+      {
+        url: "/icons/favicon-16.png?v=mochi-1",
+        type: "image/png",
+        sizes: "16x16",
+      },
+      {
+        url: "/icons/icon-192.png?v=mochi-1",
+        type: "image/png",
+        sizes: "192x192",
+      },
+    ],
+    apple: {
+      url: "/icons/apple-touch-icon-mochi-3.png",
+      sizes: "180x180",
+      type: "image/png",
+    },
+  },
+};
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#faf9fe" },
+    { media: "(prefers-color-scheme: dark)", color: "#12101a" },
+  ],
+};
+const themeScript = String.raw`(function(){
+  var theme;
+  try { theme = localStorage.getItem('cashly-theme'); } catch {}
+  if (theme === 'system' || theme === 'light' || theme === 'dark') {
+    document.documentElement.dataset.theme = theme;
+  } else if (/^\/(beranda|aktivitas|laporan|profil|offline)(\/|$)/.test(location.pathname)) {
+    document.documentElement.dataset.theme = 'light';
+  }
+})()`;
+
+export default function RootLayout({ children }: LayoutProps<"/">) {
+  return (
+    <html
+      lang="id"
+      className={jakarta.variable}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      {/* Browser extensions may add body attributes before React hydrates.
+          Keep this exception local; descendant hydration warnings stay active. */}
+      <body suppressHydrationWarning>
+        <AssetCacheBootstrap />
+        {children}
+      </body>
+    </html>
+  );
+}

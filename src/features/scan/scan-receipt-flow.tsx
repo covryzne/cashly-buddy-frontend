@@ -1,0 +1,717 @@
+"use client";
+
+import type { ComponentProps, ReactNode } from "react";
+import { useOnline } from "@/lib/pwa/connectivity";
+import { useExpenseSession } from "@/features/expenses/expense-session";
+import Image from "next/image";
+import { useEffect, useId, useRef, useState } from "react";
+import {
+  Camera,
+  CircleHelp,
+  ImagePlus,
+  Lightbulb,
+  LockKeyhole,
+  ReceiptText,
+  ScanLine,
+  ShieldCheck,
+  Sparkles,
+  SquarePen,
+  Zap,
+  ZapOff,
+} from "lucide-react";
+import { Dialog } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { AppLoader } from "@/components/shared/app-loader";
+import { MoneyDisplay } from "@/components/finance/money-display";
+import { ReceiptReview } from "@/components/finance/receipt-review";
+import { ReceiptScanSuccess } from "@/components/finance/receipt-scan-success";
+import { ReceiptAnalysis } from "@/components/finance/receipt-analysis";
+import { extractReceipt } from "./extract-receipt";
+import { exampleReceipt } from "@/mocks/fixtures/receipt";
+import {
+  blankReceipt,
+  receiptAmounts,
+  receiptSchema,
+  type ReceiptDraft,
+  type ReceiptPhoto,
+} from "./receipt-schema";
+import { captureReceipt, useReceiptCamera } from "./use-receipt-camera";
+import { canSkipCameraIntro, hasCameraApproval } from "./camera-permission";
+
+type Step =
+  | "checking"
+  | "permission"
+  | "camera"
+  | "photo"
+  | "processing"
+  | "review"
+  | "success"
+  | "help";
+
+function ScanReceiptFlowContent({
+  onBack,
+  onClose,
+  renderReview,
+  renderReviewActions,
+}: {
+  onBack: () => void;
+  onClose: () => void;
+  renderReview?: (draft: ReceiptDraft) => ReactNode;
+  renderReviewActions?: (draft: ReceiptDraft) => ReactNode;
+}) {
+  const camera = useReceiptCamera();
+  const online = useOnline();
+  const stopCamera = camera.stop;
+  const requestCamera = camera.request;
+  const { recordDrafts, remoteMode, mutationPending } = useExpenseSession();
+  const imageBlob = useRef<Blob | null>(null);
+  const extractionRequest = useRef<AbortController | null>(null);
+  const [caption, setCaption] = useState("");
+  const [clarification, setClarification] = useState("");
+  const recordId = useRef(crypto.randomUUID());
+  const [step, setStep] = useState<Step>("checking");
+  const enteredWithoutIntro = useRef(false);
+  const [photo, setPhoto] = useState<ReceiptPhoto | null>(null);
+  const photoRef = useRef<ReceiptPhoto | null>(null);
+  const objectUrls = useRef(new Set<string>());
+  const [draft, setDraft] = useState<ReceiptDraft>(blankReceipt);
+  const [manualReview, setManualReview] = useState(false);
+  const [confirmed, setConfirmed] = useState<ReceiptDraft | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const cameraParent = useRef<"permission" | "review" | "success">(
+    "permission",
+  );
+  const job = useRef({ version: 0 });
+  const alive = useRef(true);
+  const formId = useId();
+  useEffect(() => {
+    if (!online) { extractionRequest.current?.abort(); stopCamera(); }
+  }, [online, stopCamera]);
+  useEffect(() => {
+    alive.current = true;
+    const pendingJob = job.current;
+    const ownedUrls = objectUrls.current;
+    return () => {
+      alive.current = false;
+      pendingJob.version++;
+      extractionRequest.current?.abort();
+      ownedUrls.forEach((url) => URL.revokeObjectURL(url));
+      ownedUrls.clear();
+    };
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    void canSkipCameraIntro().then((skip) => {
+      if (cancelled || !alive.current) return;
+      if (skip && !document.hidden && navigator.onLine) {
+        enteredWithoutIntro.current = true;
+        setStep("camera");
+        void requestCamera();
+      } else setStep("permission");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [requestCamera]);
+  useEffect(() => {
+    const video = videoRef.current;
+    if (step !== "camera" || !video || !camera.stream) return;
+    video.srcObject = camera.stream;
+    return () => {
+      video.pause();
+      video.srcObject = null;
+    };
+  }, [step, camera.stream]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const dialog = document.querySelector<HTMLDialogElement>(".scan-flow");
+      if (dialog) dialog.scrollTop = 0;
+      dialog
+        ?.querySelector<HTMLElement>('[aria-label="Kembali"]')
+        ?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [step]);
+  const createUrl = (blob: Blob) => {
+    const url = URL.createObjectURL(blob);
+    objectUrls.current.add(url);
+    return url;
+  };
+  const revokeUrl = (url: string) => {
+    if (objectUrls.current.delete(url)) URL.revokeObjectURL(url);
+  };
+  const releasePendingPhotos = () => {
+    objectUrls.current.forEach((url) => {
+      if (url !== photoRef.current?.url) revokeUrl(url);
+    });
+  };
+  const replacePhoto = (next: ReceiptPhoto) => {
+    recordId.current = crypto.randomUUID();
+    if (photoRef.current?.url) revokeUrl(photoRef.current.url);
+    photoRef.current = next;
+    setPhoto(next);
+  };
+  const go = (next: Step) => {
+    job.current.version++;
+    extractionRequest.current?.abort();
+    setBusy(false);
+    setMessage("");
+    if (next !== "camera") camera.stop();
+    setStep(next);
+  };
+  const openCamera = (parent: "permission" | "review" | "success") => {
+    cameraParent.current = parent;
+    setVideoReady(false);
+    go("camera");
+    void camera.request();
+  };
+  const goBack = () => {
+    if (step === "checking" || step === "permission") {
+      camera.stop();
+      onBack();
+    } else if (step === "processing") cancelAnalysis();
+    else if (step === "camera") {
+      if (
+        cameraParent.current === "permission" &&
+        (enteredWithoutIntro.current || hasCameraApproval())
+      ) {
+        camera.stop();
+        onBack();
+      } else go(cameraParent.current);
+    } else if (step === "help") openCamera(cameraParent.current);
+    else if (step === "success") go("review");
+    else openCamera("review");
+  };
+  const cancelAnalysis = () => {
+    if (photoRef.current?.url) revokeUrl(photoRef.current.url);
+    extractionRequest.current?.abort();
+    imageBlob.current = null;
+    photoRef.current = null;
+    setPhoto(null);
+    setDraft(blankReceipt());
+    setManualReview(false);
+    setErrors({});
+    if (enteredWithoutIntro.current || hasCameraApproval()) {
+      camera.stop();
+      onBack();
+    } else go("permission");
+  };
+  const openManualReview = () => {
+    recordId.current = crypto.randomUUID();
+    if (!photoRef.current) replacePhoto({ source: "gallery", url: null });
+    setDraft(blankReceipt());
+    setManualReview(true);
+    setErrors({});
+    go("review");
+  };
+  const chooseExample = () => {
+    camera.stop();
+    replacePhoto({ source: "example", url: null });
+    setDraft(exampleReceipt());
+    setManualReview(false);
+    setErrors({});
+    setClarification("");
+    imageBlob.current = null;
+    go("review");
+  };
+  const openGallery = () => {
+    job.current.version++;
+    extractionRequest.current?.abort();
+    setBusy(false);
+    setMessage("");
+    releasePendingPhotos();
+    camera.stop();
+    fileRef.current?.click();
+  };
+  const takePhoto = async () => {
+    if (!videoRef.current || busy || !videoReady) return;
+    const requestId = ++job.current.version;
+    setBusy(true);
+    setMessage("");
+    try {
+      const blob = await captureReceipt(videoRef.current, frameRef.current);
+      if (!alive.current || requestId !== job.current.version) return;
+      replacePhoto({ source: "camera", url: createUrl(blob) });
+      imageBlob.current = blob;
+      setCaption("");
+      setClarification("");
+      setDraft(blankReceipt());
+      setManualReview(false);
+      setErrors({});
+      go("photo");
+    } catch (error) {
+      if (alive.current && requestId === job.current.version)
+        setMessage(
+          error instanceof Error ? error.message : "Foto belum dapat diambil.",
+        );
+    } finally {
+      if (alive.current && requestId === job.current.version) setBusy(false);
+    }
+  };
+  const chooseFile = async (file: File) => {
+    const requestId = ++job.current.version;
+    setBusy(false);
+    setMessage("");
+    releasePendingPhotos();
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setMessage("Pilih foto JPEG, PNG, atau WebP.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setMessage("Ukuran foto maksimal 10 MB. Pilih foto yang lebih kecil.");
+      return;
+    }
+    setBusy(true);
+    const url = createUrl(file);
+    try {
+      const image = new window.Image();
+      image.src = url;
+      await image.decode();
+      if (
+        !image.naturalWidth ||
+        image.naturalWidth * image.naturalHeight > 32000000
+      )
+        throw new Error(
+          "Foto terlalu besar. Gunakan gambar maksimal 32 megapiksel.",
+        );
+      if (!alive.current || requestId !== job.current.version) {
+        revokeUrl(url);
+        return;
+      }
+      replacePhoto({ source: "gallery", url });
+      imageBlob.current = file;
+      setCaption("");
+      setClarification("");
+      setDraft(blankReceipt());
+      setManualReview(false);
+      setErrors({});
+      go("photo");
+    } catch (error) {
+      revokeUrl(url);
+      if (alive.current && requestId === job.current.version)
+        setMessage(
+          error instanceof Error && error.message.includes("megapiksel")
+            ? error.message
+            : "Foto tidak bisa dibaca. Pilih gambar lain yang tidak rusak.",
+        );
+    } finally {
+      if (alive.current && requestId === job.current.version) setBusy(false);
+    }
+  };
+  const analyze = async () => {
+    if (!imageBlob.current || busy) return;
+    go("processing");
+    const version = job.current.version;
+    const controller = new AbortController();
+    extractionRequest.current = controller;
+    try {
+      const result = await extractReceipt(imageBlob.current, caption, controller.signal);
+      if (!alive.current || version !== job.current.version) return;
+      const entry = result.entries[0];
+      if (!entry?.draft || entry.issue) {
+        go("photo");
+        setClarification(entry?.issue || result.reply);
+        return;
+      }
+      setDraft(entry.draft);
+      setManualReview(false);
+      setErrors({});
+      setClarification("");
+      go("review");
+    } catch (error) {
+      if (!alive.current || version !== job.current.version) return;
+      const aborted = controller.signal.aborted;
+      go("photo");
+      setMessage(aborted ? "Analisis dihentikan. Foto masih tersedia untuk dicoba lagi." : error instanceof Error ? error.message : "Foto belum bisa dianalisis.");
+    }
+  };
+  const submit = async () => {
+    if (photo?.source === "example" && remoteMode) return;
+    const result = receiptSchema.safeParse(draft);
+    if (!result.success) {
+      const next: Record<string, string> = {};
+      for (const issue of result.error.issues)
+        next[issue.path.join(".")] ??= issue.message;
+      setErrors(next);
+      requestAnimationFrame(() =>
+        document.getElementById(`scan-${Object.keys(next)[0]}`)?.focus(),
+      );
+      return;
+    }
+    setConfirmed(result.data);
+    if (!await recordDrafts([{ id: recordId.current, draft: result.data, source: "receipt" }])) return;
+    setErrors({});
+    go("success");
+  };
+  const total = receiptAmounts(draft).total;
+  const title = {
+    checking: "Scan struk",
+    permission: "Scan struk",
+    camera: "AI OCR Scanner",
+    photo: "Periksa foto",
+    processing: "Analisis struk",
+    review: "Review struk",
+    success: "Konfirmasi pengeluaran",
+    help: "Panduan scan",
+  }[step];
+  if (!online) return <Dialog title="Perlu koneksi internet" onBack={onBack} onClose={onClose}>
+    <p>OCR memerlukan internet. Foto dan keterangan tetap tersedia selama dialog ini belum ditutup.</p>
+  </Dialog>;
+  return (
+    <Dialog
+      title={title}
+      variant={
+        step === "permission" || step === "checking" ? "sheet" : "screen"
+      }
+      className={`scan-flow scan-flow-${step} ${camera.status === "ready" ? "scan-camera-running" : ""}`}
+      onBack={goBack}
+      onClose={onClose}
+      showCloseButton={step !== "camera"}
+      description={
+        step === "camera" ? (
+          <span className="scan-camera-status">
+            {camera.status === "ready"
+              ? "Kamera aktif"
+              : camera.status === "requesting"
+                ? "Menunggu izin browser"
+                : "Kamera belum aktif"}
+          </span>
+        ) : undefined
+      }
+      background={
+        step === "camera" ? (
+          <div className="scan-camera-feed">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              aria-label="Pratinjau kamera struk"
+              onCanPlay={() => setVideoReady(true)}
+              onError={() =>
+                setMessage(
+                  "Tampilan kamera belum siap. Coba aktifkan lagi atau pilih galeri.",
+                )
+              }
+            />
+          </div>
+        ) : undefined
+      }
+      headerActions={
+        step === "camera" ? (
+          <>
+            <button
+              className="icon-button"
+              aria-label="Lampu kamera"
+              aria-pressed={camera.torch}
+              disabled={!camera.supportsTorch || camera.status !== "ready"}
+              title={
+                camera.supportsTorch
+                  ? "Nyalakan atau matikan lampu"
+                  : "Lampu tidak didukung kamera ini"
+              }
+              onClick={() => void camera.toggleTorch()}
+            >
+              {camera.torch ? <Zap size={20} /> : <ZapOff size={20} />}
+            </button>
+            <button
+              className="icon-button"
+              aria-label="Panduan scan"
+              onClick={() => go("help")}
+            >
+              <CircleHelp size={19} />
+            </button>
+          </>
+        ) : undefined
+      }
+      footer={
+        step === "photo" ? (
+          <div className="scan-review-actions">
+            <Button onClick={() => void analyze()}>Analisis foto</Button>
+            {!renderReview && <Button variant="secondary" onClick={openManualReview}>Lengkapi manual</Button>}
+          </div>
+        ) : step === "processing" ? (
+          <div className="analysis-actions">
+            <div>
+              {!renderReview && <Button variant="secondary" onClick={openManualReview}>
+                <SquarePen size={17} />
+                Ketik manual saja
+              </Button>}
+              <Button variant="secondary" onClick={cancelAnalysis}>
+                Batal
+              </Button>
+            </div>
+            <small>
+              <LockKeyhole size={13} />
+              Foto dikirim ke AI untuk dibaca
+            </small>
+          </div>
+        ) : step === "review" && renderReview ? (
+          renderReviewActions?.(draft)
+        ) : step === "review" ? (
+          <div className="scan-review-actions">
+            <Button type="submit" form={formId} disabled={mutationPending || (photo?.source === "example" && remoteMode)}>
+              <ShieldCheck size={18} />
+              Simpan pengeluaran{" "}
+              <MoneyDisplay
+                amountIdr={(total > BigInt(0) ? total : BigInt(0)).toString()}
+              />
+            </Button>
+          </div>
+        ) : step === "success" ? (
+          <div className="scan-success-actions">
+            <Button variant="secondary" onClick={() => openCamera("success")}>
+              <ScanLine size={17} />
+              Scan lagi
+            </Button>
+          </div>
+        ) : step === "camera" ? (
+          <div className="scan-camera-controls">
+            <div>
+              <button
+                className="scan-gallery-button"
+                aria-label="Buka galeri"
+                onClick={openGallery}
+              >
+                <ImagePlus size={24} />
+              </button>
+              <small>Buka galeri</small>
+            </div>
+            <button
+              className="scan-shutter"
+              aria-label="Ambil foto struk"
+              disabled={camera.status !== "ready" || !videoReady || busy}
+              onClick={() => void takePhoto()}
+            >
+              <div className="scan-shutter-inner">
+                {busy ? (
+                  <AppLoader inline iconOnly size={28} />
+                ) : (
+                  <span className="scan-capture-glyph">
+                    <ScanLine size={30} />
+                    <ReceiptText size={16} />
+                  </span>
+                )}
+              </div>
+            </button>
+            <div aria-hidden="true" />
+          </div>
+        ) : undefined
+      }
+    >
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="sr-only"
+        tabIndex={-1}
+        aria-label="Pilih foto struk"
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0];
+          event.currentTarget.value = "";
+          if (file) void chooseFile(file);
+        }}
+      />
+      {message && (
+        <p className="scan-form-alert" role="alert">
+          {message}
+        </p>
+      )}
+      {step === "photo" && photo?.url && (
+        <div className="scan-card scan-photo-input">
+          <Image src={photo.url} alt="Foto pengeluaran yang akan dianalisis" width={480} height={640} unoptimized />
+          <div className="scan-field">
+            <label htmlFor="receipt-caption">Keterangan foto (opsional)</label>
+            <textarea id="receipt-caption" className="input" rows={3} maxLength={1000}
+              placeholder="Misal: servis motor, bayar QRIS. Totalnya 290 ribu."
+              value={caption} onChange={event => setCaption(event.target.value)} />
+          </div>
+          {clarification && <p role="status">{clarification} Tambahkan keterangannya di atas, lalu analisis lagi{renderReview ? "." : ", atau lengkapi manual."}</p>}
+          <p className="scan-field-hint">Foto dan keterangan akan dikirim ke AI. {renderReview ? "Periksa menu yang terbaca sebelum dipakai." : "Periksa hasilnya sebelum menyimpan."}</p>
+          <Button variant="secondary" onClick={openGallery}>Ganti foto</Button>
+        </div>
+      )}
+      {step === "review" && photo?.source === "example" && remoteMode && <p className="scan-demo-notice">Ini contoh untuk mencoba pratinjau. Pilih foto sendiri untuk mencatat pengeluaran.</p>}
+      {step === "processing" && (
+        <ReceiptAnalysis example={false} pending />
+      )}
+      {step === "checking" && (
+        <div className="scan-permission">
+          <AppLoader />
+        </div>
+      )}
+      {busy && step !== "camera" && (
+        <div className="scan-loading">
+          <AppLoader inline />
+        </div>
+      )}
+      {step === "permission" && (
+        <div className="scan-permission">
+          <div className="scan-permission-mochi">
+            <Image
+              src="/mascot/mochi-crown-transparent.webp"
+              alt="Mochi menemani scan struk"
+              width={100}
+              height={100}
+            />
+            <span>
+              <Camera size={17} />
+            </span>
+            <Sparkles className="scan-mochi-sparkle" size={22} />
+          </div>
+          <span className="pill">
+            <ShieldCheck size={13} />
+            Izin perangkat
+          </span>
+          <h3>Izinkan Akses Kamera</h3>
+          <p>Foto struk belanja, lalu tinjau rinciannya bersama Mochi.</p>
+          <Button onClick={() => openCamera("permission")}>
+            <Camera size={18} />
+            Izinkan kamera
+          </Button>
+          <Button variant="secondary" onClick={openGallery}>
+            <ImagePlus size={18} />
+            Pilih dari galeri
+          </Button>
+          {!renderReview && <button className="text-button" onClick={chooseExample}>
+            <ReceiptText size={15} />
+            Coba struk contoh
+          </button>}
+          <Button variant="ghost" onClick={onBack}>
+            Nanti saja
+          </Button>
+          <small>Durasi izin diatur oleh browser.</small>
+        </div>
+      )}
+      {step === "camera" && (
+        <div className="scan-camera-view">
+          <p className="scan-camera-hint">
+            <span className="scan-hint-mochi">
+              <Image
+                src="/mascot/mochi-crown-transparent.webp"
+                alt=""
+                width={28}
+                height={28}
+              />
+            </span>
+            Arahkan kamera pas ke strukmu ya! <Sparkles size={15} />
+          </p>
+          <div ref={frameRef} className="scan-viewfinder">
+            <div className="scan-frame" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+              <i />
+            </div>
+            {camera.status === "ready" && (
+              <>
+                <span className="scan-laser-window" aria-hidden="true">
+                  <span className="scan-guide-line" />
+                </span>
+                <span className="scan-crosshair" aria-hidden="true" />
+
+              </>
+            )}
+            {camera.status !== "ready" && (
+              <div className="scan-camera-placeholder">
+                {camera.status === "requesting" ? (
+                  <>
+                    <AppLoader />
+                    <p role="status">
+                      Pilih Izinkan pada permintaan kamera browser.
+                    </p>
+                    <Button variant="secondary" onClick={camera.stop}>
+                      Batalkan permintaan
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Camera size={34} />
+                    <p role={camera.error ? "alert" : undefined}>
+                      {camera.error ||
+                        "Kamera dijeda. Aktifkan saat kamu siap mengambil foto."}
+                    </p>
+                    <Button
+                      onClick={() => {
+                        setVideoReady(false);
+                        void camera.request();
+                      }}
+                    >
+                      Aktifkan kamera
+                    </Button>
+                    {!renderReview && <button
+                      className="scan-example-button"
+                      onClick={chooseExample}
+                    >
+                      Coba struk contoh
+                    </button>}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+          {camera.error && camera.status === "ready" && (
+            <p role="alert" className="scan-camera-warning">
+              {camera.error}
+            </p>
+          )}
+          <p className="scan-light-tip">
+            <Lightbulb size={17} />
+            Pastikan struk cukup terang & tidak terlipat
+          </p>
+        </div>
+      )}
+      {step === "review" && photo && (renderReview ? renderReview(draft) : (
+        <ReceiptReview
+          draft={draft}
+          photo={photo}
+          manual={manualReview}
+          errors={errors}
+          formId={formId}
+          onChange={(next) => {
+            setDraft(next);
+            setErrors({});
+          }}
+          onSubmit={submit}
+          onRetake={() => openCamera("review")}
+        />
+      ))}
+      {step === "success" && confirmed && (
+        <ReceiptScanSuccess draft={confirmed} />
+      )}
+      {step === "help" && (
+        <div className="scan-help">
+          <span className="story-icon">
+            <Lightbulb size={28} />
+          </span>
+          <h3>Struk jelas, review lebih mudah.</h3>
+          <ol>
+            <li>Letakkan struk di permukaan rata dan cukup terang.</li>
+            <li>Pastikan nama toko, tanggal, item, dan total masuk bingkai.</li>
+            <li>
+              Ambil foto, lalu periksa nominal dan kategori sebelum melanjutkan.
+            </li>
+          </ol>
+          <p className="scan-demo-notice">
+            Kamera berhenti saat panduan dibuka. Tekan Kembali untuk
+            mengaktifkannya lagi.
+          </p>
+          <Button variant="secondary" onClick={openGallery}>
+            <ImagePlus size={18} />
+            Pilih dari galeri
+          </Button>
+        </div>
+      )}
+    </Dialog>
+  );
+}
+
+export function ScanReceiptFlow(props: ComponentProps<typeof ScanReceiptFlowContent>) {
+  return <ScanReceiptFlowContent {...props} />;
+}

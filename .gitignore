@@ -12,9 +12,12 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
 
 # next.js
 /.next/
+/.next-offline-test/
 /out/
 
 # production
@@ -32,6 +35,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.dev.example
+!.env.staging.example
+!.env.prod.example
 
 # vercel
 .vercel
@@ -42,3 +48,8 @@ next-env.d.ts
 
 # Skills
 .agents
+.21st
+docs/*
+
+# Assets
+public/assets/*

@@ -1,0 +1,48 @@
+import "server-only";
+
+function origin(value: string | undefined, label: string, internalHost?: string): string {
+  if (!value) throw new Error(`${label} belum dikonfigurasi.`);
+  const url = new URL(value);
+  const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+  if (url.username || url.password || url.search || url.hash || url.pathname !== "/" ||
+      (url.protocol !== "https:" && !((local || url.hostname === internalHost) && url.protocol === "http:"))) {
+    throw new Error(`${label} harus origin HTTPS atau HTTP lokal yang diizinkan, tanpa path.`);
+  }
+  return url.origin;
+}
+
+export function authConfig() {
+  const dev = process.env.CASHLY_ENV === "dev";
+  const site = origin(process.env.APP_ORIGIN || (dev ? "http://localhost:3000" : undefined), "APP_ORIGIN");
+  const api = origin(process.env.CASHLY_API_ORIGIN || (dev ? "http://127.0.0.1:8000" : undefined), "CASHLY_API_ORIGIN", "backend");
+  return { site, api };
+}
+
+type ProviderConfiguration = { site: string; api: string; supabase: string; key: string; googleEnabled: boolean };
+let configuration: { origin: string; expiresAt: number; promise: Promise<ProviderConfiguration> } | undefined;
+export async function providerConfig() {
+  const config = authConfig();
+  const cacheKey = `${config.api}/${config.site}`;
+  if (configuration?.origin === cacheKey && configuration.expiresAt > Date.now()) return configuration.promise;
+  // Only public provider metadata is shared. User sessions/tokens are never cached here.
+  const entry = { origin: cacheKey, expiresAt: Date.now() + 60000, promise: loadProviderConfig(config) };
+  configuration = entry;
+  void entry.promise.catch(() => { if (configuration === entry) configuration = undefined; });
+  return entry.promise;
+}
+
+async function loadProviderConfig(config: ReturnType<typeof authConfig>): Promise<ProviderConfiguration> {
+  const response = await fetch(`${config.api}/api/v1/auth/configuration`, {
+    cache: "no-store", signal: AbortSignal.timeout(10000), redirect: "error",
+  });
+  if (!response.ok) throw new Error("Konfigurasi Supabase Auth backend belum tersedia.");
+  const data = await response.json();
+  if (typeof data.publishable_key !== "string" || !data.publishable_key) {
+    throw new Error("Publishable key backend belum tersedia.");
+  }
+  return { ...config, supabase: origin(data.supabase_url, "Supabase backend", process.env.CASHLY_ENV === "dev" ? "host.docker.internal" : undefined), key: data.publishable_key, googleEnabled: data.local === false };
+}
+
+export function sameOrigin(request: Request): boolean {
+  return request.headers.get("origin") === authConfig().site;
+}

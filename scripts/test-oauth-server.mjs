@@ -39,6 +39,7 @@ const server = createServer(async (req, res) => {
     const variant = url.searchParams.get("name") === "B" ? "B" : "A";
     account.account_id = variant === "A" ? accountId : "20000000-0000-4000-8000-000000000002";
     account.display_name = `Offline ${variant}`; account.sample_data = false;
+    account.runtime = { environment: "staging", database_kind: "hosted" };
     Object.assign(game, { current_streak: 7, longest_streak: 7, hero_level: 1, recovery: null, streak_status: "active" });
     return send(200, {});
   }

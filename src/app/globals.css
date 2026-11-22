@@ -334,8 +334,16 @@ svg {
   grid-area: transactions;
   min-width: 0;
 }
-.expense-summary {
-  padding: 20px;
+.card.expense-summary {
+  --summary-ring: light-dark(rgb(96 64 201 / 12%), rgb(201 180 255 / 15%));
+  padding: clamp(16px, 4vw, 24px);
+  border-color: var(--companion-border);
+  border-radius: 23px;
+  background:
+    radial-gradient(ellipse at 104% 105%, transparent 34%, var(--summary-ring) 34.4%, transparent 35%, transparent 42%, var(--summary-ring) 42.4%, transparent 43%),
+    linear-gradient(120deg, light-dark(#ede7ff, #2a203e), light-dark(#f8f4ff, #382b53));
+  color: var(--foreground);
+  box-shadow: var(--float-shadow);
 }
 .eyebrow {
   font-size: 13px;
@@ -347,20 +355,62 @@ svg {
   display: block;
   font-size: clamp(28px, 8vw, 38px);
   letter-spacing: -1.5px;
-  margin: 14px 0 6px;
-  line-height: 1.3;
+  margin: 18px 0 2px;
+  line-height: 1.2;
+}
+.expense-summary[data-wide-amount] .hero-amount {
+  font-size: clamp(22px, 6.5vw, 34px);
+}
+.expense-summary .eyebrow {
+  color: var(--foreground);
+  font-weight: 650;
+}
+.expense-summary .period-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 49%;
+  min-height: 44px;
+  padding: 5px 10px;
+  border: 1px solid var(--companion-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 65%, transparent);
+  color: var(--primary-text);
+  font-size: 11px;
+  font-weight: 650;
+  text-align: start;
+}
+.expense-summary .period-trigger > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.expense-summary .period-trigger > svg {
+  flex: none;
 }
 .summary-meta {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: 8px 12px;
   color: var(--muted);
-  font-size: 11px;
-  margin-bottom: 20px;
+  font-size: 12px;
 }
 .expense-summary .button {
-  width: 100%;
-  box-shadow: 0 5px 14px var(--primary-shadow);
+  min-height: 44px;
+  margin-inline-start: auto;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: light-dark(#6040c9, var(--primary));
+  color: var(--on-primary);
+  font-size: 12px;
+}
+.expense-summary .button:hover {
+  background: light-dark(#5132b2, var(--primary-hover));
+}
+.expense-summary :is(.button, .period-trigger):focus-visible {
+  outline-color: var(--primary-text);
 }
 .companion-card {
   padding: 20px 10px 16px;
@@ -835,9 +885,6 @@ svg {
     width: 100%;
     height: 360px;
   }
-  .expense-summary {
-    padding: 24px;
-  }
   .hero-amount {
     font-size: 38px;
   }
@@ -1101,17 +1148,6 @@ svg {
   font-weight: 650;
   color: var(--muted);
   margin: 4px 12px 0;
-}
-.expense-summary {
-  box-shadow:
-    0 14px 30px -16px var(--primary-shadow),
-    var(--card-shadow);
-}
-.period-trigger {
-  width: 40px;
-  height: 44px;
-  margin: -10px -6px -10px 0;
-  color: var(--primary-text);
 }
 .card,
 .companion-card {
@@ -2110,7 +2146,7 @@ svg {
     --mascot-ground: #08040d99;
   }
 }
-.home-theme-control {
+.home-notification-control {
   position: fixed;
   z-index: 15;
   right: max(20px, env(safe-area-inset-right));
@@ -2440,18 +2476,9 @@ svg {
     padding-top: max(20px, env(safe-area-inset-top));
   }
   .greeting-row {
-    position: relative;
     display: block;
-    min-height: 78px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     padding-right: 48px;
-  }
-  .greeting-row .xp-pill {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    font-size: 11px;
-    padding: 4px 8px;
   }
   .greeting-date {
     font-size: 11px;
@@ -2459,15 +2486,8 @@ svg {
   .home-grid {
     gap: 16px;
   }
-  .expense-summary {
-    padding: 16px 20px;
-  }
   .expense-summary .hero-amount {
-    font-size: 32px;
-    margin-top: 10px;
-  }
-  .expense-summary .summary-meta {
-    margin-bottom: 16px;
+    margin-top: 12px;
   }
   .companion-card {
     padding: 16px 10px 12px;

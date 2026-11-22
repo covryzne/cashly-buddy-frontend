@@ -11,11 +11,13 @@ import { HomeDashboard } from "@/features/home/home-dashboard";
 import { ActivityDashboard } from "@/features/activity/activity-dashboard";
 import { ReportsDashboard } from "@/features/reports/reports-dashboard";
 import { ProfileDashboard } from "@/features/profile/profile-dashboard";
+import { useAppThemeDefault } from "@/lib/theme/use-theme";
 
 const subscribe = () => () => {};
 // The worker preserves navigation URLs while returning the public offline shell.
 export function OfflineApp() {
   const [snapshot, setSnapshot] = useState<AccountSnapshot | null>(null);
+  useAppThemeDefault(Boolean(snapshot));
   const current = useRef<AccountSnapshot | null>(null);
   const [ready, setReady] = useState(false);
   const [storageError, setStorageError] = useState(false);
@@ -76,7 +78,7 @@ export function OfflineApp() {
     <ExpenseSessionProvider key={snapshot.account.account_id} offlineSnapshot remote={{
       account: snapshot.account, expenses: snapshot.expenses, game: snapshot.game,
       updatedAt: snapshot.updatedAt, sampleData: snapshot.account.sample_data,
-      hasMore: snapshot.hasMore, runtime: snapshot.account.runtime,
+      hasMore: snapshot.hasMore, runtime: snapshot.badgeRuntime,
     }}>
       <ProfileSessionProvider account={snapshot.account}><OfflineContent /></ProfileSessionProvider>
     </ExpenseSessionProvider>

@@ -32,7 +32,7 @@ export const homeFixture = {
   categories: [
     {
       code: "food_drink",
-      label: "Makanan",
+      label: "Makanan dan Minuman",
       icon: "food",
       amountIdr: "580000",
       tone: "peach",

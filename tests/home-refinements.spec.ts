@@ -17,9 +17,7 @@ for (const viewport of [
       const nav = await page.locator(".bottom-nav").boundingBox();
       expect(card!.y + card!.height).toBeLessThanOrEqual(nav!.y);
       await expect(
-        page
-          .locator(".home-theme-control")
-          .getByRole("button", { name: /Ganti tema/ }),
+        page.getByRole("button", { name: /^Notifikasi/ }),
       ).toBeVisible();
       await page.screenshot({
         path: `test-results/compact-home-${viewport.width}-${theme}.png`,

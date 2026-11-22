@@ -180,7 +180,7 @@ test("returning to a tab validates the session without reloading the document", 
 });
 
 
-test("PWA opens the landing and its CTA restores a valid login after reopening Chrome", async ({ request, baseURL }, testInfo) => {
+test("Home Screen skips the landing only when a valid session is restored", async ({ request, baseURL }, testInfo) => {
   const origin = baseURL!;
   const manifest = await (await request.get("/manifest.webmanifest")).json();
   expect(manifest.start_url).toBe("/");
@@ -220,10 +220,20 @@ test("PWA opens the landing and its CTA restores a valid login after reopening C
     await page.getByRole("link", { name: "Gas, mulai catat!", exact: true }).click();
     await expect(page).toHaveURL(`${origin}/beranda`);
 
+    const standalone = await reopened.newPage();
+    await standalone.addInitScript(() => {
+      Object.defineProperty(navigator, "standalone", { value: true, configurable: true });
+    });
+    await standalone.goto(startUrl);
+    await expect(standalone).toHaveURL(`${origin}/beranda`, { timeout: 12000 });
+
     await request.post("http://127.0.0.1:34568/auth/v1/logout");
     const revoked = await reopened.request.get(launchUrl, { maxRedirects: 0 });
     expect(revoked.status()).toBe(307);
     expect(new URL(revoked.headers().location, launchUrl).href).toBe(`${origin}/login`);
+    await standalone.goto(startUrl);
+    await expect(standalone.getByRole("link", { name: "Gas, mulai catat!", exact: true })).toBeVisible();
+    await expect(standalone).toHaveURL(startUrl);
   } finally {
     await reopened.close();
   }

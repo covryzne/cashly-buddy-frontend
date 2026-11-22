@@ -9,7 +9,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "node scripts/test-oauth-server.mjs", url: "http://127.0.0.1:34567/login",
-    env: { CASHLY_TEST_EMAIL: "true", CASHLY_TEST_CHAT: "true", CASHLY_TEST_OFFLINE: "true", CASHLY_TEST_BUILD: "offline" },
+    env: { CASHLY_TEST_EMAIL: "true", CASHLY_TEST_CHAT: "true", CASHLY_TEST_OFFLINE: "true", CASHLY_TEST_BUILD: "offline", CASHLY_SHOW_ENV_BADGE: process.env.CASHLY_SHOW_ENV_BADGE ?? "false" },
     reuseExistingServer: false, timeout: 120000,
   },
 });

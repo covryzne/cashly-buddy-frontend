@@ -3,7 +3,8 @@ import { AppLoader } from '@/components/shared/app-loader';
 
 import { LocalDataStatus } from '@/components/shared/local-data-status';
 
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { Accordion } from '@base-ui/react/accordion';
 import { useOnline } from '@/lib/pwa/connectivity';
 import { useHomeData } from '@/features/home/use-home-data';
 import { useExpenseSession } from '@/features/expenses/expense-session';
@@ -12,11 +13,10 @@ import {
   BellRing,
   Check,
   CheckCircle2,
+  ChevronDown,
   CircleHelp,
   CircleUserRound,
-  Clock3,
   Download,
-  Globe,
   Info,
   LogOut,
   MessageCircle,
@@ -27,7 +27,6 @@ import {
   ShieldCheck,
   Sparkles,
   Sun,
-  Wallet,
   Zap,
 } from 'lucide-react';
 import { AppNavigation } from '@/components/shared/app-navigation';
@@ -43,7 +42,6 @@ import { SettingsRow } from '@/components/shared/settings-row';
 import { InstallAppEntry } from '@/components/shared/install-app';
 import { useModalStack } from '@/components/shared/use-modal-stack';
 import { EvolutionCarousel } from '@/components/gamification/evolution-carousel';
-import { MoneyDisplay } from '@/components/finance/money-display';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { formatDate } from '@/lib/format/datetime';
@@ -63,11 +61,11 @@ import {
 } from './whatsapp-connect';
 import { whatsappExample } from '@/mocks/fixtures/whatsapp';
 import { WhatsappLivePanel } from './whatsapp-live-panel';
+import { NotificationPreferencesPanel } from '@/features/notifications/notification-preferences';
+import { useNotificationSettings } from '@/features/notifications/use-notification-settings';
 
 type InfoPanel =
   | 'theme'
-  | 'timezone'
-  | 'currency'
   | 'reminder'
   | 'privacy'
   | 'permissions'
@@ -81,18 +79,32 @@ type Panel =
   | { kind: 'whatsapp'; step: 'intro' | 'otp' };
 const infoTitles: Record<InfoPanel, string> = {
   theme: 'Tampilan Cashly',
-  timezone: 'Zona waktu habit',
-  currency: 'Mata uang & format',
-  reminder: 'Pengingat catat harian',
+  reminder: 'Notifikasi',
   privacy: 'Privasi & keamanan',
   permissions: 'Perizinan',
   help: 'Pusat bantuan',
   hero: 'Level hero',
 };
 
-export function ProfileDashboard() {
+export function ProfileDashboard({
+  allowPushTest = false,
+  fixedReminderSchedule = false,
+}: {
+  allowPushTest?: boolean;
+  fixedReminderSchedule?: boolean;
+}) {
+  const notificationSettings = useNotificationSettings();
   const gameData = useHomeData();
   const online = useOnline();
+  const preferencesRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    // The offline shell renders this target after loading the account snapshot.
+    if (!online && window.location.hash === '#preferensi') {
+      preferencesRef.current?.scrollIntoView();
+    }
+  }, [online]);
+
   const [logoutError, setLogoutError] = useState('');
   const session = useExpenseSession();
   const {
@@ -311,6 +323,8 @@ export function ProfileDashboard() {
             </section>
             <div className="profile-settings-column">
               <section
+                id="preferensi"
+                ref={preferencesRef}
                 className="profile-settings-section"
                 aria-labelledby="profile-preferences-title"
               >
@@ -324,25 +338,13 @@ export function ProfileDashboard() {
                     onClick={() => open({ kind: 'info', topic: 'theme' })}
                   />
                   <SettingsRow
-                    icon={Clock3}
-                    title="Zona waktu habit"
-                    description="Batas hari mengikuti pukul 00.00 WIB"
-                    value="WIB"
-                    onClick={() => open({ kind: 'info', topic: 'timezone' })}
-                  />
-                  <SettingsRow
                     icon={BellRing}
-                    title="Pengingat catat harian"
-                    description="Pengingat kecil untuk kebiasaanmu"
-                    value="Segera hadir"
-                    onClick={() => open({ kind: 'info', topic: 'reminder' })}
-                  />
-                  <SettingsRow
-                    icon={Wallet}
-                    title="Mata uang & format"
-                    description="Rupiah Indonesia"
-                    value="IDR"
-                    onClick={() => open({ kind: 'info', topic: 'currency' })}
+                    title="Notifikasi"
+                    description="Atur pengingat harian dan push di perangkat ini"
+                    onClick={() => {
+                      notificationSettings.refresh();
+                      open({ kind: 'info', topic: 'reminder' });
+                    }}
                   />
                 </div>
               </section>
@@ -587,47 +589,12 @@ export function ProfileDashboard() {
                   </fieldset>
                 </>
               )}
-              {panel.topic === 'timezone' && (
-                <>
-                  <span className="profile-info-icon">
-                    <Globe size={29} />
-                  </span>
-                  <h3>Asia/Jakarta · WIB</h3>
-                  <p>
-                    Transaksi dan pergantian hari mengikuti Waktu Indonesia
-                    Barat (UTC+7). Batas hari habit adalah pukul 00.00 WIB.
-                  </p>
-                  <p>Zona waktu belum dapat diubah di sini.</p>
-                </>
-              )}
-              {panel.topic === 'currency' && (
-                <>
-                  <span className="profile-info-icon">
-                    <Wallet size={29} />
-                  </span>
-                  <h3>Rupiah Indonesia (IDR)</h3>
-                  <p>
-                    Nominal dicatat dalam rupiah bulat dengan pemisah ribuan
-                    agar mudah dibaca.
-                  </p>
-                  <div className="profile-format-example">
-                    <small>Contoh format</small>
-                    <MoneyDisplay amountIdr="1248500" />
-                  </div>
-                </>
-              )}
               {panel.topic === 'reminder' && (
-                <>
-                  <span className="profile-info-icon">
-                    <BellRing size={29} />
-                  </span>
-                  <span className="pill">Segera hadir</span>
-                  <h3>Pengingat kecil, saat kamu siap.</h3>
-                  <p>
-                    Pengingat otomatis belum tersedia. Untuk sekarang, kamu bisa
-                    membuka Cashly dari Home Screen saat ingin mencatat.
-                  </p>
-                </>
+                <NotificationPreferencesPanel
+                  settings={notificationSettings}
+                  allowPushTest={allowPushTest}
+                  fixedReminderSchedule={fixedReminderSchedule}
+                />
               )}
               {panel.topic === 'hero' && (
                 <>
@@ -680,7 +647,7 @@ export function ProfileDashboard() {
                 </>
               )}
               {panel.topic === 'help' && (
-                <div className="profile-faq">
+                <Accordion.Root className="profile-faq" multiple>
                   <p>Beberapa jawaban untuk menemani langkah pertamamu.</p>
                   {[
                     [
@@ -700,12 +667,18 @@ export function ProfileDashboard() {
                       'Menyapa Mochi adalah interaksi kecil untuk menemanimu. Streak berasal dari aktivitas yang memenuhi syarat, bukan membuka halaman atau menyapa Mochi.',
                     ],
                   ].map(([question, answer]) => (
-                    <details key={question}>
-                      <summary>{question}</summary>
-                      <p>{answer}</p>
-                    </details>
+                    <Accordion.Item className="profile-faq-item" key={question}>
+                      <Accordion.Header>
+                        <Accordion.Trigger className="profile-faq-trigger">
+                          <span>{question}</span><ChevronDown size={17} aria-hidden="true" />
+                        </Accordion.Trigger>
+                      </Accordion.Header>
+                      <Accordion.Panel className="profile-faq-panel">
+                        <p>{answer}</p>
+                      </Accordion.Panel>
+                    </Accordion.Item>
                   ))}
-                </div>
+                </Accordion.Root>
               )}
             </div>
           )}

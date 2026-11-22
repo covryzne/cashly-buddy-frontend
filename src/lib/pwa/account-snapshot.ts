@@ -21,6 +21,7 @@ const schema = z.object({
   expenses: z.array(expenseSchema).refine(rows => new Set(rows.map(row => row.id)).size === rows.length),
   game: gameSchema.nullable(), gameUpdatedAt: z.string().datetime().nullable(),
   hasMore: z.boolean(),
+  badgeRuntime: accountSchema.shape.runtime,
 });
 export type AccountSnapshot = z.infer<typeof schema>;
 let queue: Promise<unknown> = Promise.resolve();
@@ -107,6 +108,7 @@ export async function activateAccountSnapshot(accountId: string): Promise<Lease>
 export async function writeAccountSnapshot(lease: Lease, data: {
   account: AuthAccount; expenses: ActivityExpense[]; updatedAt: string;
   game: GameOverview | null; gameUpdatedAt: string | null; hasMore: boolean;
+  badgeRuntime: AuthAccount["runtime"];
 }) {
   if (!same(marker(), lease)) return false;
   const snapshot = schema.parse({ version: 1, ...data });

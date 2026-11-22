@@ -112,7 +112,10 @@ self.addEventListener("fetch", event => {
     event.respondWith(navigation(request));
   } else if (url.pathname.startsWith("/_next/static/") && !url.search) {
     event.respondWith((async () => {
-      const stored = await (await caches.open(SHELL_CACHE)).match(request);
+      // Storage can be unavailable while the network is still usable.
+      const stored = await caches.open(SHELL_CACHE)
+        .then(cache => cache.match(request))
+        .catch(() => undefined);
       return stored ?? fetch(request);
     })());
   }

@@ -6,6 +6,7 @@ import { accountSchema, apiExpensesSchema } from "@/lib/auth/types";
 import { ExpenseSessionProvider } from "@/features/expenses/expense-session";
 import { ProfileSessionProvider } from "@/features/profile/profile-session";
 import { AuthSessionBoundary } from "@/features/auth/session-boundary";
+import { InboxProvider } from "@/features/notifications/inbox-provider";
 import { mapExpense } from "@/lib/finance";
 
 async function loadData() {
@@ -36,9 +37,12 @@ async function SystemContent({ children }: { children: React.ReactNode }) {
   const data = await loadData().catch(() => null);
   if (!data) redirect("/auth/complete");
   const expenses = data.result.data.map(mapExpense);
+  const badgeRuntime = process.env.CASHLY_SHOW_ENV_BADGE === "false" ? undefined : data.account.runtime;
   return <AuthSessionBoundary key={data.account.account_id} accountId={data.account.account_id}>
-    <ExpenseSessionProvider remote={{ account: data.account, expenses, sampleData: data.account.sample_data, hasMore: data.result.has_more, runtime: data.account.runtime }}>
-      <ProfileSessionProvider account={data.account}>{children}</ProfileSessionProvider>
-    </ExpenseSessionProvider>
+    <InboxProvider>
+      <ExpenseSessionProvider remote={{ account: data.account, expenses, sampleData: data.account.sample_data, hasMore: data.result.has_more, runtime: badgeRuntime }}>
+        <ProfileSessionProvider account={data.account}>{children}</ProfileSessionProvider>
+      </ExpenseSessionProvider>
+    </InboxProvider>
   </AuthSessionBoundary>;
 }

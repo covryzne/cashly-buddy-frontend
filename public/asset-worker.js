@@ -1,14 +1,51 @@
 /* Public assets only. Bump VERSION whenever a listed file or Spline export changes,
    even when its URL stays the same. Keep SCENE in sync with spline-mascot.tsx. */
-const VERSION = "v5-header-brand";
+const VERSION = "v6-mochi-posters";
 // Separate public offline shell; asset allowlist and private-data exclusions stay scoped.
 if (typeof importScripts === "function") importScripts("/offline-worker.js");
+
+const notificationId = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
+
+self.addEventListener("push", (event) => {
+  let payload;
+  try { payload = event.data?.json(); } catch { return; }
+  if (!payload || !notificationId.test(payload.id) ||
+    typeof payload.title !== "string" || typeof payload.body !== "string") return;
+  event.waitUntil(self.registration.showNotification(payload.title, {
+    body: payload.body,
+    icon: "/icons/icon-192.png",
+    tag: `cashly-${payload.id}`,
+    data: { id: payload.id, kind: payload.kind === "test" ? "test" : "reminder" },
+  }));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  const id = event.notification.data?.id;
+  if (!notificationId.test(id)) return;
+  event.notification.close();
+  const isTest = event.notification.data?.kind === "test";
+  const target = new URL(isTest ? "/profil#preferensi" : "/beranda", self.location.origin);
+  if (!isTest) target.searchParams.set("notif", id);
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const cashly = windows.find((client) => {
+      const url = new URL(client.url);
+      return url.origin === target.origin && ["/beranda", "/aktivitas", "/laporan", "/profil"].includes(url.pathname);
+    });
+    if (cashly) {
+      const navigated = await cashly.navigate(target.href).catch(() => null);
+      if (navigated) return navigated.focus();
+    }
+    return self.clients.openWindow(target.href);
+  })());
+});
 const PREFIX = "cashly-public-assets-";
 const CACHE = `${PREFIX}${VERSION}`;
 const SCENE = "https://prod.spline.design/R4tRoaLYG0dA8fQD/scene.splinecode";
 const ASSETS = [
   "/mascot/mochi-crown-transparent.webp",
   "/mascot/mochi-crown-transparent.png",
+  "/mascot/mochi-level-1-transparent.png",
   "/mascot/mochi-level-2.webp",
   "/mascot/mochi-level-3.webp",
   "/mascot/mochi-level-4.webp",

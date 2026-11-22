@@ -231,7 +231,7 @@ test("Foto galeri divalidasi, gambar rusak pulih, avatar tersimpan hanya pada se
     page.locator(".profile-account-card .profile-avatar"),
   ).toHaveClass(/avatar-initials/);
 });
-test("Tema sinkron dengan header, persistensi dan submodal kembali dengan fokus", async ({
+test("Tema sinkron dengan preferensi, persistensi dan submodal kembali dengan fokus", async ({
   page,
 }) => {
   await open(page);
@@ -242,7 +242,7 @@ test("Tema sinkron dengan header, persistensi dan submodal kembali dengan fokus"
     .getByRole("button", { name: "Tutup dialog", exact: true })
     .click();
   await expect(
-    page.getByRole("button", { name: "Tema gelap. Ganti tema", exact: true }),
+    page.getByRole("button", { name: /Tampilan aplikasi.*Gelap/ }),
   ).toBeVisible();
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
@@ -259,7 +259,7 @@ test("Tema sinkron dengan header, persistensi dan submodal kembali dengan fokus"
     dialog(page).getByRole("button", { name: /Lihat tahapan evolusi/ }),
   ).toBeFocused();
 });
-test("WhatsApp/pengingat belum aktif, instalasi dan quick add memakai flow bersama", async ({
+test("WhatsApp, pengaturan notifikasi, instalasi dan quick add memakai flow bersama", async ({
   page,
 }) => {
   await open(page);
@@ -271,8 +271,14 @@ test("WhatsApp/pengingat belum aktif, instalasi dan quick add memakai flow bersa
   await dialog(page)
     .getByRole("button", { name: "Tutup dialog", exact: true })
     .click();
-  await page.getByRole("button", { name: /Pengingat catat harian/ }).click();
-  await expect(dialog(page)).toContainText("Pengingat otomatis belum tersedia");
+  await page.route("**/api/cashly/notifications/preferences", (route) =>
+    route.fulfill({
+      json: { data: { daily_enabled: false, reminder_time: "20:00", push_public_key: null } },
+    }),
+  );
+  await page.getByRole("region", { name: "Preferensi & Kebiasaan" })
+    .getByRole("button", { name: /^Notifikasi/ }).click();
+  await expect(dialog(page).getByRole("switch", { name: /Pengingat catat harian/ })).not.toBeChecked();
   await dialog(page)
     .getByRole("button", { name: "Tutup dialog", exact: true })
     .click();

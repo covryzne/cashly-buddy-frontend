@@ -1,3 +1,25 @@
+.homeScreenEntry .homeScreenLoader {
+  display: none;
+}
+
+.homeScreenEntry[data-checking][data-standalone] .homeScreenContent {
+  display: none;
+}
+
+.homeScreenEntry[data-checking][data-standalone] .homeScreenLoader {
+  display: grid;
+}
+
+@media (display-mode: standalone) {
+  .homeScreenEntry[data-checking] .homeScreenContent {
+    display: none;
+  }
+
+  .homeScreenEntry[data-checking] .homeScreenLoader {
+    display: grid;
+  }
+}
+
 .landing {
   --landing-ink: var(--foreground);
   --landing-muted: var(--muted);

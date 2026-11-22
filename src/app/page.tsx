@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CashlyLanding } from "./landing/cashly-landing";
+import { HomeScreenEntry } from "./landing/home-screen-entry";
 
 export const metadata: Metadata = {
   title: "Cashly · Catat Pengeluaran Tanpa Beban",
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootPage() {
-  return <CashlyLanding />;
+  return <HomeScreenEntry><CashlyLanding /></HomeScreenEntry>;
 }

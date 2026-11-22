@@ -101,11 +101,12 @@ export function ExpenseSessionProvider({ children, remote, offlineSnapshot = fal
       setPersisted(false);
       return writeAccountSnapshot(lease, {
         account: snapshotAccount, expenses, game, updatedAt, gameUpdatedAt, hasMore: remote?.hasMore ?? false,
+        badgeRuntime: remote?.runtime ?? null,
       });
     }).then(saved => { if (active) { setPersisted(saved); setStorageError(false); } })
       .catch(() => { if (active) { setPersisted(false); setStorageError(true); } });
     return () => { active = false; };
-  }, [snapshotAccount, expenses, game, updatedAt, gameUpdatedAt, remote?.hasMore, offlineSnapshot]);
+  }, [snapshotAccount, expenses, game, updatedAt, gameUpdatedAt, remote?.hasMore, remote?.runtime, offlineSnapshot]);
   useEffect(() => {
     if (!remoteMode || offlineSnapshot) return;
     const offline = () => {

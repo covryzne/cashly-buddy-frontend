@@ -47,7 +47,7 @@ test("Detail, keyboard, tema, dan interaksi tidak memberi reward", async ({
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/beranda");
-  await page.getByRole("button", { name: /Makanan Rp580/ }).click();
+  await page.getByRole("button", { name: /Makanan dan Minuman Rp580/ }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(
     page.getByRole("dialog").locator(".category-total"),
@@ -55,7 +55,7 @@ test("Detail, keyboard, tema, dan interaksi tidak memberi reward", async ({
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: /Makanan Rp580/ }),
+    page.getByRole("button", { name: /Makanan dan Minuman Rp580/ }),
   ).toBeFocused();
   await page.getByRole("button", { name: /Kopi Sudut/ }).click();
   await expect(page.getByRole("dialog")).toContainText("Kopi dan makan siang");
@@ -74,11 +74,18 @@ test("Detail, keyboard, tema, dan interaksi tidak memberi reward", async ({
     "Pilih cara input yang paling praktis untukmu",
   );
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: /Ganti tema/ }).click();
-  await page.getByRole("button", { name: /Ganti tema/ }).click();
+  await page.getByRole("button", { name: /^Notifikasi/ }).click();
+  await expect(page.getByRole("dialog", { name: "Notifikasi" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.goto("/profil#preferensi");
+  const preferences = page.getByRole("region", { name: "Preferensi & Kebiasaan" });
+  await expect(preferences.getByRole("button", { name: /^Notifikasi/ })).toBeVisible();
+  await preferences.getByRole("button", { name: /Tampilan aplikasi/ }).click();
+  await page.getByRole("radio", { name: "Gelap", exact: true }).check();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.goto("/beranda");
   await context.setOffline(true);
   const offline = page
     .getByRole("status")

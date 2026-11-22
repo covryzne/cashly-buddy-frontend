@@ -3,7 +3,6 @@ import { AppLoader } from "@/components/shared/app-loader";
 
 import { LocalDataStatus } from "@/components/shared/local-data-status";
 
-import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 import {
   CalendarDays,
@@ -16,7 +15,6 @@ import {
   Search,
   SearchX,
   SlidersHorizontal,
-  Sparkles,
   Trash2,
   Undo2,
   X,
@@ -290,62 +288,56 @@ export function ActivityDashboard() {
               {announcement}
             </p>
           )}
-          <section
-            className="activity-summary"
-            aria-label="Ringkasan aktivitas"
-          >
+          <section className="activity-toolbar" aria-label="Cari dan filter transaksi">
             <div className="activity-period-row">
-              <div>
-                <span>Periode terpilih</span>
-                <Button
-                  variant="ghost"
-                  onClick={() => open({ kind: "period" })}
-                  aria-label="Ubah periode aktivitas"
-                >
-                  {activityPeriodLabel(period)}
-                  <ChevronDown size={16} />
-                </Button>
-              </div>
-              <span className="activity-count">
-                <i aria-hidden="true" />
-                {snapshot.count} transaksi
-              </span>
-            </div>
-            <p className="activity-total-label">
-              {query.trim() || countFilters || view === "day"
-                ? "Total pengeluaran ditampilkan"
-                : "Total pengeluaran periode ini"}
-            </p>
-            <div className="activity-total-row">
-              <MoneyDisplay amountIdr={snapshot.totalIdr} />
-              {snapshot.dominant && (
-                <span
-                  className={`activity-dominant tone-${snapshot.dominant.tone}`}
-                >
-                  <CategoryIcon category={snapshot.dominant} />
-                  {snapshot.dominant.label} {snapshot.dominant.percent}%
-                </span>
-              )}
-            </div>
-            <div className="activity-insight">
-              <Image
-                src="/mascot/mochi-crown-transparent.webp"
-                alt=""
-                width={32}
-                height={32}
-              />
-              <p>
-                {snapshot.count ? (
-                  <>
-                    {snapshot.count} pengeluaran tercatat di{" "}
-                    <strong>{snapshot.days} hari</strong>. Satu langkah kecil
-                    untuk mengenal kebiasaanmu.
-                  </>
-                ) : (
-                  "Belum ada pengeluaran untuk pilihan ini. Kamu bisa mencoba periode atau filter lain."
+              <Button
+                variant="outline"
+                onClick={() => open({ kind: "period" })}
+                aria-label="Ubah periode aktivitas"
+                aria-describedby="activity-selected-period"
+                aria-haspopup="dialog"
+              >
+                <CalendarDays size={16} aria-hidden="true" />
+                <span id="activity-selected-period">{activityPeriodLabel(period)}</span>
+                <ChevronDown size={15} aria-hidden="true" />
+              </Button>
+              <Button
+                variant="outline"
+                aria-haspopup="dialog"
+                onClick={openFilters}
+                aria-label="Filter aktivitas"
+              >
+                <SlidersHorizontal size={18} aria-hidden="true" />
+                Filter
+                {countFilters > 0 && (
+                  <span className="activity-filter-count">{countFilters}</span>
                 )}
-              </p>
-              <Sparkles size={16} aria-hidden="true" />
+              </Button>
+            </div>
+            <div className="activity-search">
+              <Search size={18} aria-hidden="true" />
+              <Input
+                ref={search}
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                maxLength={100}
+                aria-label="Cari merchant, kategori, atau tag"
+                placeholder="Cari transaksi…"
+              />
+              {query && (
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="Bersihkan pencarian"
+                  onClick={() => {
+                    setQuery("");
+                    search.current?.focus();
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
           </section>
           <div
@@ -386,44 +378,6 @@ export function ActivityDashboard() {
                 {tab.label}
               </button>
             ))}
-          </div>
-          <div className="activity-search-bar">
-            <div className="activity-search">
-              <Search size={18} aria-hidden="true" />
-              <Input
-                ref={search}
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                maxLength={100}
-                aria-label="Cari merchant, kategori, atau tag"
-                placeholder="Cari merchant, kategori, tag"
-              />
-              {query && (
-                <button
-                  type="button"
-                  className="icon-button"
-                  aria-label="Bersihkan pencarian"
-                  onClick={() => {
-                    setQuery("");
-                    search.current?.focus();
-                  }}
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-            <Button
-              variant="outline"
-              onClick={openFilters}
-              aria-label="Filter aktivitas"
-            >
-              <SlidersHorizontal size={18} />
-              Filter
-              {countFilters > 0 && (
-                <span className="activity-filter-count">{countFilters}</span>
-              )}
-            </Button>
           </div>
           <div
             className="activity-categories"
@@ -482,6 +436,11 @@ export function ActivityDashboard() {
               </button>
             </div>
           )}
+          <p className="activity-result-summary" role="status" aria-label="Ringkasan hasil">
+            <span className="activity-count">{snapshot.count} transaksi</span>
+            <span aria-hidden="true">&middot;</span>
+            <MoneyDisplay amountIdr={snapshot.totalIdr} />
+          </p>
           <div
             id="activity-timeline"
             role="tabpanel"

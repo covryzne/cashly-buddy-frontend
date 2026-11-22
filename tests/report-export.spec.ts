@@ -56,7 +56,7 @@ for (const theme of ["light", "dark"] as const)
         modal.locator(".report-export-category.is-empty .money"),
       ).toHaveText("Rp0");
       await expect(modal.locator(".report-export-tip")).toContainText(
-        "Makanan (52.3%)",
+        "Makanan dan Minuman (52.3%)",
       );
       await expect(
         modal.getByLabel("Teks ringkasan", { exact: true }),

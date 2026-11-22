@@ -66,7 +66,15 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: dark)", color: "#12101a" },
   ],
 };
-const themeScript = `(function(){try{var t=localStorage.getItem('cashly-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}})()`;
+const themeScript = String.raw`(function(){
+  var theme;
+  try { theme = localStorage.getItem('cashly-theme'); } catch {}
+  if (theme === 'system' || theme === 'light' || theme === 'dark') {
+    document.documentElement.dataset.theme = theme;
+  } else if (/^\/(beranda|aktivitas|laporan|profil|offline)(\/|$)/.test(location.pathname)) {
+    document.documentElement.dataset.theme = 'light';
+  }
+})()`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

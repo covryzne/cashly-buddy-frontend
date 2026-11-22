@@ -18,7 +18,7 @@ test("Rincian cetak mencakup transaksi periode sekali saja, urut dan subtotal se
   const groups = reportTransactionGroups(snapshot);
   const rows = groups.flatMap((group) => group.expenses);
   expect(groups.map((group) => group.category.label)).toEqual([
-    "Makanan",
+    "Makanan dan Minuman",
     "Transportasi",
     "Tagihan",
   ]);

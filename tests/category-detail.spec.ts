@@ -16,9 +16,9 @@ for (const theme of ["light", "dark"] as const)
           errors.push(message.text());
       });
       await page.goto("/beranda");
-      const trigger = page.getByRole("button", { name: /Makanan Rp580/ });
+      const trigger = page.getByRole("button", { name: /Makanan dan Minuman Rp580/ });
       await trigger.click();
-      const modal = page.getByRole("dialog", { name: "Makanan", exact: true });
+      const modal = page.getByRole("dialog", { name: "Makanan dan Minuman", exact: true });
       await expect(modal).toHaveClass(/dialog-sheet/);
       await expect(modal.locator(".category-header-count")).toHaveText(
         "2 transaksi",
@@ -100,7 +100,7 @@ test("Filter dan sort bertahan ketika detail dibuka dan Back", async ({
     .locator(".bottom-nav:visible")
     .getByRole("link", { name: "Beranda", exact: true })
     .click();
-  await page.getByRole("button", { name: /Makanan Rp580/ }).click();
+  await page.getByRole("button", { name: /Makanan dan Minuman Rp580/ }).click();
   modal = page.getByRole("dialog");
   await modal.getByRole("button", { name: "Tunai (1)", exact: true }).click();
   await expect(modal.locator(".transaction-row-category")).toHaveCount(1);
@@ -146,13 +146,13 @@ test("Kategori tanpa data tetap menampilkan nol dan action pencatatan", async ({
   await page
     .getByRole("button", { name: "Terapkan periode", exact: true })
     .click();
-  await page.getByRole("button", { name: /Makanan Rp0/ }).click();
+  await page.getByRole("button", { name: /Makanan dan Minuman Rp0/ }).click();
   const modal = page.getByRole("dialog");
   await expect(modal.locator(".category-detail-total > .money")).toHaveText(
     "Rp0",
   );
   await expect(modal.locator(".category-detail-empty")).toContainText(
-    "Belum ada pengeluaran makanan",
+    "Belum ada pengeluaran makanan dan minuman",
   );
   await expect(
     modal.getByRole("button", { name: "Catat pengeluaran", exact: true }),

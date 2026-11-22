@@ -24,7 +24,8 @@ export function NotificationPreferencesPanel({
   const [draft, setDraft] = useState<Partial<Pick<NotificationPreferences, "daily_enabled" | "reminder_time">>>({});
   const preferences = saved && { ...saved, ...draft };
   const scheduledByCashly = fixedReminderSchedule || Boolean(saved?.production_reminder_times);
-  const active = Boolean(saved?.push_active);
+  const subscribed = Boolean(saved?.push_active);
+  const active = subscribed && (!scheduledByCashly || Boolean(saved?.daily_enabled));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -43,7 +44,6 @@ export function NotificationPreferencesPanel({
       setDraft({});
       setNotice("Preferensi pengingat tersimpan.");
     } catch (failure) {
-      if (scheduledByCashly) setDraft({});
       setError((failure as Error).message);
     } finally {
       setBusy(false);
@@ -59,7 +59,7 @@ export function NotificationPreferencesPanel({
       if (active) {
         await disableDevicePush();
         settings.update({ push_active: false }, {});
-        setNotice("Push di perangkat ini sudah dimatikan.");
+        setNotice("Notifikasi di perangkat ini sudah dimatikan.");
       } else {
         // Calling subscribe directly from the click preserves the browser's user gesture.
         const base64 = preferences.push_public_key.replace(/-/g, "+").replace(/_/g, "/");
@@ -69,17 +69,24 @@ export function NotificationPreferencesPanel({
           applicationServerKey,
         });
         const keys = subscription.toJSON().keys;
-        if (!keys?.p256dh || !keys.auth) throw new Error("Push belum bisa didaftarkan. Coba lagi.");
+        if (!keys?.p256dh || !keys.auth) throw new Error("Notifikasi belum bisa diaktifkan. Coba lagi.");
+        let dailyEnabled: boolean | undefined;
         try {
-          await notifications("/push", {
+          const result = await notifications<{ active: boolean; daily_enabled?: boolean }>("/push", {
             method: "POST", body: JSON.stringify({ endpoint: subscription.endpoint, ...keys }),
           });
+          dailyEnabled = result.daily_enabled;
         } catch (failure) {
-          await subscription.unsubscribe().catch(() => false);
+          if (!subscribed) await subscription.unsubscribe().catch(() => false);
           throw failure;
         }
-        settings.update({ push_active: true }, { endpoint: subscription.endpoint });
-        setNotice("Push sudah aktif di perangkat ini.");
+        settings.update({
+          push_active: true,
+          ...(dailyEnabled === undefined ? {} : { daily_enabled: dailyEnabled }),
+        }, { endpoint: subscription.endpoint });
+        setNotice(dailyEnabled
+          ? "Notifikasi dan pengingat harian sudah aktif."
+          : "Notifikasi sudah aktif di perangkat ini.");
       }
     } catch (failure) {
       setError(Notification.permission === "denied"
@@ -97,7 +104,7 @@ export function NotificationPreferencesPanel({
     setError("");
     try {
       const subscription = await registration?.pushManager.getSubscription();
-      if (!subscription) throw new Error("Aktifkan push di perangkat ini dulu.");
+      if (!subscription) throw new Error("Aktifkan notifikasi di perangkat ini dulu.");
       const result = await notifications<{ delay_seconds: number }>("/push/test", {
         method: "POST", body: JSON.stringify({ endpoint: subscription.endpoint }),
       });
@@ -116,58 +123,51 @@ export function NotificationPreferencesPanel({
 
   const savedChanges = saved?.daily_enabled !== preferences.daily_enabled ||
     saved?.reminder_time !== preferences.reminder_time;
-  const productionTimes = saved?.production_reminder_times?.map((time) => time.replace(":", ".")).join(", ");
-  const reminderHint = scheduledByCashly
-    ? productionTimes ? `Mochi ngingetin pukul ${productionTimes} WIB.` : "Pengingat pagi, siang, dan malam."
-    : "Mochi ngingetin sesuai jam yang kamu pilih.";
   const canTogglePush = install !== "ios" && supported && !!registration &&
     !!preferences.push_public_key && (permission !== "denied" || active);
-  const pushHint = install === "ios" ? "Pasang dan buka Cashly dari Home Screen untuk mengaktifkan push."
-    : !supported ? "Push belum didukung di perangkat atau browser ini."
-    : !preferences.push_public_key ? "Push belum tersedia di lingkungan ini."
+  const pushHint = install === "ios" ? "Pasang dan buka Cashly dari Layar Utama untuk mengaktifkan notifikasi."
+    : !supported ? "Notifikasi belum didukung di perangkat atau browser ini."
+    : !preferences.push_public_key ? "Notifikasi perangkat belum tersedia saat ini."
     : permission === "denied" ? "Izin diblokir. Ubah lewat pengaturan notifikasi di perangkatmu."
-    : !registration ? "Cashly sedang menyiapkan push di perangkat ini."
-    : active ? "Push aktif di perangkat ini."
+    : !registration ? "Cashly sedang menyiapkan notifikasi di perangkat ini."
+    : active ? scheduledByCashly ? "Notifikasi dan pengingat harian sudah aktif." : "Notifikasi aktif di perangkat ini."
     : "Aktifkan supaya pengingat juga muncul saat Cashly ditutup.";
 
   return (
     <div className={styles.stack}>
-      <form className={styles.settingsCard} onSubmit={(event) => {
+      {!scheduledByCashly && <form className={styles.settingsCard} onSubmit={(event) => {
         event.preventDefault();
-        if (!scheduledByCashly) void saveReminder(preferences.daily_enabled, preferences.reminder_time);
+        void saveReminder(preferences.daily_enabled, preferences.reminder_time);
       }}>
         <label className={styles.settingLine}>
-          <span><strong>Pengingat catat harian</strong><small>{reminderHint}</small></span>
+          <span><strong>Pengingat catat harian</strong><small>Mochi ngingetin sesuai jam yang kamu pilih.</small></span>
           <input type="checkbox" role="switch" checked={preferences.daily_enabled} disabled={busy}
             onChange={(event) => {
               const enabled = event.target.checked;
               setDraft({ ...draft, daily_enabled: enabled });
-              if (scheduledByCashly) void saveReminder(enabled);
             }} />
         </label>
-        {!scheduledByCashly && preferences.daily_enabled && (
+        {preferences.daily_enabled && (
           <label className={styles.settingLine}>
             <strong>Jam pengingat (WIB)</strong>
             <input type="time" value={preferences.reminder_time} required disabled={busy}
               onChange={(event) => setDraft({ ...draft, reminder_time: event.target.value })} />
           </label>
         )}
-        {!scheduledByCashly && (
-          <Button type="submit" disabled={busy || !savedChanges}>Simpan pengingat</Button>
-        )}
-      </form>
+        <Button type="submit" disabled={busy || !savedChanges}>Simpan pengingat</Button>
+      </form>}
       <div className={styles.settingsCard}>
-        <div><strong>Push di perangkat ini</strong><small>{pushHint}</small></div>
+        <div><strong>Notifikasi di perangkat ini</strong><small>{pushHint}</small></div>
         {canTogglePush && (
           <Button variant="secondary" disabled={busy} onClick={() => void togglePush()}>
             {active ? <BellOff size={18} aria-hidden="true" /> : <Bell size={18} aria-hidden="true" />}
-            {active ? "Matikan push di perangkat ini" : "Aktifkan push di perangkat ini"}
+            {active ? "Matikan notifikasi" : "Aktifkan notifikasi"}
           </Button>
         )}
         {allowPushTest && preferences.test_push_available && (
           <Button variant="secondary" disabled={busy || !canTogglePush || !active || permission !== "granted"}
             onClick={() => void sendTest()}>
-            <Send size={17} aria-hidden="true" /> Kirim push tes ke perangkat ini
+            <Send size={17} aria-hidden="true" /> Kirim notifikasi tes
           </Button>
         )}
       </div>

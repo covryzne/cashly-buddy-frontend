@@ -27,8 +27,8 @@ test("protected pages, Google PKCE callback, account reads and logout without SM
   await page.goto("/profil");
   await page.getByRole("button", { name: /^Keluar dari akun/ }).click();
   await page.locator(".profile-logout-confirm").click();
-  await expect(page).toHaveURL(/\/login/);
-  await expect(second).toHaveURL(/\/login/);
+  await expect(page).toHaveURL("/");
+  await expect(second).toHaveURL("/");
 });
 
 test("provider cancellation and backend failure retain a safe retry path", async ({ page, request }) => {

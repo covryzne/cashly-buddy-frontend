@@ -65,7 +65,7 @@ function SecurityForm({available,onClose}:{available:boolean;onClose:()=>void}) 
   }
   async function finish() {
     setPending(true);setError("");
-    try {await logoutGoogle();window.location.replace("/login");}
+    try {await logoutGoogle("/login");window.location.replace("/login");}
     catch {setError("Perubahan tersimpan. Coba keluar lalu masuk kembali.");setPending(false);}
   }
   if(done) return <Dialog title="Kata sandi berhasil diubah" onClose={()=>void finish()} showCloseButton={false} footer={<Button disabled={pending} onClick={()=>void finish()}>{pending ? <AppLoader inline /> : "Ke halaman login"}</Button>}><ShieldCheck size={40} className="auth-success-icon" /><p>Silakan masuk kembali menggunakan kata sandi baru.</p>{error && <p role="alert" className="field-error">{error}</p>}</Dialog>;

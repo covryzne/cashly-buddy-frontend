@@ -5,24 +5,39 @@ import { AppLoader } from "@/components/shared/app-loader";
 import { disableDevicePush } from "@/features/notifications/notification-api";
 import { useAppThemeDefault } from "@/lib/theme/use-theme";
 
+const logoutKey = "cashly-auth-logout";
+
+function logoutMarker() {
+  try { return localStorage.getItem(logoutKey); } catch { return null; }
+}
+
 export function AuthSessionBoundary({ children, accountId }: { children: ReactNode; accountId: string }) {
   useAppThemeDefault();
   const [invalidated, setInvalidated] = useState(false);
   useEffect(() => {
     document.documentElement.dataset.cashlyAuthReady = "true";
     const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("cashly-auth") : null;
-    const leave = () => {
-      setInvalidated(true);
-      void clearAccountSnapshot(accountId).catch(() => undefined).finally(() => window.location.replace("/login"));
+    const initialLogout = logoutMarker();
+    const signedOutDestination = () => {
+      const current = logoutMarker();
+      return current !== initialLogout && current?.startsWith("landing:") ? "/" : "/login";
     };
-    if (channel) channel.onmessage = event => { if (event.data === "logout") leave(); else if(event.data === "account_deleted") window.location.replace("/login?account=deleted"); };
-    const storage = (event: StorageEvent) => { if (event.key === "cashly-auth-logout") leave(); };
+    const leave = (destination = signedOutDestination()) => {
+      setInvalidated(true);
+      void clearAccountSnapshot(accountId).catch(() => undefined).finally(() => window.location.replace(destination));
+    };
+    if (channel) channel.onmessage = event => {
+      if (event.data === "logout-to-landing") leave("/");
+      else if (event.data === "logout") leave();
+      else if (event.data === "account_deleted") window.location.replace("/login?account=deleted");
+    };
+    const storage = (event: StorageEvent) => { if (event.key === logoutKey) leave(); };
     window.addEventListener("storage", storage);
     const unsubscribe = subscribeSnapshotIdentity(() => {
       const active = activeOfflineAccountId();
       if (active !== accountId) {
         setInvalidated(true);
-        void waitForSnapshotStorage().finally(() => window.location.replace(activeOfflineAccountId() ? "/beranda" : "/login"));
+        void waitForSnapshotStorage().finally(() => window.location.replace(activeOfflineAccountId() ? "/beranda" : signedOutDestination()));
       }
     });
     let checking=false;
@@ -64,12 +79,13 @@ export function AuthSessionBoundary({ children, accountId }: { children: ReactNo
   return invalidated ? <main className="app-loading-screen"><AppLoader /></main> : children;
 }
 
-export async function logoutGoogle() {
+export async function logoutGoogle(destination: "/" | "/login" = "/") {
   await disableDevicePush();
   const response = await fetch("/auth/logout", { method: "POST", cache: "no-store" });
   if (!response.ok) throw new Error("Logout failed");
-  await clearAccountSnapshot().catch(() => undefined);
+  // Signal the destination before snapshot revocation redirects open tabs.
+  try { localStorage.setItem(logoutKey, `${destination === "/" ? "landing:" : ""}${Date.now()}`); } catch { /* channel still works */ }
   const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("cashly-auth") : null;
-  channel?.postMessage("logout"); channel?.close();
-  try { localStorage.setItem("cashly-auth-logout", String(Date.now())); } catch { /* channel still works */ }
+  channel?.postMessage(destination === "/" ? "logout-to-landing" : "logout"); channel?.close();
+  await clearAccountSnapshot().catch(() => undefined);
 }

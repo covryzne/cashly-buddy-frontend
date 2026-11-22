@@ -113,7 +113,11 @@ export function ProfileDashboard({
     saveProfile,
     whatsappExampleLinked,
     setWhatsappExampleLinked,
-    remoteMode, whatsappStatus, whatsappError, refreshWhatsapp, applyWhatsappStatus,
+    remoteMode,
+    whatsappStatus,
+    whatsappError,
+    refreshWhatsapp,
+    applyWhatsappStatus,
   } = useProfileSession();
   const { theme, setTheme } = useTheme();
   const { panel, open, push, close, back, canGoBack } = useModalStack<Panel>();
@@ -169,8 +173,14 @@ export function ProfileDashboard({
   }
   const title =
     panel?.kind === 'whatsapp'
-      ? (remoteMode ? whatsappStatus?.status === 'connected' : whatsappExampleLinked)
-        ? (remoteMode ? 'WhatsApp terhubung' : 'WhatsApp contoh terhubung')
+      ? (
+          remoteMode
+            ? whatsappStatus?.status === 'connected'
+            : whatsappExampleLinked
+        )
+        ? remoteMode
+          ? 'WhatsApp terhubung'
+          : 'WhatsApp contoh terhubung'
         : panel.step === 'otp'
           ? 'Masukkan kode OTP'
           : 'Hubungkan WhatsApp'
@@ -340,7 +350,7 @@ export function ProfileDashboard({
                   <SettingsRow
                     icon={BellRing}
                     title="Notifikasi"
-                    description="Atur pengingat harian dan push di perangkat ini"
+                    description="Atur pengingat harian dan notifikasi di perangkat ini"
                     onClick={() => {
                       notificationSettings.refresh();
                       open({ kind: 'info', topic: 'reminder' });
@@ -360,8 +370,16 @@ export function ProfileDashboard({
                     description="Catat pengeluaran langsung dari percakapanmu."
                     value={
                       remoteMode
-                        ? (!online ? 'Periksa saat online' : whatsappError ? 'Periksa koneksi' : whatsappStatus?.status === 'connected' ? 'Terhubung' : 'Hubungkan')
-                        : whatsappExampleLinked ? 'Contoh terhubung' : 'Hubungkan'
+                        ? !online
+                          ? 'Periksa saat online'
+                          : whatsappError
+                            ? 'Periksa koneksi'
+                            : whatsappStatus?.status === 'connected'
+                              ? 'Terhubung'
+                              : 'Hubungkan'
+                        : whatsappExampleLinked
+                          ? 'Contoh terhubung'
+                          : 'Hubungkan'
                     }
                     onClick={() => open({ kind: 'whatsapp', step: 'intro' })}
                   />
@@ -471,7 +489,7 @@ export function ProfileDashboard({
                     try {
                       if (session.remoteMode) await logoutGoogle();
                       await session.resetSession();
-                      window.location.replace('/login');
+                      window.location.replace('/');
                     } catch {
                       setLogoutError(
                         'Sesi belum berhasil ditutup. Periksa koneksi lalu coba keluar lagi.',
@@ -493,7 +511,12 @@ export function ProfileDashboard({
                 WhatsApp tetap opsional untuk menggunakan Cashly.
               </p>
             ) : remoteMode ? (
-              <WhatsappLivePanel status={whatsappStatus} statusError={whatsappError} refresh={refreshWhatsapp} applyStatus={applyWhatsappStatus} />
+              <WhatsappLivePanel
+                status={whatsappStatus}
+                statusError={whatsappError}
+                refresh={refreshWhatsapp}
+                applyStatus={applyWhatsappStatus}
+              />
             ) : whatsappExampleLinked ? (
               <WhatsappExampleConnected
                 onReset={() => {
@@ -552,10 +575,6 @@ export function ProfileDashboard({
               </span>
               <h3>Sampai ketemu lagi!</h3>
               {logoutError && <p role="alert">{logoutError}</p>}
-              <p>
-                Salinan data contoh di perangkat dan perubahan sesi akan dihapus
-                ketika kamu keluar. Pilihan tema tetap tersimpan di perangkatmu.
-              </p>
             </div>
           )}
           {panel.kind === 'info' && (
@@ -670,7 +689,8 @@ export function ProfileDashboard({
                     <Accordion.Item className="profile-faq-item" key={question}>
                       <Accordion.Header>
                         <Accordion.Trigger className="profile-faq-trigger">
-                          <span>{question}</span><ChevronDown size={17} aria-hidden="true" />
+                          <span>{question}</span>
+                          <ChevronDown size={17} aria-hidden="true" />
                         </Accordion.Trigger>
                       </Accordion.Header>
                       <Accordion.Panel className="profile-faq-panel">

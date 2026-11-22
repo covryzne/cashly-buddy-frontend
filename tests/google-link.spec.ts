@@ -106,13 +106,15 @@ test("confirmed Google disconnect keeps email login and the same account", async
   const after = await (await context.request.get("/auth/session")).json();
   expect(after.account_id).toBe(before.account_id);
   await page.reload();
-  await expect(page.getByText("Disconnected", { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Akun", exact: true }).getByText("Disconnected", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /^Keluar dari akun/ }).click();
   await page.locator(".profile-logout-confirm").click();
+  await expect(page).toHaveURL("/");
+  await page.getByRole("link", { name: "Gas, buka Cashly!", exact: true }).click();
   await expect(page).toHaveURL(/\/login/);
   await page.getByLabel("Email", { exact: true }).fill("oauth-test@example.invalid");
-  await page.getByLabel("Kata sandi", { exact: true }).fill("Local-Test123!");
-  await page.getByRole("button", { name: "Masuk", exact: true }).click();
+  await page.getByLabel("Password", { exact: true }).fill("Local-Test123!");
+  await page.getByRole("button", { name: "Gas, masuk!", exact: true }).click();
   await expect(page).toHaveURL(/\/beranda/);
   expect((await (await context.request.get("/auth/session")).json()).account_id).toBe(before.account_id);
   state = await (await request.get("http://127.0.0.1:34568/__test/state")).json();

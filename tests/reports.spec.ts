@@ -103,7 +103,7 @@ for (const theme of ["light", "dark"] as const) {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     const center = page.locator(".report-donut-center");
     const arc = page.getByRole("button", {
-      name: "Makanan, 46.5 persen, 2 transaksi",
+      name: "Makanan dan Minuman, 46.5 persen, 2 transaksi",
       exact: true,
     });
     await expect(center).toContainText("Semua kategori");

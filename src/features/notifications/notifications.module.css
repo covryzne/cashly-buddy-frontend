@@ -1,0 +1,93 @@
+.bell {
+  position: relative;
+  flex-shrink: 0;
+}
+.dot {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  top: 9px;
+  right: 9px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--primary);
+}
+.stack,
+.settingsCard {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+.stack p,
+.settingsCard small,
+.item small {
+  color: var(--muted);
+}
+.inboxActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.inboxActions button {
+  flex: 1 1 auto;
+}
+.clearInbox {
+  color: var(--danger);
+}
+.list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.item,
+.settingsCard {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 14px;
+}
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  font-size: 13px;
+}
+.item svg {
+  flex: none;
+  color: var(--primary-text);
+}
+.item[data-unread="true"] {
+  background: var(--primary-soft);
+}
+.item > span,
+.settingsCard small {
+  display: grid;
+  gap: 4px;
+}
+.settingLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.settingLine input[type="checkbox"] {
+  width: 21px;
+  height: 21px;
+  flex-shrink: 0;
+  accent-color: var(--primary-text);
+}
+.settingLine input[type="time"] {
+  min-width: 0;
+  color: var(--foreground);
+  background: var(--subtle);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-height: 40px;
+  padding: 4px 8px;
+}

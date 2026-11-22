@@ -12,8 +12,8 @@ import { SplitBillReceiptImport } from "./split-bill-receipt-import";
 import styles from "./mochi-tools.module.css";
 
 const tools = [
-  { id: "split", title: "Split Bill Nongkrong", description: "Bagi rata atau per menu", Icon: Split },
-  { id: "discount", title: "Kalkulator Diskon", description: "Cek potongan dan cashback", Icon: Percent },
+  { id: "split", title: "Split Bill Nongkrong", label: "Split Bill", Icon: Split },
+  { id: "discount", title: "Kalkulator Diskon", label: "Diskon", Icon: Percent },
 ] as const;
 
 const money = (value: number) => formatMoney(String(value));
@@ -390,13 +390,11 @@ export function MochiTools() {
   return (
     <section className={styles.section} aria-labelledby="mochi-tools-title">
       <h2 id="mochi-tools-title">Tools Mochi</h2>
-      <p>Hitung cepat &amp; patungan tanpa ribet.</p>
       <div className={styles.cards}>
         {tools.map((tool) => (
-          <button key={tool.id} className={styles.card} type="button" onClick={() => setActive(tool)}>
+          <button key={tool.id} className={styles.shortcut} type="button" aria-label={tool.title} onClick={() => setActive(tool)}>
             <span className={styles.icon} data-tool={tool.id}><tool.Icon size={20} aria-hidden /></span>
-            <strong>{tool.title}</strong>
-            <span>{tool.description}</span>
+            <span>{tool.label}</span>
           </button>
         ))}
       </div>

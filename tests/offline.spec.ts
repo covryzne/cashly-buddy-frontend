@@ -7,6 +7,9 @@ const B = "20000000-0000-4000-8000-000000000002";
 
 async function stored(page: Page) {
   return page.evaluate(async name => {
+    if (!(await indexedDB.databases()).some(database => database.name === name)) {
+      return { keys: [], values: [] };
+    }
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
       const open = indexedDB.open(name); open.onsuccess = () => resolve(open.result); open.onerror = () => reject(open.error);
     });
@@ -32,10 +35,11 @@ async function seed(request: APIRequestContext, name: string) {
 async function login(page: Page) {
   await page.goto("/login");
   await page.locator(".login-form:visible").getByLabel("Email", { exact: true }).fill("offline@example.invalid");
-  await page.locator(".login-form:visible").getByLabel("Kata sandi", { exact: true }).fill("Local-Test123!");
-  await page.getByRole("button", { name: "Masuk", exact: true }).click();
+  await page.locator(".login-form:visible").getByLabel("Password", { exact: true }).fill("Local-Test123!");
+  await page.getByRole("button", { name: "Gas, masuk!", exact: true }).click();
   await expect(page).toHaveURL(/\/beranda/);
-  await expect(page.getByText("Salinan data tersimpan di perangkat ini.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Status koneksi", exact: true })).toHaveAttribute("data-state", "online");
+  await expect(page.getByText("Catatan yang sudah dimuat bisa dibaca saat offline.", { exact: true })).toHaveCount(0);
 }
 async function prepared(page: Page) {
   await expect.poll(async () => (await stored(page)).values.some((v: unknown) =>
@@ -57,6 +61,8 @@ test.beforeEach(async ({ page, request }) => {
 });
 
 test("account data, profile and streak survive offline reload and navigation without API hits", async ({ page, context }) => {
+  const expectedBadgeCount = process.env.CASHLY_SHOW_ENV_BADGE === "true" ? 1 : 0;
+  await expect(page.getByText("Database staging", { exact: true })).toHaveCount(expectedBadgeCount);
   const state = await stored(page);
   expect(state.keys).toContain(A);
   const serialized = JSON.stringify(state.values);
@@ -74,15 +80,19 @@ test("account data, profile and streak survive offline reload and navigation wit
   const hits: string[] = [];
   await context.setOffline(true);
   page.on("request", request => { if (/\/api\/|\/auth\/session/.test(request.url())) hits.push(new URL(request.url()).pathname); });
-  await page.reload();
+  await page.goto("/");
   await expect(page.locator(".expense-summary .hero-amount:visible")).toContainText("12.500");
   await expect(page.locator(".local-data-status")).toHaveAttribute("data-state", "offline");
   await expect(page.locator(".local-data-status time")).toBeVisible();
+  await expect(page.getByText("Database staging", { exact: true })).toHaveCount(expectedBadgeCount);
+  const poster = page.getByRole("button", { name: "Sapa Mochi", exact: true }).locator("img");
+  await expect(poster).toHaveAttribute("src", /\/mascot\/mochi-level-1-transparent\.png$/);
+  await expect.poll(() => poster.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
   for (const path of ["/aktivitas", "/laporan", "/profil", "/beranda"]) {
     if (path === "/profil") await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.goto(path);
     await expect(page.locator(".local-data-status")).toHaveAttribute("data-state", "offline");
-    await expect(page.getByText("Salinan data terakhir. Pencatatan dan perubahan tersedia saat online.")).toBeVisible();
+    await expect(page.getByText(/Catatan terakhir masih bisa dibaca|Salinan data terakhir\. Pencatatan/)).toHaveCount(0);
     if (path === "/aktivitas") {
       await expect(page.locator(".transaction-row").filter({ hasText: "Offline A Expense" })).toBeVisible();
       await page.locator(".transaction-row").first().click();
@@ -127,7 +137,7 @@ test("account switch clears A and ignores leftover snapshots from another owner"
   await request.get(authority + "/__test/offline-account?name=B");
   await seed(request, "Offline B Expense");
   await page.goto("/beranda");
-  await expect(page.getByText("Salinan data tersimpan di perangkat ini.", { exact: true })).toBeVisible();
+  await expect.poll(async () => (await stored(page)).keys.includes(B)).toBe(true);
   await expect.poll(async () => (await stored(page)).keys.includes(A)).toBe(false);
   expect((await stored(page)).keys).toContain(B);
   await page.evaluate(async ({ dbName, old }) => {

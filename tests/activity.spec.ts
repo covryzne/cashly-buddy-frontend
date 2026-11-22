@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 test.use({ timezoneId: "Asia/Jakarta" });
-const total = (page: Page) => page.locator(".activity-total-row > .money");
+const total = (page: Page) => page.getByRole("status", { name: "Ringkasan hasil" }).locator(".money");
 const rows = (page: Page) => page.locator(".transaction-row-timeline");
 const dialog = (page: Page) => page.getByRole("dialog");
 async function open(page: Page) {
@@ -93,7 +93,7 @@ test("Pencarian, kategori dan filter gabungan dengan submodal periode", async ({
   await open(page);
   await page
     .getByRole("group", { name: "Kategori pengeluaran" })
-    .getByRole("button", { name: "Makanan 2" })
+    .getByRole("button", { name: "Makanan dan Minuman 2" })
     .click();
   await expect(total(page)).toHaveText("Rp580.000");
   await page.getByRole("searchbox").fill("#KopiSiang");

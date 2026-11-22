@@ -11,11 +11,20 @@ async function forward(request: Request, context: Context, trace: Trace) {
     if (request.method !== "GET" && !sameOrigin(request))
       return Response.json({error:{message:"Permintaan tidak diizinkan."}},{status:403,headers});
     const path = (await context.params).path.join("/");
+    const notificationRoutes: Record<string, RegExp> = {
+      GET: /^notifications(?:\/preferences)?$/,
+      PATCH: /^notifications\/preferences$/,
+      POST: /^notifications\/(?:read-all|[0-9a-f-]{36}\/read|preferences\/device|push(?:\/status)?)$/,
+      DELETE: /^notifications(?:\/push)?$/,
+    };
     const allowed = /^(expenses(?:\/[0-9a-f-]{36}(?:\/restore)?)?|categories|me\/(?:preferences|profile|security\/(?:password\/(?:change|setup\/request)|google(?:\/disconnect)?))|gamification\/(overview|streak\/calendar|streak\/freeze|checkins\/(no-spend|review))|reports\/(summary|trend))$/;
     const whatsappAllowed = ((request.method === "GET" || request.method === "DELETE") && path === "me/whatsapp") ||
       (request.method === "GET" && path === "me/whatsapp/history") ||
       (request.method === "POST" && /^me\/whatsapp\/challenges(?:\/[0-9a-f-]{36}\/verify)?$/.test(path));
-    if (!allowed.test(path) && !whatsappAllowed && !(request.method === "POST" && ["chat/extract", "receipts/extract", "voice/transcribe", "voice/extract", "expenses/chat-batch"].includes(path))) return Response.json({error:{message:"Endpoint tidak tersedia."}},{status:404,headers});
+    const environment = process.env.CASHLY_ENV;
+    const stagingPushTest = request.method === "POST" && path === "notifications/push/test" &&
+      (environment === "dev" || environment === "staging");
+    if (!allowed.test(path) && !whatsappAllowed && !notificationRoutes[request.method]?.test(path) && !stagingPushTest && !(request.method === "POST" && ["chat/extract", "receipts/extract", "voice/transcribe", "voice/extract", "expenses/chat-batch"].includes(path))) return Response.json({error:{message:"Endpoint tidak tersedia."}},{status:404,headers});
     trace.route = path.replace(/[0-9a-f-]{36}/g, ":id");
     const authStarted = performance.now();
     let session;

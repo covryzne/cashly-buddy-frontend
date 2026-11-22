@@ -146,7 +146,7 @@ for (const theme of ["light", "dark"] as const) {
       await page.setViewportSize({ width, height: 844 });
       await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
       await page.goto("/beranda");
-      const food = page.getByRole("button", { name: /Makanan Rp580/ });
+      const food = page.getByRole("button", { name: /Makanan dan Minuman Rp580/ });
       await food.click();
       let dialog = page.getByRole("dialog");
       await expect(
@@ -193,7 +193,7 @@ for (const theme of ["light", "dark"] as const) {
         path: `test-results/receipt-${width}-${theme}.png`,
       });
       await page.keyboard.press("Enter");
-      await expect(dialog).toHaveAccessibleName("Makanan");
+      await expect(dialog).toHaveAccessibleName("Makanan dan Minuman");
       await expect(
         dialog.getByRole("button", { name: /Kopi Sudut/ }),
       ).toBeFocused();

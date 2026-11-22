@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { ThemeToggle } from "./theme-toggle";
+import { NotificationButton } from "@/features/notifications/notification-button";
 
 export function AppPageHeader({
   title,
@@ -22,7 +22,7 @@ export function AppPageHeader({
           <h1>{title}</h1>
           <p>{description}</p>
         </div>
-        <ThemeToggle />
+        <NotificationButton />
       </div>
     </header>
   );

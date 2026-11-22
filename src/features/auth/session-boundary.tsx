@@ -2,8 +2,11 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { clearAccountSnapshot, activeOfflineAccountId, subscribeSnapshotIdentity, waitForSnapshotStorage } from "@/lib/pwa/account-snapshot";
 import { AppLoader } from "@/components/shared/app-loader";
+import { disableDevicePush } from "@/features/notifications/notification-api";
+import { useAppThemeDefault } from "@/lib/theme/use-theme";
 
 export function AuthSessionBoundary({ children, accountId }: { children: ReactNode; accountId: string }) {
+  useAppThemeDefault();
   const [invalidated, setInvalidated] = useState(false);
   useEffect(() => {
     document.documentElement.dataset.cashlyAuthReady = "true";
@@ -62,6 +65,7 @@ export function AuthSessionBoundary({ children, accountId }: { children: ReactNo
 }
 
 export async function logoutGoogle() {
+  await disableDevicePush();
   const response = await fetch("/auth/logout", { method: "POST", cache: "no-store" });
   if (!response.ok) throw new Error("Logout failed");
   await clearAccountSnapshot().catch(() => undefined);

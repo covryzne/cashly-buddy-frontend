@@ -26,8 +26,8 @@ try {
       new URL("/beranda", process.env.CASHLY_DEV_URL ?? "http://localhost:3000")
         .href,
     );
-    await page.getByRole("button", { name: /Makanan Rp580/ }).click();
-    const dialog = page.getByRole("dialog", { name: "Makanan", exact: true });
+    await page.getByRole("button", { name: /Makanan dan Minuman Rp580/ }).click();
+    const dialog = page.getByRole("dialog", { name: "Makanan dan Minuman", exact: true });
     await expect(dialog.locator(".category-detail-total > .money")).toHaveText(
       "Rp580.000",
     );

@@ -581,9 +581,11 @@
 }
 .report-drilldown > div {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 .report-drilldown .transaction-row {
+  min-width: 0;
   padding: 12px 6px;
 }
 .report-export-preview {

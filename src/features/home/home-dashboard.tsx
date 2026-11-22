@@ -1,21 +1,21 @@
 'use client';
 
 import { useHomeData } from './use-home-data';
-import { useServerSummary } from "@/features/reports/use-server-summary";
-import { LocalDataStatus } from "@/components/shared/local-data-status";
+import { useServerSummary } from '@/features/reports/use-server-summary';
+import { LocalDataStatus } from '@/components/shared/local-data-status';
 
-import { useState, useSyncExternalStore } from 'react';
-import { Sparkles, Zap, Hand, ArrowUpRight, Plus } from 'lucide-react';
-import {
-  type Category,
-  type Expense,
-} from '@/mocks/fixtures/home';
+import { Suspense, useState, useSyncExternalStore } from 'react';
+import { Sparkles, Hand, ArrowUpRight, Plus } from 'lucide-react';
+import { type Category, type Expense } from '@/mocks/fixtures/home';
 import { formatDate } from '@/lib/format/datetime';
 import { MoneyDisplay } from '@/components/finance/money-display';
 import { CategoryIcon } from '@/components/finance/category-icon';
 import { TransactionRow } from '@/components/finance/transaction-row';
 import { CategoryDetail } from '@/components/finance/category-detail';
-import { defaultCategoryDetailFilters, type CategoryDetailFilters } from '@/features/expenses/select-category-detail';
+import {
+  defaultCategoryDetailFilters,
+  type CategoryDetailFilters,
+} from '@/features/expenses/select-category-detail';
 import { ExpenseSummaryCard } from '@/components/finance/expense-summary-card';
 import { MochiTools } from './mochi-tools';
 import { StreakCard } from '@/components/gamification/streak-card';
@@ -23,7 +23,8 @@ import { MissionBoard } from '@/components/gamification/mission-board';
 import { MissionCard } from '@/components/gamification/mission-card';
 import { MascotStageRenderer } from '@/components/gamification/mascot-stage-renderer';
 import { AppNavigation } from '@/components/shared/app-navigation';
-import { ThemeToggle } from '@/components/shared/theme-toggle';
+import { NotificationButton } from '@/features/notifications/notification-button';
+import { NotificationCaptureEntry } from '@/features/notifications/notification-capture-entry';
 import { PeriodPicker } from '@/components/finance/period-picker';
 import { QuickAddMethods } from '@/components/finance/quick-add-methods';
 import { monthKey, selectPeriod } from './select-month';
@@ -63,8 +64,8 @@ type Panel =
   | { kind: 'transactions' }
   | { kind: 'missions' };
 export function HomeDashboard() {
-  const data=useHomeData();
-  const session=useExpenseSession();
+  const data = useHomeData();
+  const session = useExpenseSession();
   const { profile } = useProfileSession();
   const { expenses, chatSession, setChatSession } = useExpenseSession();
   const currentMonth = useSyncExternalStore(
@@ -79,9 +80,13 @@ export function HomeDashboard() {
     kind: 'month',
     month: currentMonth,
   };
-  const summary=useServerSummary(selection);
-  const computed=selectPeriod(selection,expenses);
-  const snapshot={...computed,totalIdr:summary?.data?.amount_idr ?? computed.totalIdr,count:summary?.data?.count ?? computed.count};
+  const summary = useServerSummary(selection);
+  const computed = selectPeriod(selection, expenses);
+  const snapshot = {
+    ...computed,
+    totalIdr: summary?.data?.amount_idr ?? computed.totalIdr,
+    count: summary?.data?.count ?? computed.count,
+  };
   const {
     panel,
     open: setPanel,
@@ -91,7 +96,9 @@ export function HomeDashboard() {
     canGoBack,
   } = useModalStack<Panel>();
   const [greeting, setGreeting] = useState(false);
-  const [categoryFilters, setCategoryFilters] = useState<CategoryDetailFilters>(defaultCategoryDetailFilters);
+  const [categoryFilters, setCategoryFilters] = useState<CategoryDetailFilters>(
+    defaultCategoryDetailFilters,
+  );
   const upcoming = (label: string) =>
     setPanel(
       label === 'Profil' ? { kind: 'profile' } : { kind: 'upcoming', label },
@@ -122,6 +129,9 @@ export function HomeDashboard() {
                     : 'Transaksi periode ini';
   return (
     <>
+      <Suspense fallback={null}>
+        <NotificationCaptureEntry onOpen={() => setPanel({ kind: 'add' })} />
+      </Suspense>
       <a href="#main-content" className="skip-link">
         Langsung ke konten
       </a>
@@ -130,17 +140,13 @@ export function HomeDashboard() {
         onUpcoming={upcoming}
       />
       <div className="app-shell">
-        <div className="home-theme-control">
-          <ThemeToggle />
+        <div className="home-notification-control">
+          <NotificationButton />
         </div>
         <main id="main-content" className="dashboard">
           <LocalDataStatus />
-          {summary?.error && <p role="alert">{summary.error}</p>}
           <div className="greeting-row">
             <div>
-              <p className="desktop-eyebrow">
-                Sedikit perhatian, kebiasaan yang lebih baik.
-              </p>
               <h1>
                 Hi, {profile.name}! <span aria-hidden="true">👋</span>
               </h1>
@@ -153,11 +159,8 @@ export function HomeDashboard() {
                 })}
               </p>
             </div>
-            <span className="pill xp-pill">
-              <Zap size={15} />
-              Hero level {data.level}
-            </span>
           </div>
+          {summary?.error && <p role="alert">{summary.error}</p>}
           <div className="home-grid">
             <div className="summary-area">
               <ExpenseSummaryCard
@@ -187,14 +190,19 @@ export function HomeDashboard() {
                   />
                   <span className="mascot-label">
                     <Sparkles size={13} />
-                    {data.mascotStage ? `Tahap ${data.mascotStage}` : "Pendamping awal"}
+                    {data.mascotStage
+                      ? `Level ${data.mascotStage}`
+                      : 'Pendamping awal'}
                   </span>
                 </div>
-                {snapshot.categories.slice(0,4).map((category, index) => (
+                {snapshot.categories.slice(0, 4).map((category, index) => (
                   <button
                     key={category.code}
                     className={`floating-category float-${index}`}
-                    onClick={() => { setCategoryFilters(defaultCategoryDetailFilters); setPanel({ kind: 'category', category }); }}
+                    onClick={() => {
+                      setCategoryFilters(defaultCategoryDetailFilters);
+                      setPanel({ kind: 'category', category });
+                    }}
                   >
                     <CategoryIcon category={category} />
                     <span>
@@ -226,37 +234,77 @@ export function HomeDashboard() {
                 streak={data.streak}
                 freezeBalance={data.freezeBalance}
                 calendar={data.calendar}
-                todayCheckedIn={session.remoteMode ? session.game?.today_checked_in ?? false : true}
+                todayCheckedIn={
+                  session.remoteMode
+                    ? (session.game?.today_checked_in ?? false)
+                    : true
+                }
                 todayDate={session.game?.today_local_date}
-                recovery={session.game?.recovery ? { dates:session.game.recovery.protected_local_dates,
-                  required:session.game.recovery.required,canRestore:session.game.recovery.can_restore,
-                  result:session.game.recovery.streak_after_recovery } : undefined}
-                onUseFreeze={session.game?.recovery ? ()=>session.gameAction("freeze",session.game!.recovery!.protected_local_dates) : undefined}
+                recovery={
+                  session.game?.recovery
+                    ? {
+                        dates: session.game.recovery.protected_local_dates,
+                        required: session.game.recovery.required,
+                        canRestore: session.game.recovery.can_restore,
+                        result: session.game.recovery.streak_after_recovery,
+                      }
+                    : undefined
+                }
+                onUseFreeze={
+                  session.game?.recovery
+                    ? () =>
+                        session.gameAction(
+                          'freeze',
+                          session.game!.recovery!.protected_local_dates,
+                        )
+                    : undefined
+                }
                 pending={session.mutationPending}
-                onCheckIn={session.remoteMode && session.game ? ()=>void session.gameAction("review") : undefined}
-                onNoSpend={session.remoteMode && session.game && !session.expenses.some(e=>new Intl.DateTimeFormat("en-CA",{timeZone:session.game?.timezone ?? "Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(e.occurredAt))===session.game?.today_local_date) ? ()=>void session.gameAction("no-spend") : undefined}
+                onCheckIn={
+                  session.remoteMode && session.game
+                    ? () => void session.gameAction('review')
+                    : undefined
+                }
+                onNoSpend={
+                  session.remoteMode &&
+                  session.game &&
+                  !session.expenses.some(
+                    (e) =>
+                      new Intl.DateTimeFormat('en-CA', {
+                        timeZone: session.game?.timezone ?? 'Asia/Jakarta',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                      }).format(new Date(e.occurredAt)) ===
+                      session.game?.today_local_date,
+                  )
+                    ? () => void session.gameAction('no-spend')
+                    : undefined
+                }
               />
             </div>
-            {!session.remoteMode && <section className="missions-area">
-              <div className="section-heading section-title">
-                <h2>
-                  Misi hari ini <span className="count-badge">1/1</span>
-                </h2>
-                <button
-                  className="text-button"
-                  onClick={() => setPanel({ kind: 'missions' })}
-                >
-                  Lihat semua <ArrowUpRight size={14} />
-                </button>
-              </div>
-              <div className="mission-list">
-                <MissionCard
-                  title="Catat pengeluaran hari ini"
-                  completed
-                  onSelect={() => setPanel({ kind: 'missions' })}
-                />
-              </div>
-            </section>}
+            {!session.remoteMode && (
+              <section className="missions-area">
+                <div className="section-heading section-title">
+                  <h2>
+                    Misi hari ini <span className="count-badge">1/1</span>
+                  </h2>
+                  <button
+                    className="text-button"
+                    onClick={() => setPanel({ kind: 'missions' })}
+                  >
+                    Lihat semua <ArrowUpRight size={14} />
+                  </button>
+                </div>
+                <div className="mission-list">
+                  <MissionCard
+                    title="Catat pengeluaran hari ini"
+                    completed
+                    onSelect={() => setPanel({ kind: 'missions' })}
+                  />
+                </div>
+              </section>
+            )}
             <section className="transactions-area">
               <div className="section-heading section-title">
                 <h2>Transaksi terbaru</h2>
@@ -303,10 +351,7 @@ export function HomeDashboard() {
         />
       )}
       {panel?.kind === 'voice' && (
-        <VoiceReceiptFlow
-          onBack={back}
-          onClose={close}
-        />
+        <VoiceReceiptFlow onBack={back} onClose={close} />
       )}
       {panel &&
         panel.kind !== 'scan' &&
@@ -325,17 +370,33 @@ export function HomeDashboard() {
                 : 'default'
             }
             className={
-              panel.kind === 'category' ? 'category-detail-dialog' : panel.kind === 'expense'
-                ? 'expense-detail-dialog'
-                : panel.kind === 'install'
-                  ? 'install-dialog'
-                  : panel.kind === 'add'
-                    ? 'quick-add-dialog'
-                    : undefined
+              panel.kind === 'category'
+                ? 'category-detail-dialog'
+                : panel.kind === 'expense'
+                  ? 'expense-detail-dialog'
+                  : panel.kind === 'install'
+                    ? 'install-dialog'
+                    : panel.kind === 'add'
+                      ? 'quick-add-dialog'
+                      : undefined
             }
-            headerActions={panel.kind === 'category' ? <span className="category-header-count">{selectedExpenses.length} transaksi</span> : undefined}
+            headerActions={
+              panel.kind === 'category' ? (
+                <span className="category-header-count">
+                  {selectedExpenses.length} transaksi
+                </span>
+              ) : undefined
+            }
             footer={
-              panel.kind === 'category' ? <Button data-modal-focus-key="category-add" onClick={() => push({ kind: 'add' })}><Plus size={17} />Catat pengeluaran</Button> : panel.kind === 'install' ? (
+              panel.kind === 'category' ? (
+                <Button
+                  data-modal-focus-key="category-add"
+                  onClick={() => push({ kind: 'add' })}
+                >
+                  <Plus size={17} />
+                  Catat pengeluaran
+                </Button>
+              ) : panel.kind === 'install' ? (
                 <Button onClick={back}>Kembali ke Profil</Button>
               ) : panel.kind === 'expense' ? (
                 <ExpenseDetailActions onDone={close} />
@@ -353,9 +414,7 @@ export function HomeDashboard() {
               panel.kind !== 'profile' &&
               panel.kind !== 'install' && (
                 <span className="pill dialog-demo">
-                  {panel.kind === 'missions'
-                    ? data.period
-                    : snapshot.period}
+                  {panel.kind === 'missions' ? data.period : snapshot.period}
                 </span>
               )}
             {panel.kind === 'add' && (
@@ -386,9 +445,23 @@ export function HomeDashboard() {
             {panel.kind === 'upcoming' && (
               <FeaturePreview label={panel.label} />
             )}
-            {panel.kind === 'profile' && <ProfileOverview name={profile.name} onInstall={() => push({ kind: 'install' })} />}
+            {panel.kind === 'profile' && (
+              <ProfileOverview
+                name={profile.name}
+                onInstall={() => push({ kind: 'install' })}
+              />
+            )}
             {panel.kind === 'install' && <InstallGuide />}
-            {panel.kind === 'category' && <CategoryDetail category={panel.category} expenses={expenses} period={selection} filters={categoryFilters} onFiltersChange={setCategoryFilters} onSelect={(expense) => push({ kind: 'expense', expense })} />}
+            {panel.kind === 'category' && (
+              <CategoryDetail
+                category={panel.category}
+                expenses={expenses}
+                period={selection}
+                filters={categoryFilters}
+                onFiltersChange={setCategoryFilters}
+                onSelect={(expense) => push({ kind: 'expense', expense })}
+              />
+            )}
             {panel.kind === 'transactions' && (
               <>
                 <div className="transaction-list">

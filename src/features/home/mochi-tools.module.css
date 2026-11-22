@@ -142,13 +142,6 @@
   font-weight: 800;
 }
 
-.section > p,
-.card > span:last-child {
-  color: var(--muted);
-  font-size: .78rem;
-}
-
-.cards,
 .columns {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -156,38 +149,34 @@
 }
 
 .cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.25rem, 5rem));
+  gap: .5rem;
   margin-top: .65rem;
 }
 
-.card {
+.shortcut {
   display: grid;
-  align-content: start;
-  justify-items: start;
-  gap: .3rem;
+  justify-items: center;
+  gap: .38rem;
   min-width: 0;
-  padding: .85rem;
-  border: 1px solid var(--border);
-  border-radius: 1.4rem;
-  background: var(--surface);
-  box-shadow: var(--card-shadow);
-  text-align: left;
+  padding: .25rem;
+  border-radius: 1rem;
+  font-size: .75rem;
+  font-weight: 700;
+  text-align: center;
 }
 
-.card:hover {
-  border-color: var(--primary);
-}
-
-.card strong {
-  font-size: .82rem;
+.shortcut:hover {
+  background: var(--subtle);
 }
 
 .icon {
   display: grid;
   place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  margin-bottom: .2rem;
-  border-radius: .9rem;
+  width: 2.85rem;
+  height: 2.85rem;
+  border-radius: 1rem;
   background: var(--mint);
   color: var(--success);
 }

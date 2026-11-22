@@ -9,9 +9,7 @@ for (const width of [360, 390, 1280]) {
       await page.goto("/beranda");
       await expect(page.locator(".topbar")).toHaveCount(0);
       await expect(
-        page
-          .locator(".home-theme-control")
-          .getByRole("button", { name: /Ganti tema/ }),
+        page.getByRole("button", { name: /^Notifikasi/ }),
       ).toBeVisible();
       await expect(page.locator(".mascot-level-copy")).toHaveText(
         "Mochi kamu masih level 1 nih",

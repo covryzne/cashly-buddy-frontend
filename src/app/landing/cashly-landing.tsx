@@ -125,10 +125,10 @@ export function CashlyLanding() {
                   Gas, mulai catat!
                 </a>
                 <a
-                  href="#cara-kerja"
+                  href="#demo"
                   className={`${styles.button} ${styles.glass}`}
                 >
-                  Cara Kerjanya
+                  Lihat demo
                 </a>
               </div>
               <ul className={styles.heroNotes} aria-label="Keunggulan Cashly">
@@ -148,6 +148,29 @@ export function CashlyLanding() {
         </section>
 
         <FeatureSection />
+        <section
+          className={`${styles.container} ${styles.section} ${styles.demoSection}`}
+          id="demo"
+          aria-labelledby="judul-demo"
+        >
+          <div className={styles.demoCopy}>
+            <h2 id="judul-demo">Struknya boleh lecek. Catatannya tetap rapi.</h2>
+            <p>Lihat cara Cashly bantu kamu nyatet pengeluaran dan cek rekapnya.</p>
+          </div>
+          <video
+            className={styles.demoVideo}
+            aria-label="Video demo aplikasi Cashly"
+            width={1080}
+            height={1920}
+            poster="/demo/demo-poster.webp"
+            preload="none"
+            controls
+            playsInline
+          >
+            <source src="/demo/demo-vid.mp4" type="video/mp4" />
+            <a href="/demo/demo-vid.mp4">Buka video demo Cashly</a>
+          </video>
+        </section>
         <InstallSection />
         <Questions />
 

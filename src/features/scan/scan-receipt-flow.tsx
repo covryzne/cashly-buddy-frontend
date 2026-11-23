@@ -185,7 +185,6 @@ function ScanReceiptFlowContent({
         onBack();
       } else go(cameraParent.current);
     } else if (step === "help") openCamera(cameraParent.current);
-    else if (step === "success") go("review");
     else openCamera("review");
   };
   const cancelAnalysis = () => {
@@ -360,7 +359,7 @@ function ScanReceiptFlowContent({
     success: "Konfirmasi pengeluaran",
     help: "Panduan scan",
   }[step];
-  if (!online) return <Dialog title="Perlu koneksi internet" onBack={onBack} onClose={onClose}>
+  if (!online && step !== "success") return <Dialog title="Perlu koneksi internet" onBack={onBack} onClose={onClose}>
     <p>OCR memerlukan internet. Foto dan keterangan tetap tersedia selama dialog ini belum ditutup.</p>
   </Dialog>;
   return (
@@ -370,7 +369,7 @@ function ScanReceiptFlowContent({
         step === "permission" || step === "checking" ? "sheet" : "screen"
       }
       className={`scan-flow scan-flow-${step} ${camera.status === "ready" ? "scan-camera-running" : ""}`}
-      onBack={goBack}
+      onBack={step === "success" ? undefined : goBack}
       onClose={onClose}
       showCloseButton={step !== "camera"}
       description={

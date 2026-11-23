@@ -59,24 +59,34 @@ const examples = [
 
 const questions = [
   {
-    title: 'Cashly butuh akses rekening bank nggak?',
+    title: 'Cashly perlu akses rekening bank nggak?',
     answer:
-      'Nggak perlu sambungin rekening bank buat pakai Cashly. Kamu sendiri yang pilih pengeluaran mana yang mau dicatat.',
+      'Nggak. Kamu bisa langsung pakai Cashly tanpa menghubungkan rekening atau memasukkan kredensial bank. Kamu sendiri yang pilih pengeluaran mana yang mau dicatat.',
   },
   {
-    title: 'Kalau offline, apa aja yang masih bisa dibuka?',
+    title: 'Pengguna Cashly lain bisa lihat transaksiku nggak?',
     answer:
-      'Data yang udah ke-load di perangkat itu masih bisa kamu baca. Buat login, simpan catatan baru, scan struk, atau olah voice note, kamu tetap perlu koneksi internet.',
+      'Nggak. Transaksi dan laporan di aplikasi Cashly hanya bisa dibuka dari akun pemiliknya. Cashly memakai Row Level Security (RLS) di Supabase untuk membatasi akses data per akun, termasuk untuk transaksi yang kamu catat lewat WhatsApp.',
+  },
+  {
+    title: 'Siapa yang bisa lihat pesan yang kukirim lewat WhatsApp?',
+    answer:
+      'Pesanmu masuk ke inbox WhatsApp Business Cashly dan diproses oleh bot untuk mencatat transaksi. Pengelola Cashly bisa membuka percakapan di inbox bisnis untuk membantu kalau kamu menghubungi support atau ada kendala pencatatan.',
+  },
+  {
+    title: 'Apa yang terjadi dengan foto struk dan voice note yang kukirim?',
+    answer:
+      'Saat kamu memakai fitur scan struk atau catatan suara, Cashly mengirim foto atau rekaman yang kamu pilih ke penyedia AI untuk dibaca dan diubah jadi draf pengeluaran. Kalau kamu mencatat lewat aplikasi, kamu bisa cek dan edit drafnya sebelum disimpan.',
+  },
+  {
+    title: 'Kalau offline, apa aja yang masih bisa kubuka?',
+    answer:
+      'Kamu bisa baca catatan yang sudah dimuat di perangkat itu. Cashly menyimpan salinan catatan di browser dan membersihkannya saat kamu logout. Untuk masuk, menyimpan transaksi baru, scan struk, atau memproses voice note, kamu tetap perlu internet.',
   },
   {
     title: 'Perlu download Cashly dari App Store atau Play Store?',
     answer:
-      'Nggak perlu. Cashly itu aplikasi web yang bisa langsung kamu pakai dari browser. Biar bukanya lebih sat-set, pasang Cashly di home screen lewat menu browser.',
-  },
-  {
-    title: 'Kalau ganti HP, dataku gimana?',
-    answer:
-      'Di HP baru, buka Cashly pas online dan login pakai akun yang sama. Catatan yang udah tersimpan bisa kamu buka lagi.',
+      'Nggak perlu. Cashly bisa langsung dibuka lewat browser. Kalau mau akses lebih cepat, pilih Tambahkan ke Layar Utama atau Instal aplikasi dari menu browser supaya Cashly bisa dibuka lewat ikonnya.',
   },
 ];
 

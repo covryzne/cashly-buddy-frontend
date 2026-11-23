@@ -220,6 +220,7 @@ for (const width of [360, 390, 1280]) {
         .click();
       const dialog = page.getByRole("dialog", { name: "Review struk" });
       await expect(dialog).toBeVisible();
+      await expect(dialog.getByRole("button", { name: "Kembali", exact: true })).toBeVisible();
       await expect(dialog.locator(".scan-review-total .money")).toHaveText(
         "Rp47.500",
       );
@@ -269,9 +270,9 @@ for (const width of [360, 390, 1280]) {
         .getByRole("button", { name: "Hapus item 5", exact: true })
         .click();
       await dialog.getByRole("button", { name: /Simpan pengeluaran/ }).click();
-      await expect(
-        page.getByRole("dialog", { name: "Konfirmasi pengeluaran" }),
-      ).toBeVisible();
+      const confirmation = page.getByRole("dialog", { name: "Konfirmasi pengeluaran" });
+      await expect(confirmation).toBeVisible();
+      await expect(confirmation.getByRole("button", { name: "Kembali", exact: true })).toHaveCount(0);
       await expect(page.locator(".scan-success-hero")).toContainText(
         "Rp58.000",
       );
@@ -291,10 +292,7 @@ for (const width of [360, 390, 1280]) {
       await page.screenshot({
         path: `test-results/scan-success-${width}-${theme}.png`,
       });
-      await page.getByRole("button", { name: "Kembali", exact: true }).click();
-      await expect(page.getByLabel("Harga satuan item 1")).toHaveValue("10000");
-      await page.getByRole("button", { name: /Simpan pengeluaran/ }).click();
-      await page
+      await confirmation
         .getByRole("button", { name: "Tutup dialog", exact: true })
         .click();
       await expect(page.getByRole("dialog")).toHaveCount(0);

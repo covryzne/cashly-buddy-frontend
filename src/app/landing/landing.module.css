@@ -545,6 +545,46 @@
   padding-top: clamp(4.2rem, 10vw, 8.25rem);
 }
 
+.demoSection {
+  display: grid;
+  justify-items: center;
+  align-items: center;
+  gap: clamp(1.5rem, 5vw, 4rem);
+  max-width: 46rem;
+}
+
+.demoCopy {
+  text-align: center;
+}
+
+.demoCopy h2 {
+  font-size: clamp(1.55rem, 4vw, 2.35rem);
+}
+
+.demoCopy p {
+  margin-top: .65rem;
+  color: var(--landing-muted);
+}
+
+.demoVideo {
+  display: block;
+  width: min(100%, 17rem);
+  height: auto;
+  aspect-ratio: 9 / 16;
+  border-radius: 1.25rem;
+}
+
+@media (min-width: 46rem) {
+  .demoSection {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 17rem);
+  }
+
+  .demoCopy {
+    justify-self: start;
+    text-align: left;
+  }
+}
+
 .splitIntro,
 .centerIntro {
   margin-bottom: clamp(1.3rem, 4vw, 2.1rem);
